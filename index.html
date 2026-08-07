@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- GTYMS Public Website v1.0.2 | Searchable Destination Picker Update -->
+<!-- GTYMS Public Website v2.0.0 | Production Trip Management -->
 <html lang="ne">
 <head>
   <meta charset="UTF-8" />
@@ -1559,31 +1559,178 @@ window.GTYMS_UI = (() => {
   }
 
   function renderTrips(trips) {
-    const grid = document.getElementById("tripGrid");
+    const grid =
+      document.getElementById("tripGrid");
 
     if (!trips.length) {
-      grid.innerHTML = `<div class="empty-card">हाल कुनै खुला यात्रा उपलब्ध छैन ।</div>`;
+      grid.innerHTML =
+        `<div class="empty-card">हाल कुनै खुला यात्रा उपलब्ध छैन ।</div>`;
       return;
     }
 
-    grid.innerHTML = trips.map((trip) => `
-      <article class="card">
-        <img class="card-image"
-          src="${UI.escapeHtml(UI.safeImage(trip.CoverImageURL))}"
-          alt="${UI.escapeHtml(trip.TripTitle || "Trip")}">
-        <div class="card-body">
-          <div class="card-meta">
-            <span class="badge">${UI.escapeHtml(trip.DurationDays || "")} दिन</span>
-            <span class="badge">रु. ${formatMoney(trip.BasePrice)}</span>
+    grid.innerHTML = trips.map((trip) => {
+      const basePrice =
+        Number(trip.BasePrice || 0);
+
+      const effectivePrice =
+        Number(
+          trip.EffectivePrice ||
+          trip.OfferPrice ||
+          basePrice ||
+          0
+        );
+
+      const hasOffer =
+        effectivePrice > 0 &&
+        basePrice > effectivePrice;
+
+      const available =
+        trip.AvailableSeats;
+
+      const capacity =
+        Number(trip.TotalSeatCapacity || 0);
+
+      const seatText =
+        available === null ||
+        available === "" ||
+        capacity <= 0
+          ? "सिट जानकारी सम्पर्क गर्नुहोस्"
+          : `${available} सिट बाँकी`;
+
+      const registration =
+        String(
+          trip.RegistrationState ||
+          trip.TripStatus ||
+          ""
+        ).toUpperCase();
+
+      const canRegister =
+        [
+          "PUBLISHED",
+          "REGISTRATION_OPEN"
+        ].includes(registration);
+
+      const isWaitlist =
+        registration === "WAITLIST";
+
+      const insurance =
+        trip.InsuranceIncluded === true ||
+        String(
+          trip.InsuranceIncluded
+        ).toUpperCase() === "TRUE";
+
+      return `
+        <article class="card">
+          <img
+            class="card-image"
+            src="${UI.escapeHtml(
+              UI.safeImage(
+                trip.CoverImageURL
+              )
+            )}"
+            alt="${UI.escapeHtml(
+              trip.TripTitle || "Trip"
+            )}"
+          >
+
+          <div class="card-body">
+            <div class="card-meta">
+              <span class="badge">
+                ${UI.escapeHtml(
+                  trip.DurationDays || ""
+                )} दिन
+              </span>
+
+              <span class="badge">
+                ${UI.escapeHtml(seatText)}
+              </span>
+
+              ${
+                insurance
+                  ? `<span class="badge">बिमा सहित</span>`
+                  : ""
+              }
+            </div>
+
+            <h3>
+              ${UI.escapeHtml(
+                trip.TripTitle || ""
+              )}
+            </h3>
+
+            <p>
+              ${UI.escapeHtml(
+                trip.ShortDescription || ""
+              )}
+            </p>
+
+            <div style="margin-top:12px">
+              ${
+                hasOffer
+                  ? `<small style="text-decoration:line-through;color:#7b6d64">
+                      रु. ${formatMoney(basePrice)}
+                    </small><br>`
+                  : ""
+              }
+
+              <strong style="font-size:1.2rem;color:var(--primary)">
+                रु. ${formatMoney(effectivePrice)}
+              </strong>
+            </div>
+
+            <div class="card-actions">
+              <button
+                class="btn btn-primary trip-register-btn"
+                data-id="${UI.escapeHtml(
+                  trip.TripID || ""
+                )}"
+                data-title="${UI.escapeHtml(
+                  trip.TripTitle || ""
+                )}"
+                ${
+                  !canRegister && !isWaitlist
+                    ? "disabled"
+                    : ""
+                }
+              >
+                ${
+                  isWaitlist
+                    ? "Waiting List सोधपुछ"
+                    : canRegister
+                      ? "Register Now"
+                      : "Registration बन्द"
+                }
+              </button>
+            </div>
           </div>
-          <h3>${UI.escapeHtml(trip.TripTitle || "")}</h3>
-          <p>${UI.escapeHtml(trip.ShortDescription || "")}</p>
-          <div class="card-actions">
-            <a class="btn btn-primary" href="#contact">बुकिङ सोधपुछ</a>
-          </div>
-        </div>
-      </article>
-    `).join("");
+        </article>
+      `;
+    }).join("");
+
+    grid.querySelectorAll(
+      ".trip-register-btn"
+    ).forEach((button) => {
+      button.addEventListener("click", () => {
+        const subject =
+          document.getElementById(
+            "contactSubject"
+          );
+
+        if (subject) {
+          subject.value =
+            `${button.dataset.title || "यात्रा"} सम्बन्धी बुकिङ सोधपुछ`;
+        }
+
+        document.getElementById("contact")
+          ?.scrollIntoView({
+            behavior: "smooth"
+          });
+
+        document.getElementById(
+          "contactName"
+        )?.focus();
+      });
+    });
   }
 
   function renderDestinations(destinations) {
