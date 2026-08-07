@@ -66,7 +66,7 @@
 
   <div id="adminApp" class="admin-layout hidden">
     <aside id="sidebar" class="sidebar">
-      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v1.1.0</small></div>
+      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v1.1.1</small></div>
       <nav class="nav">
         <button data-view="dashboard" class="active">▦ Dashboard</button>
         <button data-view="sliders">▣ Slider Manager</button>
@@ -133,20 +133,90 @@
     function esc(v=""){return String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;")}
     function money(v){return new Intl.NumberFormat("en-IN",{maximumFractionDigits:0}).format(Number(v||0))}
 
-    async function api(action,payload={},method="GET"){
-      try{
-        let r;
-        const data={action,...payload};
-        if(method==="POST"){
-          r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(data)});
-        }else{
-          const u=new URL(API_URL);Object.entries(data).forEach(([k,v])=>{if(v!==""&&v!==undefined&&v!==null)u.searchParams.set(k,v)});
-          r=await fetch(u.toString());
+    async function api(action, payload = {}, method = "GET") {
+      try {
+        let response;
+        const data = { action, ...payload };
+
+        if (method === "POST") {
+          response = await fetch(API_URL, {
+            method: "POST",
+            headers: {
+              "Content-Type": "text/plain;charset=utf-8"
+            },
+            body: JSON.stringify(data)
+          });
+        } else {
+          const url = new URL(API_URL);
+
+          Object.entries(data).forEach(([key, value]) => {
+            if (
+              value !== "" &&
+              value !== undefined &&
+              value !== null
+            ) {
+              url.searchParams.set(key, value);
+            }
+          });
+
+          response = await fetch(url.toString());
         }
-        const j=await r.json();
-        if(!j.success) throw new Error(j?.error?.message||"अनुरोध पूरा हुन सकेन ।");
-        return j.data;
-      }catch(e){console.error(e);throw new Error(e.message||"हाल अनुरोध पूरा हुन सकेन ।");}
+
+        const result = await response.json();
+
+        if (!result.success) {
+          const err = new Error(
+            result?.error?.message ||
+            "अनुरोध पूरा हुन सकेन ।"
+          );
+          err.code = result?.error?.code || "";
+          err.status = result?.error?.status || 0;
+          throw err;
+        }
+
+        return result.data;
+
+      } catch (error) {
+        console.error("GTYMS Admin API Error:", error);
+
+        if (!error.code) {
+          const err = new Error(
+            "हाल अनुरोध पूरा हुन सकेन । कृपया केही समयपछि पुनः प्रयास गर्नुहोस् ।"
+          );
+          err.code = "NETWORK_OR_SERVER_ERROR";
+          throw err;
+        }
+
+        throw error;
+      }
+    }
+
+    function handleAdminApiError(error) {
+      const code = String(error?.code || "");
+
+      if (
+        code === "ADMIN_AUTH_REQUIRED" ||
+        code === "ADMIN_SESSION_EXPIRED"
+      ) {
+        sessionStorage.removeItem("gtymsAdminToken");
+        state.token = "";
+        toast(
+          error?.message ||
+          "Admin session समाप्त भयो । फेरि Login गर्नुहोस् ।",
+          "error"
+        );
+
+        setTimeout(() => location.reload(), 600);
+        return true;
+      }
+
+      toast(
+        error?.message ||
+        "हाल अनुरोध पूरा हुन सकेन ।",
+        "error"
+      );
+
+      return false;
     }
 
     $("loginForm").addEventListener("submit",async e=>{
@@ -155,12 +225,29 @@
         const data=await api("adminLogin",{username:$("loginUsername").value.trim(),password:$("loginPassword").value},"POST");
         state.token=data.token;state.admin=data.admin;sessionStorage.setItem("gtymsAdminToken",state.token);
         openApp();await openView("dashboard");toast("Login सफल भयो ।");
-      }catch(err){toast(err.message,"error")}finally{hideLoading()}
+      } catch (err) {
+        toast(err.message || "Username वा Password मिलेन ।", "error");
+      } finally {
+        hideLoading();
+      }
     });
 
-    $("logoutBtn").addEventListener("click",async()=>{
-      try{if(state.token)await api("adminLogout",{token:state.token},"POST")}catch(e){}
-      sessionStorage.removeItem("gtymsAdminToken");state.token="";location.reload();
+    $("logoutBtn").addEventListener("click", async () => {
+      try {
+        if (state.token) {
+          await api(
+            "adminLogout",
+            { token: state.token },
+            "POST"
+          );
+        }
+      } catch (e) {
+        console.warn("Logout API warning:", e);
+      }
+
+      sessionStorage.removeItem("gtymsAdminToken");
+      state.token = "";
+      location.reload();
     });
 
     document.querySelectorAll(".nav button").forEach(b=>b.addEventListener("click",()=>{openView(b.dataset.view);$("sidebar").classList.remove("open")}));
@@ -179,10 +266,11 @@
       showLoading();
       try{
         if(view==="dashboard")await renderDashboard();else await renderModule(view);
-      }catch(e){
-        if(/session|login/i.test(e.message)){sessionStorage.removeItem("gtymsAdminToken");location.reload();return}
-        toast(e.message,"error");
-      }finally{hideLoading()}
+      } catch (e) {
+        handleAdminApiError(e);
+      } finally {
+        hideLoading();
+      }
     }
 
     async function renderDashboard(){
@@ -234,7 +322,11 @@
         state.records=data.items||[];
         $("moduleTable").innerHTML=tableHtml(state.records,MODULES[state.view].display,true);
         wireTableActions();
-      }catch(e){toast(e.message,"error")}finally{hideLoading()}
+      } catch (e) {
+        handleAdminApiError(e);
+      } finally {
+        hideLoading();
+      }
     }
 
     function tableHtml(rows,cols,actions){
@@ -273,21 +365,41 @@
       try{
         const r=await api("adminSaveRecord",{token:state.token,module:state.view,record},"POST");
         closeModal();toast(r.mode==="CREATED"?"नयाँ रेकर्ड थपियो ।":"रेकर्ड अपडेट भयो ।");await renderModule(state.view);
-      }catch(err){toast(err.message,"error")}finally{hideLoading()}
+      } catch (err) {
+        handleAdminApiError(err);
+      } finally {
+        hideLoading();
+      }
     });
 
     async function archiveRecord(id){
       if(!confirm("यो रेकर्ड Archive गर्ने हो ?"))return;
       showLoading();
       try{await api("adminArchiveRecord",{token:state.token,module:state.view,id},"POST");toast("रेकर्ड Archive भयो ।");await renderModule(state.view)}
-      catch(e){toast(e.message,"error")}finally{hideLoading()}
+      catch (e) {
+        handleAdminApiError(e);
+      } finally {
+        hideLoading();
+      }
     }
 
     // Restore an existing session if available.
-    (async()=>{
-      if(!state.token)return;
-      try{const d=await api("adminGetDashboard",{token:state.token});state.admin=d.admin;openApp();await openView("dashboard")}
-      catch(e){sessionStorage.removeItem("gtymsAdminToken")}
+    (async () => {
+      if (!state.token) return;
+
+      try {
+        const d = await api(
+          "adminGetDashboard",
+          { token: state.token }
+        );
+
+        state.admin = d.admin;
+        openApp();
+        await openView("dashboard");
+
+      } catch (e) {
+        handleAdminApiError(e);
+      }
     })();
   </script>
 </body>
