@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ne">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <meta name="robots" content="noindex,nofollow">
+  <title>GTYMS Admin Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --primary:#8b1e1e;--primary-dark:#671414;--gold:#d4a017;--ink:#2c1b15;
+      --muted:#786a62;--bg:#f7f3ed;--surface:#fff;--border:#e6d9cc;
+      --success:#157347;--danger:#b42318;--warning:#9a6700;--shadow:0 16px 45px rgba(54,31,19,.12);
+    }
+    *{box-sizing:border-box} body{margin:0;font-family:"Noto Sans Devanagari",system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+    button,input,select,textarea{font:inherit} button{cursor:pointer}
+    .hidden{display:none!important}.shell{min-height:100vh}.login-screen{min-height:100vh;display:grid;place-items:center;padding:24px;
+      background:linear-gradient(135deg,#4b1515,#8b1e1e 58%,#b98615)}
+    .login-card{width:min(440px,100%);background:#fff;border-radius:24px;padding:30px;box-shadow:0 24px 70px rgba(0,0,0,.28)}
+    .logo{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:2rem;margin-bottom:16px;
+      background:linear-gradient(135deg,var(--primary),var(--gold))}
+    h1,h2,h3,p{margin-top:0}.login-card h1{font-size:1.7rem;margin-bottom:4px}.sub{color:var(--muted);margin-bottom:24px}
+    .field{display:grid;gap:7px;margin-bottom:15px}.field label{font-weight:700}.field input,.field select,.field textarea{
+      width:100%;padding:12px 13px;border:1px solid #d7c8ba;border-radius:11px;background:#fff;outline:none}
+    .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--primary);box-shadow:0 0 0 4px rgba(139,30,30,.09)}
+    .btn{border:0;border-radius:11px;padding:11px 16px;font-weight:800}.btn-primary{background:var(--primary);color:#fff}.btn-primary:hover{background:var(--primary-dark)}
+    .btn-soft{background:#f3e8df;color:var(--primary)}.btn-danger{background:#fde3df;color:var(--danger)}.full{width:100%}
+    .admin-layout{display:grid;grid-template-columns:260px 1fr;min-height:100vh}.sidebar{background:#2b1711;color:#fff;padding:22px 16px;position:sticky;top:0;height:100vh}
+    .brand{padding:8px 10px 20px;border-bottom:1px solid rgba(255,255,255,.1);margin-bottom:14px}.brand strong{display:block;font-size:1.08rem}.brand small{color:#cabbb4}
+    .nav{display:grid;gap:6px}.nav button{border:0;background:transparent;color:#eadfd9;text-align:left;padding:11px 12px;border-radius:10px}
+    .nav button:hover,.nav button.active{background:rgba(255,255,255,.1);color:#fff}.sidebar-footer{position:absolute;left:16px;right:16px;bottom:18px;color:#cdbdb4;font-size:.8rem}
+    .main{min-width:0}.topbar{height:72px;display:flex;align-items:center;justify-content:space-between;padding:0 26px;background:#fff;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:20}
+    .topbar h2{margin:0;font-size:1.25rem}.top-actions{display:flex;align-items:center;gap:12px}.admin-name{font-weight:700}
+    .content{padding:26px}.stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:16px;margin-bottom:24px}
+    .stat{background:#fff;border:1px solid var(--border);border-radius:18px;padding:20px;box-shadow:var(--shadow)}.stat small{color:var(--muted)}.stat strong{display:block;font-size:1.8rem;margin-top:7px}
+    .panel{background:#fff;border:1px solid var(--border);border-radius:18px;box-shadow:var(--shadow);overflow:hidden}.panel-head{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:18px 20px;border-bottom:1px solid var(--border)}
+    .panel-head h3{margin:0}.toolbar{display:flex;gap:10px;flex-wrap:wrap}.toolbar input{padding:9px 11px;border:1px solid var(--border);border-radius:10px}
+    .table-wrap{overflow:auto}.table{width:100%;border-collapse:collapse;min-width:760px}.table th,.table td{padding:11px 13px;border-bottom:1px solid #eee5dc;text-align:left;vertical-align:top}.table th{font-size:.82rem;color:#6e5f57;background:#fcfaf7;position:sticky;top:0}
+    .chip{display:inline-flex;padding:4px 8px;border-radius:999px;background:#f0e5dc;color:#7c3028;font-size:.75rem;font-weight:800}.actions{display:flex;gap:7px}
+    .actions button{border:0;border-radius:8px;padding:7px 9px}.empty{padding:40px;text-align:center;color:var(--muted)}
+    .modal{position:fixed;inset:0;z-index:100;background:rgba(22,13,9,.56);display:grid;place-items:center;padding:20px}.modal-card{width:min(900px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:20px;box-shadow:0 30px 90px rgba(0,0,0,.3)}
+    .modal-head{display:flex;justify-content:space-between;align-items:center;padding:18px 20px;border-bottom:1px solid var(--border);position:sticky;top:0;background:#fff;z-index:2}.modal-head h3{margin:0}.close{border:0;background:#f1ebe6;width:38px;height:38px;border-radius:50%}
+    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:20px}.field.full-span{grid-column:1/-1}.modal-actions{display:flex;justify-content:flex-end;gap:10px;padding:16px 20px;border-top:1px solid var(--border);position:sticky;bottom:0;background:#fff}
+    .loading{position:fixed;inset:0;z-index:200;background:rgba(255,255,255,.75);display:grid;place-items:center}.spinner{width:48px;height:48px;border:4px solid #eadcd2;border-top-color:var(--primary);border-radius:50%;animation:spin .8s linear infinite}
+    .toast{position:fixed;right:22px;bottom:22px;z-index:300;max-width:380px;padding:13px 16px;border-radius:11px;color:#fff;background:#2c1b15;box-shadow:var(--shadow)}.toast.error{background:var(--danger)}.toast.success{background:var(--success)}
+    .mobile-menu{display:none;border:0;background:#f4ebe4;border-radius:9px;width:42px;height:42px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @media(max-width:1100px){.stats{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:820px){.admin-layout{grid-template-columns:1fr}.sidebar{position:fixed;z-index:50;left:-280px;width:260px;transition:.2s}.sidebar.open{left:0}.mobile-menu{display:inline-grid;place-items:center}.topbar{padding:0 16px}.content{padding:16px}.stats{grid-template-columns:1fr 1fr}.form-grid{grid-template-columns:1fr}.field.full-span{grid-column:auto}}
+    @media(max-width:520px){.stats{grid-template-columns:1fr}.top-actions .admin-name{display:none}}
+  </style>
+</head>
+<body>
+  <div id="loginScreen" class="login-screen">
+    <form id="loginForm" class="login-card">
+      <div class="logo">ॐ</div>
+      <h1>GTYMS Admin Portal</h1>
+      <p class="sub">Guru Tirtha Yatra Management System</p>
+      <div class="field"><label>Username</label><input id="loginUsername" autocomplete="username" required></div>
+      <div class="field"><label>Password</label><input id="loginPassword" type="password" autocomplete="current-password" required></div>
+      <button class="btn btn-primary full" type="submit">Login</button>
+    </form>
+  </div>
+
+  <div id="adminApp" class="admin-layout hidden">
+    <aside id="sidebar" class="sidebar">
+      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v1.1.0</small></div>
+      <nav class="nav">
+        <button data-view="dashboard" class="active">▦ Dashboard</button>
+        <button data-view="sliders">▣ Slider Manager</button>
+        <button data-view="destinations">⌖ Destination Manager</button>
+        <button data-view="trips">🚌 Trip Manager</button>
+        <button data-view="services">✓ Services Manager</button>
+        <button data-view="library">▤ Digital Library</button>
+        <button data-view="settings">⚙ Settings</button>
+      </nav>
+      <div class="sidebar-footer">Designed & Developed by Nirajan Aryal | 9851113811</div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div style="display:flex;align-items:center;gap:10px">
+          <button id="mobileMenu" class="mobile-menu">☰</button>
+          <h2 id="pageTitle">Dashboard</h2>
+        </div>
+        <div class="top-actions">
+          <span id="adminName" class="admin-name"></span>
+          <button id="logoutBtn" class="btn btn-soft">Logout</button>
+        </div>
+      </header>
+      <section id="content" class="content"></section>
+    </main>
+  </div>
+
+  <div id="recordModal" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-head"><h3 id="modalTitle">रेकर्ड</h3><button id="closeModal" class="close">×</button></div>
+      <form id="recordForm">
+        <div id="recordFields" class="form-grid"></div>
+        <div class="modal-actions"><button type="button" id="cancelModal" class="btn btn-soft">रद्द गर्नुहोस्</button><button class="btn btn-primary" type="submit">Save</button></div>
+      </form>
+    </div>
+  </div>
+
+  <div id="loading" class="loading hidden"><div class="spinner"></div></div>
+  <div id="toast" class="toast hidden"></div>
+
+  <script>
+    // IMPORTANT: current Apps Script Web App URL from GTYMS public site.
+    const API_URL = "https://script.google.com/macros/s/AKfycbzrKZBb_lg8TiI_HHp390Cscr31XWgcnsG0Jp5qFkkpUYaCoin3TLnJ6TY1RDFyRuI2/exec";
+
+    const MODULES = {
+      sliders:{title:"Slider Manager",display:["SliderID","Title","Subtitle","DisplayOrder","Status"]},
+      destinations:{title:"Destination Manager",display:["DestinationID","DestinationName","CategoryID","DistrictCity","Featured","Status"]},
+      trips:{title:"Trip Manager",display:["TripID","TripTitle","StartDate","EndDate","BasePrice","TripStatus"]},
+      services:{title:"Services Manager",display:["ServiceID","ServiceTitle","ApplicableTripType","DisplayOrder","Status"]},
+      library:{title:"Digital Library",display:["LibraryID","Title","ResourceType","AccessLevel","Featured","Status"]},
+      settings:{title:"Settings",display:["SettingKey","SettingValue","Category","IsPublic","Status"]}
+    };
+
+    const TEXTAREA_HINTS = /Description|HTML|Message|Remarks|Notes|Terms|Advice|Attractions|Route|Content/i;
+    const HIDDEN_FORM_FIELDS = /CreatedAt|CreatedBy|UpdatedAt|UpdatedBy|_rowNumber/i;
+    const READONLY_ID_FIELDS = /ID$/;
+
+    const state={token:sessionStorage.getItem("gtymsAdminToken")||"",admin:null,view:"dashboard",schema:null,records:[]};
+
+    const $=id=>document.getElementById(id);
+    const showLoading=()=>$("loading").classList.remove("hidden");
+    const hideLoading=()=>$("loading").classList.add("hidden");
+    function toast(msg,type="success"){const el=$("toast");el.textContent=msg;el.className="toast "+type;el.classList.remove("hidden");clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.add("hidden"),3500)}
+    function esc(v=""){return String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;")}
+    function money(v){return new Intl.NumberFormat("en-IN",{maximumFractionDigits:0}).format(Number(v||0))}
+
+    async function api(action,payload={},method="GET"){
+      try{
+        let r;
+        const data={action,...payload};
+        if(method==="POST"){
+          r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(data)});
+        }else{
+          const u=new URL(API_URL);Object.entries(data).forEach(([k,v])=>{if(v!==""&&v!==undefined&&v!==null)u.searchParams.set(k,v)});
+          r=await fetch(u.toString());
+        }
+        const j=await r.json();
+        if(!j.success) throw new Error(j?.error?.message||"अनुरोध पूरा हुन सकेन ।");
+        return j.data;
+      }catch(e){console.error(e);throw new Error(e.message||"हाल अनुरोध पूरा हुन सकेन ।");}
+    }
+
+    $("loginForm").addEventListener("submit",async e=>{
+      e.preventDefault();showLoading();
+      try{
+        const data=await api("adminLogin",{username:$("loginUsername").value.trim(),password:$("loginPassword").value},"POST");
+        state.token=data.token;state.admin=data.admin;sessionStorage.setItem("gtymsAdminToken",state.token);
+        openApp();await openView("dashboard");toast("Login सफल भयो ।");
+      }catch(err){toast(err.message,"error")}finally{hideLoading()}
+    });
+
+    $("logoutBtn").addEventListener("click",async()=>{
+      try{if(state.token)await api("adminLogout",{token:state.token},"POST")}catch(e){}
+      sessionStorage.removeItem("gtymsAdminToken");state.token="";location.reload();
+    });
+
+    document.querySelectorAll(".nav button").forEach(b=>b.addEventListener("click",()=>{openView(b.dataset.view);$("sidebar").classList.remove("open")}));
+    $("mobileMenu").onclick=()=>$("sidebar").classList.toggle("open");
+    $("closeModal").onclick=closeModal;$("cancelModal").onclick=closeModal;
+
+    function openApp(){
+      $("loginScreen").classList.add("hidden");$("adminApp").classList.remove("hidden");
+      $("adminName").textContent=state.admin?.fullName||"Admin";
+    }
+
+    async function openView(view){
+      state.view=view;
+      document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.view===view));
+      $("pageTitle").textContent=view==="dashboard"?"Dashboard":MODULES[view]?.title||view;
+      showLoading();
+      try{
+        if(view==="dashboard")await renderDashboard();else await renderModule(view);
+      }catch(e){
+        if(/session|login/i.test(e.message)){sessionStorage.removeItem("gtymsAdminToken");location.reload();return}
+        toast(e.message,"error");
+      }finally{hideLoading()}
+    }
+
+    async function renderDashboard(){
+      const d=await api("adminGetDashboard",{token:state.token});
+      state.admin=d.admin;$("adminName").textContent=d.admin.fullName||"Admin";
+      const c=d.cards;
+      $("content").innerHTML=`
+        <div class="stats">
+          <div class="stat"><small>Active Destinations</small><strong>${c.activeDestinations}</strong></div>
+          <div class="stat"><small>Published / Open Trips</small><strong>${c.publishedTrips}</strong></div>
+          <div class="stat"><small>Total Pilgrims</small><strong>${c.totalPilgrims}</strong></div>
+          <div class="stat"><small>Pending Bookings</small><strong>${c.pendingBookings}</strong></div>
+          <div class="stat"><small>Verified Income</small><strong>रु. ${money(c.totalPaid)}</strong></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>Recent Bookings</h3></div>
+          ${tableHtml(d.recentBookings,["BookingCode","PrimaryContactName","PrimaryContactMobile","PassengerCount","PaymentStatus","BookingStatus"],false)}
+        </div>`;
+    }
+
+    async function renderModule(module){
+      const [schema,data]=await Promise.all([
+        api("adminGetSchema",{token:state.token,module}),
+        api("adminListModule",{token:state.token,module,page:1,pageSize:100})
+      ]);
+      state.schema=schema;state.records=data.items||[];
+      $("content").innerHTML=`
+        <div class="panel">
+          <div class="panel-head">
+            <div><h3>${MODULES[module].title}</h3><small>${data.pagination.total} records</small></div>
+            <div class="toolbar">
+              <input id="moduleSearch" placeholder="Search...">
+              <button id="searchBtn" class="btn btn-soft">Search</button>
+              <button id="newBtn" class="btn btn-primary">+ नयाँ थप्नुहोस्</button>
+            </div>
+          </div>
+          <div id="moduleTable">${tableHtml(state.records,MODULES[module].display,true)}</div>
+        </div>`;
+      $("newBtn").onclick=()=>openRecordModal(null);
+      $("searchBtn").onclick=()=>searchModule();
+      $("moduleSearch").addEventListener("keydown",e=>{if(e.key==="Enter")searchModule()});
+      wireTableActions();
+    }
+
+    async function searchModule(){
+      showLoading();
+      try{
+        const data=await api("adminListModule",{token:state.token,module:state.view,search:$("moduleSearch").value,page:1,pageSize:100});
+        state.records=data.items||[];
+        $("moduleTable").innerHTML=tableHtml(state.records,MODULES[state.view].display,true);
+        wireTableActions();
+      }catch(e){toast(e.message,"error")}finally{hideLoading()}
+    }
+
+    function tableHtml(rows,cols,actions){
+      if(!rows?.length)return `<div class="empty">रेकर्ड छैन ।</div>`;
+      return `<div class="table-wrap"><table class="table"><thead><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join("")}${actions?"<th>Action</th>":""}</tr></thead>
+        <tbody>${rows.map(r=>`<tr>${cols.map(c=>`<td>${cell(r[c],c)}</td>`).join("")}${actions?`<td><div class="actions"><button class="editRow" data-id="${esc(r[state.schema?.idField]||"")}">Edit</button>${state.view!=="settings"?`<button class="archiveRow" data-id="${esc(r[state.schema?.idField]||"")}">Archive</button>`:""}</div></td>`:""}</tr>`).join("")}</tbody></table></div>`;
+    }
+    function cell(v,c){if(/Status|Featured|IsPublic|AccessLevel/i.test(c))return `<span class="chip">${esc(v)}</span>`;if(/Amount|Price/i.test(c))return money(v);return esc(v)}
+
+    function wireTableActions(){
+      document.querySelectorAll(".editRow").forEach(b=>b.onclick=()=>{const id=b.dataset.id;openRecordModal(state.records.find(r=>String(r[state.schema.idField])===id))});
+      document.querySelectorAll(".archiveRow").forEach(b=>b.onclick=()=>archiveRecord(b.dataset.id));
+    }
+
+    function openRecordModal(record){
+      const headers=state.schema.headers.filter(h=>h&&!HIDDEN_FORM_FIELDS.test(h));
+      $("modalTitle").textContent=record?"रेकर्ड सम्पादन":"नयाँ रेकर्ड";
+      $("recordFields").innerHTML=headers.map(h=>fieldHtml(h,record?.[h]??"")).join("");
+      $("recordModal").classList.remove("hidden");
+    }
+    function closeModal(){$("recordModal").classList.add("hidden");$("recordFields").innerHTML=""}
+
+    function fieldHtml(h,v){
+      const idField=h===state.schema.idField, cls=TEXTAREA_HINTS.test(h)?"field full-span":"field";
+      const label=`<label>${esc(h)}</label>`;
+      if(TEXTAREA_HINTS.test(h))return `<div class="${cls}">${label}<textarea name="${esc(h)}" rows="${/HTML|Content/i.test(h)?8:4}">${esc(v)}</textarea></div>`;
+      if(/^(Status|TripStatus|BookingStatus|Featured|IsPublic|AccessLevel)$/i.test(h)){
+        return `<div class="${cls}">${label}<input name="${esc(h)}" value="${esc(v)}" ${idField?"readonly":""}></div>`;
+      }
+      return `<div class="${cls}">${label}<input name="${esc(h)}" value="${esc(v)}" ${idField||READONLY_ID_FIELDS.test(h)?"readonly":""}></div>`;
+    }
+
+    $("recordForm").addEventListener("submit",async e=>{
+      e.preventDefault();const fd=new FormData(e.currentTarget),record={};for(const [k,v] of fd.entries())record[k]=v;
+      showLoading();
+      try{
+        const r=await api("adminSaveRecord",{token:state.token,module:state.view,record},"POST");
+        closeModal();toast(r.mode==="CREATED"?"नयाँ रेकर्ड थपियो ।":"रेकर्ड अपडेट भयो ।");await renderModule(state.view);
+      }catch(err){toast(err.message,"error")}finally{hideLoading()}
+    });
+
+    async function archiveRecord(id){
+      if(!confirm("यो रेकर्ड Archive गर्ने हो ?"))return;
+      showLoading();
+      try{await api("adminArchiveRecord",{token:state.token,module:state.view,id},"POST");toast("रेकर्ड Archive भयो ।");await renderModule(state.view)}
+      catch(e){toast(e.message,"error")}finally{hideLoading()}
+    }
+
+    // Restore an existing session if available.
+    (async()=>{
+      if(!state.token)return;
+      try{const d=await api("adminGetDashboard",{token:state.token});state.admin=d.admin;openApp();await openView("dashboard")}
+      catch(e){sessionStorage.removeItem("gtymsAdminToken")}
+    })();
+  </script>
+</body>
+</html>
