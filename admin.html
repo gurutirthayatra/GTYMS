@@ -66,7 +66,15 @@
     @media(max-width:900px){.trip-summary-grid{grid-template-columns:1fr 1fr}.check-grid{grid-template-columns:1fr 1fr}}
     @media(max-width:540px){.trip-summary-grid,.check-grid{grid-template-columns:1fr}}
 
-  </style>
+  
+    .booking-detail-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+    .booking-detail-card{border:1px solid var(--border);border-radius:14px;padding:14px;background:#fcfaf7}
+    .booking-passenger-list{display:grid;gap:12px;margin-top:16px}
+    .booking-passenger-item{border:1px solid var(--border);border-radius:14px;padding:14px}
+    @media(max-width:900px){.booking-detail-grid{grid-template-columns:1fr 1fr}}
+    @media(max-width:540px){.booking-detail-grid{grid-template-columns:1fr}}
+
+</style>
 </head>
 <body>
   <div id="loginScreen" class="login-screen">
@@ -82,12 +90,13 @@
 
   <div id="adminApp" class="admin-layout hidden">
     <aside id="sidebar" class="sidebar">
-      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v2.0.0 • Production</small></div>
+      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v2.1.0 • Production</small></div>
       <nav class="nav">
         <button data-view="dashboard" class="active">▦ Dashboard</button>
         <button data-view="sliders">▣ Slider Manager</button>
         <button data-view="destinations">⌖ Destination Manager</button>
         <button data-view="trips">🚌 Trip Manager</button>
+        <button data-view="bookings">📋 Booking Manager</button>
         <button data-view="services">✓ Services Manager</button>
         <button data-view="library">▤ Digital Library</button>
         <button data-view="settings">⚙ Settings</button>
@@ -120,6 +129,27 @@
     </div>
   </div>
 
+
+  
+  <div id="bookingDetailModal" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3 id="bookingDetailTitle">Booking Details</h3>
+        <button id="closeBookingDetail" class="close" type="button">×</button>
+      </div>
+
+      <div style="padding:20px">
+        <div id="bookingDetailSummary"></div>
+        <div id="bookingPassengerList" class="booking-passenger-list"></div>
+      </div>
+
+      <div class="modal-actions">
+        <button id="bookingWaitlistBtn" type="button" class="btn btn-soft">Waitlist</button>
+        <button id="bookingCancelBtn" type="button" class="btn btn-danger">Cancel</button>
+        <button id="bookingApproveBtn" type="button" class="btn btn-primary">Approve Booking</button>
+      </div>
+    </div>
+  </div>
 
   <div id="tripModal" class="modal hidden">
     <div class="modal-card">
@@ -243,14 +273,15 @@
       trips:{title:"Trip Manager",display:["TripID","TripTitle","StartDate","EndDate","BasePrice","TripStatus"]},
       services:{title:"Services Manager",display:["ServiceID","ServiceTitle","ApplicableTripType","DisplayOrder","Status"]},
       library:{title:"Digital Library",display:["LibraryID","Title","ResourceType","AccessLevel","Featured","Status"]},
-      settings:{title:"Settings",display:["SettingKey","SettingValue","Category","IsPublic","Status"]}
+      settings:{title:"Settings",display:["SettingKey","SettingValue","Category","IsPublic","Status"]},
+      bookings:{title:"Booking Manager",display:["BookingCode","TripTitle","PrimaryContactName","PrimaryContactMobile","PassengerCount","PaymentStatus","BookingStatus"]}
     };
 
     const TEXTAREA_HINTS = /Description|HTML|Message|Remarks|Notes|Terms|Advice|Attractions|Route|Content/i;
     const HIDDEN_FORM_FIELDS = /CreatedAt|CreatedBy|UpdatedAt|UpdatedBy|_rowNumber/i;
     const READONLY_ID_FIELDS = /ID$/;
 
-    const state={token:sessionStorage.getItem("gtymsAdminToken")||"",admin:null,view:"dashboard",schema:null,records:[],tripEditorData:null};
+    const state={token:sessionStorage.getItem("gtymsAdminToken")||"",admin:null,view:"dashboard",schema:null,records:[],tripEditorData:null,currentBookingId:""};
 
     const $=id=>document.getElementById(id);
     const showLoading=()=>$("loading").classList.remove("hidden");
@@ -413,7 +444,7 @@ toast("Login सफल भयो ।");
       $("pageTitle").textContent=view==="dashboard"?"Dashboard":MODULES[view]?.title||view;
       showLoading();
       try{
-        if(view==="dashboard")await renderDashboard();else if(view==="trips")await renderTripManager();else await renderModule(view);
+        if(view==="dashboard")await renderDashboard();else if(view==="trips")await renderTripManager();else if(view==="bookings")await renderBookingManager();else await renderModule(view);
       } catch (e) {
         handleAdminApiError(e);
       } finally {
@@ -463,6 +494,226 @@ toast("Login सफल भयो ।");
       wireTableActions();
     }
 
+
+
+    async function renderBookingManager(){
+      const [dashboard,data]=await Promise.all([
+        api("adminGetBookingDashboard",{token:state.token}),
+        api("adminListBookings",{token:state.token,page:1,pageSize:100})
+      ]);
+
+      state.records=data.items||[];
+      const c=dashboard.cards||{};
+
+      $("content").innerHTML=`
+        <div class="trip-summary-grid">
+          <div class="trip-summary"><small>Total Bookings</small><strong>${c.total||0}</strong></div>
+          <div class="trip-summary"><small>Pending</small><strong>${c.pending||0}</strong></div>
+          <div class="trip-summary"><small>Approved</small><strong>${c.approved||0}</strong></div>
+          <div class="trip-summary"><small>Waiting List</small><strong>${c.waitlist||0}</strong></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div><h3>Booking & Passenger Manager</h3><small>${data.pagination?.total||0} records</small></div>
+            <div class="toolbar">
+              <input id="bookingAdminSearch" placeholder="Booking / Name / Mobile">
+              <select id="bookingStatusFilter">
+                <option value="">All Status</option>
+                <option>PENDING</option>
+                <option>APPROVED</option>
+                <option>WAITLIST</option>
+                <option>CANCELLED</option>
+                <option>COMPLETED</option>
+              </select>
+              <button id="bookingAdminSearchBtn" class="btn btn-soft">Search</button>
+            </div>
+          </div>
+
+          <div id="bookingAdminTable">${bookingAdminTable(state.records)}</div>
+        </div>
+      `;
+
+      $("bookingAdminSearchBtn").onclick=searchAdminBookings;
+      $("bookingAdminSearch").addEventListener("keydown",e=>{
+        if(e.key==="Enter")searchAdminBookings();
+      });
+
+      wireBookingAdminActions();
+    }
+
+    function bookingAdminTable(rows){
+      if(!rows?.length){
+        return `<div class="empty">Booking record छैन ।</div>`;
+      }
+
+      return `<div class="table-wrap"><table class="table">
+        <thead>
+          <tr>
+            <th>Booking</th>
+            <th>Trip</th>
+            <th>Contact</th>
+            <th>Passenger</th>
+            <th>Amount</th>
+            <th>Payment</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map(r=>`
+            <tr>
+              <td><strong>${esc(r.BookingCode||"")}</strong><br><small>${esc(r.CreatedAt||"")}</small></td>
+              <td>${esc(r.TripTitle||r.TripID||"")}</td>
+              <td>${esc(r.PrimaryContactName||"")}<br><small>${esc(r.PrimaryContactMobile||"")}</small></td>
+              <td>${esc(r.PassengerCount||0)}</td>
+              <td>रु. ${money(r.NetAmount||0)}</td>
+              <td><span class="chip">${esc(r.PaymentStatus||"UNPAID")}</span></td>
+              <td><span class="chip">${esc(r.BookingStatus||"PENDING")}</span></td>
+              <td><button class="viewBooking" data-id="${esc(r.BookingID||"")}">View</button></td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table></div>`;
+    }
+
+    function wireBookingAdminActions(){
+      document.querySelectorAll(".viewBooking").forEach(button=>{
+        button.onclick=()=>openBookingDetails(button.dataset.id);
+      });
+    }
+
+    async function searchAdminBookings(){
+      showLoading();
+
+      try{
+        const data=await api(
+          "adminListBookings",
+          {
+            token:state.token,
+            search:$("bookingAdminSearch").value,
+            bookingStatus:$("bookingStatusFilter").value,
+            page:1,
+            pageSize:100
+          }
+        );
+
+        state.records=data.items||[];
+        $("bookingAdminTable").innerHTML=
+          bookingAdminTable(state.records);
+
+        wireBookingAdminActions();
+
+      }catch(error){
+        handleAdminApiError(error);
+      }finally{
+        hideLoading();
+      }
+    }
+
+    async function openBookingDetails(bookingId){
+      showLoading();
+
+      try{
+        const data=await api(
+          "adminGetBookingDetails",
+          {
+            token:state.token,
+            bookingId
+          }
+        );
+
+        state.currentBookingId=bookingId;
+
+        const b=data.booking||{};
+        const t=data.trip||{};
+        const passengers=data.passengers||[];
+
+        $("bookingDetailTitle").textContent=
+          `Booking ${b.BookingCode||bookingId}`;
+
+        $("bookingDetailSummary").innerHTML=`
+          <div class="booking-detail-grid">
+            <div class="booking-detail-card"><small>Trip</small><br><strong>${esc(t.TripTitle||b.TripID||"")}</strong></div>
+            <div class="booking-detail-card"><small>Contact</small><br><strong>${esc(b.PrimaryContactName||"")}</strong><br>${esc(b.PrimaryContactMobile||"")}</div>
+            <div class="booking-detail-card"><small>Passenger</small><br><strong>${esc(b.PassengerCount||0)}</strong></div>
+            <div class="booking-detail-card"><small>Status</small><br><strong>${esc(b.BookingStatus||"")}</strong></div>
+            <div class="booking-detail-card"><small>Total</small><br><strong>रु. ${money(b.NetAmount||0)}</strong></div>
+            <div class="booking-detail-card"><small>Paid</small><br><strong>रु. ${money(b.PaidAmount||0)}</strong></div>
+            <div class="booking-detail-card"><small>Due</small><br><strong>रु. ${money(b.DueAmount||0)}</strong></div>
+            <div class="booking-detail-card"><small>Payment</small><br><strong>${esc(b.PaymentStatus||"UNPAID")}</strong></div>
+          </div>
+        `;
+
+        $("bookingPassengerList").innerHTML=
+          passengers.map((p,index)=>`
+            <div class="booking-passenger-item">
+              <strong>${index+1}. ${esc(p.PassengerName||p.PilgrimID||"Passenger")}</strong><br>
+              <small>
+                ${esc(p.Gender||"")} ${p.Age?`• Age ${esc(p.Age)}`:""} ${p.Mobile?`• ${esc(p.Mobile)}`:""}
+              </small><br>
+              <small>Emergency: ${esc(p.EmergencyContactName||"")} ${esc(p.EmergencyContactMobile||"")}</small><br>
+              <small>Food: ${esc(p.FoodPreference||"")} | Health: ${esc(p.HealthNote||"")}</small>
+            </div>
+          `).join("") ||
+          `<div class="empty">Passenger विवरण छैन ।</div>`;
+
+        $("bookingDetailModal").classList.remove("hidden");
+
+      }catch(error){
+        handleAdminApiError(error);
+      }finally{
+        hideLoading();
+      }
+    }
+
+    function closeBookingDetails(){
+      $("bookingDetailModal").classList.add("hidden");
+      state.currentBookingId="";
+    }
+
+    $("closeBookingDetail").onclick=closeBookingDetails;
+
+    async function changeBookingStatus(status){
+      if(!state.currentBookingId)return;
+
+      const note=prompt(
+        status==="CANCELLED"
+          ? "Cancellation reason लेख्नुहोस्:"
+          : "Admin note (optional):",
+        ""
+      );
+
+      if(status==="CANCELLED" && !note)return;
+
+      showLoading();
+
+      try{
+        await api(
+          "adminSetBookingStatus",
+          {
+            token:state.token,
+            bookingId:state.currentBookingId,
+            bookingStatus:status,
+            note:note||""
+          },
+          "POST"
+        );
+
+        toast(`Booking ${status} भयो ।`);
+        closeBookingDetails();
+        await renderBookingManager();
+
+      }catch(error){
+        handleAdminApiError(error);
+      }finally{
+        hideLoading();
+      }
+    }
+
+    $("bookingApproveBtn").onclick=()=>changeBookingStatus("APPROVED");
+    $("bookingCancelBtn").onclick=()=>changeBookingStatus("CANCELLED");
+    $("bookingWaitlistBtn").onclick=()=>changeBookingStatus("WAITLIST");
 
     async function renderTripManager(){
       const [schema,data,editorData]=await Promise.all([
