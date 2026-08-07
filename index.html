@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- GTYMS Public Website v2.0.0 | Production Trip Management -->
+<!-- GTYMS Public Website v2.1.0 | Production Trip Management -->
 <html lang="ne">
 <head>
   <meta charset="UTF-8" />
@@ -903,7 +903,60 @@ button {
   }
 }
 
-  </style>
+  
+/* GTYMS Booking & Passenger Production v2.1.0 */
+.booking-modal{
+  position:fixed;inset:0;z-index:4000;
+  background:rgba(32,18,12,.72);
+  display:grid;place-items:center;padding:18px;
+}
+.booking-modal[hidden]{display:none}
+.booking-dialog{
+  width:min(980px,100%);max-height:92vh;overflow:auto;
+  background:#fff;border-radius:22px;box-shadow:0 30px 90px rgba(0,0,0,.32)
+}
+.booking-head{
+  position:sticky;top:0;z-index:2;background:#fff;
+  display:flex;align-items:center;justify-content:space-between;
+  gap:16px;padding:18px 22px;border-bottom:1px solid var(--border)
+}
+.booking-head h3{margin:0}
+.booking-close{
+  border:0;width:40px;height:40px;border-radius:50%;
+  background:#f3e8df;font-size:1.35rem
+}
+.booking-body{padding:22px}
+.booking-trip-summary{
+  border:1px solid var(--border);border-radius:16px;
+  background:var(--surface-soft);padding:16px;margin-bottom:18px
+}
+.passenger-card{
+  border:1px solid var(--border);border-radius:16px;
+  padding:16px;margin-top:14px;background:#fff
+}
+.passenger-card-head{
+  display:flex;justify-content:space-between;align-items:center;gap:12px
+}
+.passenger-card-head h4{margin:0}
+.remove-passenger{
+  border:0;border-radius:9px;padding:7px 10px;
+  color:var(--danger);background:#fde7e3
+}
+.booking-actions{
+  display:flex;gap:10px;flex-wrap:wrap;margin-top:18px
+}
+.booking-success{
+  padding:18px;border-radius:14px;background:#edf8f2;color:#155f3b;margin-top:16px
+}
+.booking-status-box{
+  padding:18px;border:1px solid var(--border);border-radius:16px;background:#fff
+}
+@media(max-width:620px){
+  .booking-body{padding:15px}
+  .booking-dialog{border-radius:16px}
+}
+
+</style>
 </head>
 <body>
   <div id="loadingOverlay" class="loading-overlay hidden" aria-live="polite">
@@ -942,6 +995,7 @@ button {
         <a href="#services">हाम्रा सेवाहरू</a>
         <a href="#library">डिजिटल लाइब्रेरी</a>
         <a href="#contact">सम्पर्क</a>
+        <a href="#" id="bookingStatusNav">Booking Status</a>
       </nav>
     </div>
   </header>
@@ -1216,6 +1270,124 @@ button {
       </div>
     </div>
   </footer>
+
+
+  <div id="bookingModal" class="booking-modal" hidden>
+    <div class="booking-dialog">
+      <div class="booking-head">
+        <div>
+          <small>Online Booking</small>
+          <h3 id="bookingTripTitle">यात्रा बुकिङ</h3>
+        </div>
+        <button id="bookingClose" class="booking-close" type="button">×</button>
+      </div>
+
+      <div class="booking-body">
+        <div id="bookingTripSummary" class="booking-trip-summary"></div>
+
+        <form id="productionBookingForm">
+          <input type="hidden" name="tripId" id="bookingTripId">
+
+          <div class="form-grid">
+            <div class="field">
+              <label>Primary Contact Name *</label>
+              <input name="fullName" required>
+            </div>
+
+            <div class="field">
+              <label>Mobile *</label>
+              <input name="mobile" inputmode="tel" required>
+            </div>
+
+            <div class="field">
+              <label>WhatsApp Number</label>
+              <input name="whatsAppNumber" inputmode="tel">
+            </div>
+
+            <div class="field">
+              <label>Email</label>
+              <input name="email" type="email">
+            </div>
+
+            <div class="field full">
+              <label>Boarding Point</label>
+              <input name="boardingPointText" placeholder="जस्तै: गौशाला, काठमाडौँ">
+            </div>
+
+            <div class="field full">
+              <label>Booking Note</label>
+              <textarea name="bookingNote" rows="2"></textarea>
+            </div>
+          </div>
+
+          <div style="margin-top:22px">
+            <div class="section-heading" style="margin-bottom:8px">
+              <div>
+                <span class="eyebrow">Passenger Details</span>
+                <h3 style="margin:4px 0 0">यात्रु विवरण</h3>
+              </div>
+              <button id="addPassengerBtn" type="button" class="btn btn-secondary">
+                + यात्रु थप्नुहोस्
+              </button>
+            </div>
+
+            <div id="passengerContainer"></div>
+          </div>
+
+          <div class="form-grid" style="margin-top:18px">
+            <label class="checkbox-row full">
+              <input type="checkbox" name="insuranceConsent" checked>
+              यात्रु बिमा आवश्यक भएमा विवरण उपलब्ध गराउन सहमत छु ।
+            </label>
+
+            <label class="checkbox-row full">
+              <input type="checkbox" name="healthConsent" checked>
+              यात्राका लागि आवश्यक स्वास्थ्य जानकारी उपलब्ध गराउन सहमत छु ।
+            </label>
+
+            <label class="checkbox-row full">
+              <input type="checkbox" name="whatsAppConsent" checked>
+              Booking तथा यात्रासम्बन्धी WhatsApp सूचना प्राप्त गर्न सहमत छु ।
+            </label>
+
+            <label class="checkbox-row full">
+              <input type="checkbox" name="termsAccepted" required>
+              यात्रा नियम तथा सर्त स्वीकार गर्दछु । *
+            </label>
+          </div>
+
+          <button class="btn btn-primary full-button" type="submit">
+            Booking Request पठाउनुहोस्
+          </button>
+
+          <div id="bookingSuccess" class="booking-success hidden"></div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div id="bookingStatusModal" class="booking-modal" hidden>
+    <div class="booking-dialog" style="width:min(560px,100%)">
+      <div class="booking-head">
+        <h3>Booking Status</h3>
+        <button id="bookingStatusClose" class="booking-close" type="button">×</button>
+      </div>
+      <div class="booking-body">
+        <form id="bookingStatusForm" class="form-grid">
+          <div class="field full">
+            <label>Booking Code</label>
+            <input name="bookingCode" required>
+          </div>
+          <div class="field full">
+            <label>Mobile Number</label>
+            <input name="mobile" required>
+          </div>
+          <button class="btn btn-primary full-button" type="submit">Status हेर्नुहोस्</button>
+        </form>
+        <div id="bookingStatusResult" class="booking-status-box hidden"></div>
+      </div>
+    </div>
+  </div>
 
   <div id="toast" class="toast hidden" role="status"></div>
   <script>
@@ -1711,27 +1883,293 @@ window.GTYMS_UI = (() => {
       ".trip-register-btn"
     ).forEach((button) => {
       button.addEventListener("click", () => {
-        const subject =
-          document.getElementById(
-            "contactSubject"
-          );
-
-        if (subject) {
-          subject.value =
-            `${button.dataset.title || "यात्रा"} सम्बन्धी बुकिङ सोधपुछ`;
-        }
-
-        document.getElementById("contact")
-          ?.scrollIntoView({
-            behavior: "smooth"
-          });
-
-        document.getElementById(
-          "contactName"
-        )?.focus();
+        openProductionBooking(
+          button.dataset.id,
+          button.dataset.title || "यात्रा"
+        );
       });
     });
   }
+
+
+  let bookingTripCache = [];
+  let bookingPassengerCounter = 0;
+
+  async function ensureBookingTripsLoaded() {
+    if (bookingTripCache.length) return bookingTripCache;
+
+    const data = await API.get("getBookingTripOptions");
+    bookingTripCache = data.items || [];
+    return bookingTripCache;
+  }
+
+  async function openProductionBooking(tripId, tripTitle) {
+    try {
+      UI.showLoading("Booking विवरण तयार हुँदैछ...");
+
+      const trips = await ensureBookingTripsLoaded();
+      const trip = trips.find(
+        item => String(item.TripID || "") === String(tripId || "")
+      );
+
+      if (!trip) {
+        throw new Error("यो यात्रा Booking का लागि उपलब्ध छैन ।");
+      }
+
+      document.getElementById("bookingTripId").value = trip.TripID;
+      document.getElementById("bookingTripTitle").textContent =
+        trip.TripTitle || tripTitle || "यात्रा बुकिङ";
+
+      const seats =
+        trip.AvailableSeats === null || trip.AvailableSeats === ""
+          ? "सम्पर्क गर्नुहोस्"
+          : trip.AvailableSeats;
+
+      document.getElementById("bookingTripSummary").innerHTML = `
+        <strong>${UI.escapeHtml(trip.TripTitle || "")}</strong><br>
+        <span>मिति: ${UI.escapeHtml(trip.StartDate || "")}</span><br>
+        <span>प्रति व्यक्ति: रु. ${formatMoney(trip.EffectivePrice || 0)}</span><br>
+        <span>उपलब्ध सिट: ${UI.escapeHtml(seats)}</span>
+      `;
+
+      const form = document.getElementById("productionBookingForm");
+      form.reset();
+      document.getElementById("bookingTripId").value = trip.TripID;
+
+      const container = document.getElementById("passengerContainer");
+      container.innerHTML = "";
+      bookingPassengerCounter = 0;
+      addPassengerCard(true);
+
+      document.getElementById("bookingSuccess").classList.add("hidden");
+      document.getElementById("bookingModal").hidden = false;
+
+    } catch (error) {
+      UI.showToast(error.message || "Booking खोल्न सकिएन ।", "error");
+    } finally {
+      UI.hideLoading();
+    }
+  }
+
+  function closeBookingModal() {
+    document.getElementById("bookingModal").hidden = true;
+  }
+
+  function addPassengerCard(isPrimary = false) {
+    bookingPassengerCounter += 1;
+
+    const container = document.getElementById("passengerContainer");
+    const card = document.createElement("div");
+    card.className = "passenger-card";
+    card.dataset.index = String(bookingPassengerCounter);
+
+    card.innerHTML = `
+      <div class="passenger-card-head">
+        <h4>${isPrimary ? "Primary Passenger" : `Passenger ${bookingPassengerCounter}`}</h4>
+        ${isPrimary ? "" : `<button type="button" class="remove-passenger">हटाउनुहोस्</button>`}
+      </div>
+
+      <div class="form-grid" style="margin-top:12px">
+        <div class="field">
+          <label>Passenger Name *</label>
+          <input data-pfield="passengerName" required>
+        </div>
+
+        <div class="field">
+          <label>Gender</label>
+          <select data-pfield="gender">
+            <option value="">छान्नुहोस्</option>
+            <option value="MALE">पुरुष</option>
+            <option value="FEMALE">महिला</option>
+            <option value="OTHER">अन्य</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Age</label>
+          <input type="number" min="0" max="120" data-pfield="age">
+        </div>
+
+        <div class="field">
+          <label>Mobile</label>
+          <input inputmode="tel" data-pfield="mobile">
+        </div>
+
+        <div class="field">
+          <label>Emergency Contact Name</label>
+          <input data-pfield="emergencyContactName">
+        </div>
+
+        <div class="field">
+          <label>Emergency Contact Mobile</label>
+          <input inputmode="tel" data-pfield="emergencyContactMobile">
+        </div>
+
+        <div class="field">
+          <label>Relation</label>
+          <input data-pfield="emergencyContactRelation">
+        </div>
+
+        <div class="field">
+          <label>Food Preference</label>
+          <select data-pfield="foodPreference">
+            <option value="VEGETARIAN">शाकाहारी</option>
+            <option value="JAIN">जैन भोजन</option>
+            <option value="OTHER">अन्य</option>
+          </select>
+        </div>
+
+        <div class="field full">
+          <label>Health Note / Special Assistance</label>
+          <textarea rows="2" data-pfield="healthNote"></textarea>
+        </div>
+      </div>
+    `;
+
+    card.querySelector(".remove-passenger")?.addEventListener("click", () => {
+      card.remove();
+    });
+
+    container.appendChild(card);
+  }
+
+  function collectPassengerData() {
+    return [...document.querySelectorAll("#passengerContainer .passenger-card")]
+      .map(card => {
+        const passenger = {};
+
+        card.querySelectorAll("[data-pfield]").forEach(field => {
+          passenger[field.dataset.pfield] = field.value;
+        });
+
+        passenger.specialAssistance = passenger.healthNote || "";
+        return passenger;
+      })
+      .filter(p => String(p.passengerName || "").trim());
+  }
+
+  document.getElementById("bookingClose")?.addEventListener(
+    "click",
+    closeBookingModal
+  );
+
+  document.getElementById("addPassengerBtn")?.addEventListener(
+    "click",
+    () => addPassengerCard(false)
+  );
+
+  document.getElementById("productionBookingForm")?.addEventListener(
+    "submit",
+    async event => {
+      event.preventDefault();
+
+      const form = event.currentTarget;
+      const payload = UI.formToObject(form);
+      payload.passengers = collectPassengerData();
+      payload.source = "WEBSITE";
+
+      if (!payload.passengers.length) {
+        UI.showToast("कम्तीमा एक जना यात्रुको नाम राख्नुहोस् ।", "error");
+        return;
+      }
+
+      try {
+        UI.showLoading("Booking Request पठाइँदैछ...");
+
+        const result = await API.post(
+          "createProductionBooking",
+          payload
+        );
+
+        const whatsappText = encodeURIComponent(
+          `नमस्कार Guru Tirtha Yatra Sewa । मेरो Booking Code ${result.bookingCode} हो । ${result.tripTitle || ""} यात्राको Booking सम्बन्धी जानकारी चाहियो ।`
+        );
+
+        const success = document.getElementById("bookingSuccess");
+        success.innerHTML = `
+          <strong>${UI.escapeHtml(result.message || "Booking सफल भयो ।")}</strong><br>
+          Booking Code: <strong>${UI.escapeHtml(result.bookingCode || "")}</strong><br>
+          Passenger: ${UI.escapeHtml(result.passengerCount || 0)}<br>
+          Amount: रु. ${formatMoney(result.netAmount || 0)}
+          ${result.waitlistPosition ? `<br>Waiting List Position: ${UI.escapeHtml(result.waitlistPosition)}` : ""}
+          <div class="booking-actions">
+            <a class="btn btn-secondary"
+              target="_blank"
+              rel="noopener"
+              href="https://wa.me/9779843484934?text=${whatsappText}">
+              WhatsApp Confirmation
+            </a>
+          </div>
+        `;
+        success.classList.remove("hidden");
+
+        UI.showToast("Booking Request सफल भयो ।");
+
+      } catch (error) {
+        UI.showToast(
+          error.message || "Booking Request पठाउन सकिएन ।",
+          "error"
+        );
+      } finally {
+        UI.hideLoading();
+      }
+    }
+  );
+
+  document.getElementById("bookingStatusNav")?.addEventListener(
+    "click",
+    event => {
+      event.preventDefault();
+      document.getElementById("bookingStatusModal").hidden = false;
+    }
+  );
+
+  document.getElementById("bookingStatusClose")?.addEventListener(
+    "click",
+    () => {
+      document.getElementById("bookingStatusModal").hidden = true;
+    }
+  );
+
+  document.getElementById("bookingStatusForm")?.addEventListener(
+    "submit",
+    async event => {
+      event.preventDefault();
+
+      const payload = UI.formToObject(event.currentTarget);
+
+      try {
+        UI.showLoading("Booking Status जाँच हुँदैछ...");
+
+        const result = await API.get(
+          "getBookingStatusPublic",
+          payload
+        );
+
+        const box = document.getElementById("bookingStatusResult");
+        box.innerHTML = `
+          <strong>${UI.escapeHtml(result.tripTitle || "")}</strong><br>
+          Booking Code: ${UI.escapeHtml(result.bookingCode || "")}<br>
+          Booking Status: <strong>${UI.escapeHtml(result.bookingStatus || "")}</strong><br>
+          Payment Status: <strong>${UI.escapeHtml(result.paymentStatus || "")}</strong><br>
+          Passenger: ${UI.escapeHtml(result.passengerCount || 0)}<br>
+          Total: रु. ${formatMoney(result.netAmount || 0)}<br>
+          Paid: रु. ${formatMoney(result.paidAmount || 0)}<br>
+          Due: रु. ${formatMoney(result.dueAmount || 0)}
+          ${result.waitlistPosition ? `<br>Waiting List Position: ${UI.escapeHtml(result.waitlistPosition)}` : ""}
+        `;
+        box.classList.remove("hidden");
+
+      } catch (error) {
+        UI.showToast(
+          error.message || "Booking विवरण भेटिएन ।",
+          "error"
+        );
+      } finally {
+        UI.hideLoading();
+      }
+    }
+  );
 
   function renderDestinations(destinations) {
     const grid = document.getElementById("destinationGrid");
