@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Guru Tirtha Yatra Management System - धार्मिक तथा पर्यटकीय यात्रा व्यवस्थापनका लागि सम्पूर्ण डिजिटल प्रणाली" />
-  <title>Guru Tirtha Yatra Sewa</title>
+  <title>Guru Tirtha Yatra Seva</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -793,8 +793,8 @@ button {
       <div class="container top-strip-inner">
         <span id="topNotice">आस्था, सुरक्षा र सेवासहितको पूर्ण यात्रा</span>
         <div class="top-contact">
-          <a id="topPhoneLink" href="tel:9843484934">📞 9843484934</a>
-          <a id="topWhatsAppLink" href="#" target="_blank" rel="noopener">WhatsApp</a>
+          <a id="topPhoneLink" href="tel:+9779843484934">📞 9843484934</a>
+          <a id="topWhatsAppLink" href="https://wa.me/9779843484934?text=%E0%A4%A8%E0%A4%AE%E0%A4%B8%E0%A5%8D%E0%A4%95%E0%A4%BE%E0%A4%B0%20%E0%A4%97%E0%A5%81%E0%A4%B0%E0%A5%81%20%E0%A4%A4%E0%A5%80%E0%A4%B0%E0%A5%8D%E0%A4%A5%E0%A4%AF%E0%A4%BE%E0%A4%A4%E0%A5%8D%E0%A4%B0%E0%A4%BE%20%E0%A4%B8%E0%A5%87%E0%A4%B5%E0%A4%BE%20%E0%A5%A4" target="_blank" rel="noopener">WhatsApp</a>
         </div>
       </div>
     </div>
@@ -1013,8 +1013,8 @@ button {
           <p id="officeAddress">कार्यालयको ठेगाना Admin Settings बाट देखाइनेछ ।</p>
 
           <div class="contact-actions">
-            <a id="callButton" class="btn btn-primary" href="tel:9843484934">फोन गर्नुहोस्</a>
-            <a id="whatsAppButton" class="btn btn-secondary" href="#" target="_blank" rel="noopener">WhatsApp</a>
+            <a id="callButton" class="btn btn-primary" href="tel:+9779843484934">फोन गर्नुहोस्</a>
+            <a id="whatsAppButton" class="btn btn-secondary" href="https://wa.me/9779843484934?text=%E0%A4%A8%E0%A4%AE%E0%A4%B8%E0%A5%8D%E0%A4%95%E0%A4%BE%E0%A4%B0%20%E0%A4%97%E0%A5%81%E0%A4%B0%E0%A5%81%20%E0%A4%A4%E0%A5%80%E0%A4%B0%E0%A5%8D%E0%A4%A5%E0%A4%AF%E0%A4%BE%E0%A4%A4%E0%A5%8D%E0%A4%B0%E0%A4%BE%20%E0%A4%B8%E0%A5%87%E0%A4%B5%E0%A4%BE%20%E0%A5%A4" target="_blank" rel="noopener">WhatsApp</a>
           </div>
         </div>
 
@@ -1130,13 +1130,13 @@ window.GTYMS_API = (() => {
       const result = await response.json();
 
       if (!result.success) {
-        throw new Error(result?.error?.message || "Server error");
+        throw new Error(result?.error?.message || "हाल जानकारी लोड हुन सकेन । कृपया केही समयपछि पुनः प्रयास गर्नुहोस् ।");
       }
 
       return result.data;
     } catch (error) {
       if (error.name === "AbortError") {
-        throw new Error("सर्भरबाट उत्तर आउन ढिलो भयो। पुनः प्रयास गर्नुहोस् ।");
+        throw new Error("सर्भरबाट उत्तर आउन ढिलो भयो । पुनः प्रयास गर्नुहोस् ।");
       }
       throw error;
     } finally {
@@ -1270,8 +1270,8 @@ window.GTYMS_UI = (() => {
       renderLibrary(homeData.library || []);
       fillDestinationSelect(state.destinations);
     } catch (error) {
-      console.error(error);
-      UI.showToast(error.message, "error");
+      console.error("GTYMS Home Load Error:", error);
+      UI.showToast("हाल जानकारी लोड हुन सकेन । कृपया केही समयपछि पुनः प्रयास गर्नुहोस् ।", "error");
       renderOfflineState();
     } finally {
       UI.hideLoading();
@@ -1289,10 +1289,13 @@ window.GTYMS_UI = (() => {
 
   function applySettings() {
     const companyName = state.settings.COMPANY_NAME || "Guru Tirtha Yatra Seva";
-    const phone = state.settings.SUPPORT_PHONE || "9843484934";
-    const whatsapp = state.settings.WHATSAPP_NUMBER || phone;
-    const footer = state.settings.FOOTER_TEXT ||
-      "Designed & Developed by Nirajan Aryal | 9851113811";
+
+    // Official Guru Tirtha Yatra Seva contact.
+    const phone = "9843484934";
+    const whatsapp = "9779843484934";
+
+    // Developer credit remains separate from company contact.
+    const footer = "Designed & Developed by Nirajan Aryal | 9851113811";
 
     document.getElementById("companyName").textContent = companyName;
     document.getElementById("footerCompany").textContent = companyName;
@@ -1300,8 +1303,9 @@ window.GTYMS_UI = (() => {
     document.getElementById("officeAddress").textContent =
       state.settings.OFFICE_ADDRESS || "कार्यालयको ठेगाना चाँडै अद्यावधिक गरिनेछ ।";
 
-    const callLink = `tel:${phone}`;
-    const whatsAppLink = `https://wa.me/${String(whatsapp).replace(/\D/g, "")}`;
+    const callLink = `tel:+977${phone}`;
+    const whatsAppText = encodeURIComponent("नमस्कार गुरु तीर्थयात्रा सेवा । म यात्रासम्बन्धी जानकारी लिन चाहन्छु ।");
+    const whatsAppLink = `https://wa.me/${whatsapp}?text=${whatsAppText}`;
 
     ["topPhoneLink", "callButton"].forEach((id) => {
       const element = document.getElementById(id);
@@ -1542,9 +1546,9 @@ window.GTYMS_UI = (() => {
 
       state.trips = result.items || [];
       renderTrips(state.trips);
-      UI.showToast("यात्रा विवरण रिफ्रेस भयो।");
+      UI.showToast("यात्रा विवरण रिफ्रेस भयो ।");
     } catch (error) {
-      UI.showToast(error.message, "error");
+      UI.showToast("हाल अनुरोध पूरा हुन सकेन । कृपया केही समयपछि पुनः प्रयास गर्नुहोस् ।", "error");
     } finally {
       UI.hideLoading();
     }
@@ -1581,7 +1585,7 @@ window.GTYMS_UI = (() => {
       document.getElementById("interestCount").value = 1;
       UI.showToast(`विवरण सफलतापूर्वक पठाइयो । ID: ${result.interestId}`);
     } catch (error) {
-      UI.showToast(error.message, "error");
+      UI.showToast("हाल अनुरोध पूरा हुन सकेन । कृपया केही समयपछि पुनः प्रयास गर्नुहोस् ।", "error");
     } finally {
       UI.hideLoading();
     }
@@ -1601,7 +1605,7 @@ window.GTYMS_UI = (() => {
       form.reset();
       UI.showToast(`सन्देश सफलतापूर्वक पठाइयो । ID: ${result.messageId}`);
     } catch (error) {
-      UI.showToast(error.message, "error");
+      UI.showToast("हाल अनुरोध पूरा हुन सकेन । कृपया केही समयपछि पुनः प्रयास गर्नुहोस् ।", "error");
     } finally {
       UI.hideLoading();
     }
