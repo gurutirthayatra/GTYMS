@@ -222,9 +222,31 @@
     $("loginForm").addEventListener("submit",async e=>{
       e.preventDefault();showLoading();
       try{
-        const data=await api("adminLogin",{username:$("loginUsername").value.trim(),password:$("loginPassword").value},"POST");
-        state.token=data.token;state.admin=data.admin;sessionStorage.setItem("gtymsAdminToken",state.token);
-        openApp();await openView("dashboard");toast("Login सफल भयो ।");
+        const data = await api(
+  "adminLogin",
+  {
+    username: $("loginUsername").value.trim(),
+    password: $("loginPassword").value
+  },
+  "POST"
+);
+
+if (!data || !data.token || !data.admin) {
+  throw new Error("Login verification असफल भयो ।");
+}
+
+state.token = data.token;
+state.admin = data.admin;
+
+sessionStorage.setItem(
+  "gtymsAdminToken",
+  state.token
+);
+
+openApp();
+await renderDashboard();
+
+toast("Login सफल भयो ।");
       } catch (err) {
         toast(err.message || "Username वा Password मिलेन ।", "error");
       } finally {
