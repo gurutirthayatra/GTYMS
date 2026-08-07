@@ -831,7 +831,7 @@ button {
           <div class="container hero-content">
             <span class="eyebrow">विश्वासिलो धार्मिक तथा पर्यटकीय यात्रा</span>
             <h1>गुरु तीर्थयात्रा सेवासँग सुरक्षित र व्यवस्थित यात्रा</h1>
-            <p>स्वास्थ्य, बिमा, शुद्ध शाकाहारी भोजन र अनुभवी व्यवस्थापनसहितको यात्रा अनुभव।</p>
+            <p>स्वास्थ्य, बिमा, शुद्ध शाकाहारी भोजन र अनुभवी व्यवस्थापनसहितको यात्रा अनुभव ।</p>
             <div class="hero-actions">
               <a class="btn btn-primary" href="#trips">खुला यात्रा हेर्नुहोस्</a>
               <a class="btn btn-outline-light" href="#interest">आफ्नो गन्तव्य पठाउनुहोस्</a>
@@ -918,10 +918,10 @@ button {
       <div class="container two-column">
         <div>
           <span class="eyebrow light">तपाईंको सुझाव हाम्रो योजना</span>
-          <h2>तपाईं कुन तीर्थस्थल जान चाहनुहुन्छ?</h2>
+          <h2>तपाईं कुन तीर्थस्थल जान चाहनुहुन्छ ?</h2>
           <p>
-            आफू जान चाहेको धार्मिक वा पर्यटकीय गन्तव्यको विवरण पठाउनुहोस्।
-            यात्रुको रुचिअनुसार भविष्यका यात्रा प्याकेज योजना गर्न हामीलाई सहयोग पुग्नेछ।
+            आफू जान चाहेको धार्मिक वा पर्यटकीय गन्तव्यको विवरण पठाउनुहोस् ।
+            यात्रुको रुचिअनुसार भविष्यका यात्रा प्याकेज योजना गर्न हामीलाई सहयोग पुग्नेछ ।
           </p>
         </div>
 
@@ -961,7 +961,7 @@ button {
 
             <label class="checkbox-row full">
               <input type="checkbox" name="whatsAppConsent" checked />
-              नयाँ यात्राको WhatsApp सूचना प्राप्त गर्न चाहन्छु।
+              नयाँ यात्राको WhatsApp सूचना प्राप्त गर्न चाहन्छु ।
             </label>
           </div>
 
@@ -993,14 +993,14 @@ button {
           <span class="eyebrow">सहज भुक्तानी</span>
           <h2>QR मार्फत शुल्क भुक्तानी</h2>
           <p>
-            यात्रा प्याकेज छनोट गरेपछि उपलब्ध QR मार्फत अग्रिम वा पूर्ण शुल्क तिर्न सकिनेछ।
-            भुक्तानी पुष्टि भएपछि डिजिटल टिकट उपलब्ध गराइनेछ।
+            यात्रा प्याकेज छनोट गरेपछि उपलब्ध QR मार्फत अग्रिम वा पूर्ण शुल्क तिर्न सकिनेछ ।
+            भुक्तानी पुष्टि भएपछि डिजिटल टिकट उपलब्ध गराइनेछ ।
           </p>
         </div>
 
         <div id="paymentQrBox" class="qr-placeholder">
           <span>QR Code</span>
-          <small>Admin Settings बाट QR URL राखेपछि यहाँ देखिन्छ।</small>
+          <small>Admin Settings बाट QR URL राखेपछि यहाँ देखिन्छ ।</small>
         </div>
       </div>
     </section>
@@ -1010,7 +1010,7 @@ button {
         <div>
           <span class="eyebrow">सम्पर्क तथा सहायता</span>
           <h2>हामीसँग सम्पर्क गर्नुहोस्</h2>
-          <p id="officeAddress">कार्यालयको ठेगाना Admin Settings बाट देखाइनेछ।</p>
+          <p id="officeAddress">कार्यालयको ठेगाना Admin Settings बाट देखाइनेछ ।</p>
 
           <div class="contact-actions">
             <a id="callButton" class="btn btn-primary" href="tel:9843484934">फोन गर्नुहोस्</a>
@@ -1085,7 +1085,7 @@ window.GTYMS_API = (() => {
 
   function ensureConfigured() {
     if (!config.API_URL || config.API_URL.includes("PASTE_YOUR")) {
-      throw new Error("Apps Script Web App URL config.js मा राखिएको छैन।");
+      throw new Error("Apps Script Web App URL config.js मा राखिएको छैन ।");
     }
   }
 
@@ -1136,7 +1136,7 @@ window.GTYMS_API = (() => {
       return result.data;
     } catch (error) {
       if (error.name === "AbortError") {
-        throw new Error("सर्भरबाट उत्तर आउन ढिलो भयो। पुनः प्रयास गर्नुहोस्।");
+        throw new Error("सर्भरबाट उत्तर आउन ढिलो भयो। पुनः प्रयास गर्नुहोस् ।");
       }
       throw error;
     } finally {
@@ -1298,7 +1298,7 @@ window.GTYMS_UI = (() => {
     document.getElementById("footerCompany").textContent = companyName;
     document.getElementById("footerCredit").textContent = footer;
     document.getElementById("officeAddress").textContent =
-      state.settings.OFFICE_ADDRESS || "कार्यालयको ठेगाना चाँडै अद्यावधिक गरिनेछ।";
+      state.settings.OFFICE_ADDRESS || "कार्यालयको ठेगाना चाँडै अद्यावधिक गरिनेछ ।";
 
     const callLink = `tel:${phone}`;
     const whatsAppLink = `https://wa.me/${String(whatsapp).replace(/\D/g, "")}`;
@@ -1319,7 +1319,7 @@ window.GTYMS_UI = (() => {
     if (qrUrl) {
       document.getElementById("paymentQrBox").innerHTML =
         `<img src="${UI.escapeHtml(qrUrl)}" alt="Payment QR Code">
-         <small>QR स्क्यान गरी शुल्क तिर्नुहोस्।</small>`;
+         <small>QR स्क्यान गरी शुल्क तिर्नुहोस् ।</small>`;
     }
   }
 
@@ -1389,7 +1389,7 @@ window.GTYMS_UI = (() => {
     const grid = document.getElementById("tripGrid");
 
     if (!trips.length) {
-      grid.innerHTML = `<div class="empty-card">हाल कुनै खुला यात्रा उपलब्ध छैन।</div>`;
+      grid.innerHTML = `<div class="empty-card">हाल कुनै खुला यात्रा उपलब्ध छैन ।</div>`;
       return;
     }
 
@@ -1417,7 +1417,7 @@ window.GTYMS_UI = (() => {
     const grid = document.getElementById("destinationGrid");
 
     if (!destinations.length) {
-      grid.innerHTML = `<div class="empty-card">गन्तव्य विवरण चाँडै थपिनेछ।</div>`;
+      grid.innerHTML = `<div class="empty-card">गन्तव्य विवरण चाँडै थपिनेछ ।</div>`;
       return;
     }
 
@@ -1476,22 +1476,22 @@ window.GTYMS_UI = (() => {
       {
         ServiceIcon: "🩺",
         ServiceTitle: "स्वास्थ्यलाई पहिलो प्राथमिकता",
-        ShortDescription: "अक्सिजन, अक्सिमिटर, प्रेसर मेसिन तथा प्राथमिक उपचार सामग्री।"
+        ShortDescription: "अक्सिजन, अक्सिमिटर, प्रेसर मेसिन तथा प्राथमिक उपचार सामग्री ।"
       },
       {
         ServiceIcon: "🛡️",
         ServiceTitle: "यात्रु बिमा",
-        ShortDescription: "लामो दूरीका यात्रामा प्रत्येक यात्रुको बिमाको व्यवस्था।"
+        ShortDescription: "लामो दूरीका यात्रामा प्रत्येक यात्रुको बिमाको व्यवस्था ।"
       },
       {
         ServiceIcon: "🍲",
         ServiceTitle: "शुद्ध शाकाहारी भोजन",
-        ShortDescription: "अनुभवी कुकद्वारा व्यवस्थित भोजन तथा चिया–कफी सेवा।"
+        ShortDescription: "अनुभवी कुकद्वारा व्यवस्थित भोजन तथा चिया–कफी सेवा ।"
       },
       {
         ServiceIcon: "📶",
         ServiceTitle: "Wi-Fi सुविधा",
-        ShortDescription: "सम्भव भएसम्म यात्रामा इन्टरनेट सुविधाको व्यवस्था।"
+        ShortDescription: "सम्भव भएसम्म यात्रामा इन्टरनेट सुविधाको व्यवस्था ।"
       }
     ];
   }
@@ -1500,7 +1500,7 @@ window.GTYMS_UI = (() => {
     const grid = document.getElementById("libraryGrid");
 
     if (!items.length) {
-      grid.innerHTML = `<div class="empty-card">डाउनलोड सामग्री चाँडै उपलब्ध हुनेछ।</div>`;
+      grid.innerHTML = `<div class="empty-card">डाउनलोड सामग्री चाँडै उपलब्ध हुनेछ ।</div>`;
       return;
     }
 
@@ -1579,7 +1579,7 @@ window.GTYMS_UI = (() => {
       const result = await API.post("submitTravelInterest", payload);
       form.reset();
       document.getElementById("interestCount").value = 1;
-      UI.showToast(`विवरण सफलतापूर्वक पठाइयो। ID: ${result.interestId}`);
+      UI.showToast(`विवरण सफलतापूर्वक पठाइयो । ID: ${result.interestId}`);
     } catch (error) {
       UI.showToast(error.message, "error");
     } finally {
@@ -1599,7 +1599,7 @@ window.GTYMS_UI = (() => {
       UI.showLoading("सन्देश पठाइँदैछ...");
       const result = await API.post("submitContactMessage", payload);
       form.reset();
-      UI.showToast(`सन्देश सफलतापूर्वक पठाइयो। ID: ${result.messageId}`);
+      UI.showToast(`सन्देश सफलतापूर्वक पठाइयो । ID: ${result.messageId}`);
     } catch (error) {
       UI.showToast(error.message, "error");
     } finally {
@@ -1610,11 +1610,11 @@ window.GTYMS_UI = (() => {
   function renderOfflineState() {
     renderServices([]);
     document.getElementById("tripGrid").innerHTML =
-      `<div class="empty-card">Apps Script URL राखेपछि यात्रा विवरण देखिन्छ।</div>`;
+      `<div class="empty-card">Apps Script URL राखेपछि यात्रा विवरण देखिन्छ ।</div>`;
     document.getElementById("destinationGrid").innerHTML =
-      `<div class="empty-card">Apps Script URL राखेपछि गन्तव्य विवरण देखिन्छ।</div>`;
+      `<div class="empty-card">Apps Script URL राखेपछि गन्तव्य विवरण देखिन्छ ।</div>`;
     document.getElementById("libraryGrid").innerHTML =
-      `<div class="empty-card">Apps Script URL राखेपछि डिजिटल सामग्री देखिन्छ।</div>`;
+      `<div class="empty-card">Apps Script URL राखेपछि डिजिटल सामग्री देखिन्छ ।</div>`;
   }
 
   function formatMoney(value) {
