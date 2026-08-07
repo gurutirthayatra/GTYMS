@@ -1,10 +1,11 @@
 <!DOCTYPE html>
+<!-- GTYMS Public Website v1.0.2 | Searchable Destination Picker Update -->
 <html lang="ne">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Guru Tirtha Yatra Management System - धार्मिक तथा पर्यटकीय यात्रा व्यवस्थापनका लागि सम्पूर्ण डिजिटल प्रणाली" />
-  <title>Guru Tirtha Yatra Sewa</title>
+  <title>Guru Tirtha Yatra Seva</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -387,6 +388,128 @@ button {
 .field textarea:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 4px rgba(139, 30, 30, 0.1);
+}
+
+
+/* GTYMS Searchable Destination Picker */
+.destination-picker {
+  position: relative;
+  width: 100%;
+}
+
+.destination-picker-button {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid #d9c8b8;
+  border-radius: 12px;
+  background: #fff;
+  padding: 12px 13px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  text-align: left;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.destination-picker-button:focus,
+.destination-picker.open .destination-picker-button {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(139, 30, 30, 0.1);
+  outline: none;
+}
+
+.destination-picker-arrow {
+  flex: 0 0 auto;
+  transition: transform 0.2s ease;
+}
+
+.destination-picker.open .destination-picker-arrow {
+  transform: rotate(180deg);
+}
+
+.destination-picker-panel {
+  position: absolute;
+  z-index: 80;
+  left: 0;
+  right: 0;
+  top: calc(100% + 7px);
+  background: #fff;
+  border: 1px solid #d9c8b8;
+  border-radius: 14px;
+  box-shadow: 0 18px 42px rgba(44, 27, 21, 0.18);
+  padding: 10px;
+}
+
+.destination-picker-panel[hidden] {
+  display: none;
+}
+
+.destination-picker-search {
+  width: 100%;
+  border: 1px solid #d9c8b8;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  outline: none;
+}
+
+.destination-picker-search:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(139, 30, 30, 0.08);
+}
+
+.destination-picker-list {
+  max-height: 280px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 3px;
+}
+
+.destination-option {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  padding: 10px 11px;
+  border-radius: 9px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.destination-option:hover,
+.destination-option:focus {
+  background: #f5ebe4;
+  color: var(--primary-dark);
+  outline: none;
+}
+
+.destination-option.selected {
+  background: #efe0d4;
+  color: var(--primary-dark);
+  font-weight: 800;
+}
+
+.destination-picker-empty {
+  padding: 18px 10px;
+  color: var(--muted);
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .destination-picker-panel {
+    position: fixed;
+    left: 14px;
+    right: 14px;
+    top: auto;
+    bottom: 14px;
+    max-height: 70vh;
+  }
+
+  .destination-picker-list {
+    max-height: 50vh;
+  }
 }
 
 .checkbox-row {
@@ -938,10 +1061,43 @@ button {
             </div>
 
             <div class="field full">
-              <label for="interestDestination">गन्तव्य *</label>
-              <select id="interestDestination" name="destinationId" required>
-                <option value="">गन्तव्य छान्नुहोस्</option>
-              </select>
+              <label for="interestDestinationButton">गन्तव्य *</label>
+
+              <div id="destinationPicker" class="destination-picker">
+                <button
+                  id="interestDestinationButton"
+                  class="destination-picker-button"
+                  type="button"
+                  aria-haspopup="listbox"
+                  aria-expanded="false"
+                >
+                  <span id="interestDestinationLabel">गन्तव्य छान्नुहोस्</span>
+                  <span class="destination-picker-arrow" aria-hidden="true">⌄</span>
+                </button>
+
+                <div id="destinationPickerPanel" class="destination-picker-panel" hidden>
+                  <input
+                    id="destinationSearchInput"
+                    class="destination-picker-search"
+                    type="search"
+                    placeholder="गन्तव्य खोज्नुहोस्..."
+                    autocomplete="off"
+                  />
+                  <div
+                    id="destinationOptions"
+                    class="destination-picker-list"
+                    role="listbox"
+                    aria-label="गन्तव्य सूची"
+                  ></div>
+                </div>
+
+                <input
+                  id="interestDestination"
+                  name="destinationId"
+                  type="hidden"
+                  value=""
+                />
+              </div>
             </div>
 
             <div class="field">
@@ -1050,12 +1206,12 @@ button {
   <footer class="site-footer">
     <div class="container footer-inner">
       <div>
-        <strong id="footerCompany">Guru Tirtha Yatra Sewa</strong>
+        <strong id="footerCompany">Guru Tirtha Yatra Seva</strong>
         <p>धार्मिक तथा पर्यटकीय यात्रा व्यवस्थापनका लागि सम्पूर्ण डिजिटल प्रणाली</p>
       </div>
 
       <div class="footer-credit">
-        <p>© <span id="currentYear"></span> Guru Tirtha Yatra Sewa. All Rights Reserved.</p>
+        <p>© <span id="currentYear"></span> Guru Tirtha Yatra Seva. All Rights Reserved.</p>
         <strong id="footerCredit">Designed & Developed by Nirajan Aryal | 9851113811</strong>
       </div>
     </div>
@@ -1075,7 +1231,7 @@ window.GTYMS_CONFIG = Object.freeze({
   API_URL: "https://script.google.com/macros/s/AKfycbzrKZBb_lg8TiI_HHp390Cscr31XWgcnsG0Jp5qFkkpUYaCoin3TLnJ6TY1RDFyRuI2/exec",
   REQUEST_TIMEOUT_MS: 20000,
   SLIDER_INTERVAL_MS: 5500,
-  DEFAULT_IMAGE: "data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%221200%22%20height%3D%22750%22%20viewBox%3D%220%200%201200%20750%22%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20x2%3D%221%22%20y1%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%236b1717%22/%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23d4a017%22/%3E%0A%20%20%20%20%3C/linearGradient%3E%0A%20%20%3C/defs%3E%0A%20%20%3Crect%20width%3D%221200%22%20height%3D%22750%22%20fill%3D%22url%28%23g%29%22/%3E%0A%20%20%3Ccircle%20cx%3D%22600%22%20cy%3D%22300%22%20r%3D%22115%22%20fill%3D%22rgba%28255%2C255%2C255%2C.16%29%22/%3E%0A%20%20%3Ctext%20x%3D%22600%22%20y%3D%22335%22%20text-anchor%3D%22middle%22%20font-size%3D%22130%22%20fill%3D%22%23fff%22%3E%E0%A5%90%3C/text%3E%0A%20%20%3Ctext%20x%3D%22600%22%20y%3D%22500%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2Csans-serif%22%20font-size%3D%2248%22%20fill%3D%22%23fff%22%3E%0A%20%20%20%20Guru%20Tirtha%20Yatra%20Sewa%0A%20%20%3C/text%3E%0A%3C/svg%3E%0A"
+  DEFAULT_IMAGE: "data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%221200%22%20height%3D%22750%22%20viewBox%3D%220%200%201200%20750%22%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20x2%3D%221%22%20y1%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%236b1717%22/%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23d4a017%22/%3E%0A%20%20%20%20%3C/linearGradient%3E%0A%20%20%3C/defs%3E%0A%20%20%3Crect%20width%3D%221200%22%20height%3D%22750%22%20fill%3D%22url%28%23g%29%22/%3E%0A%20%20%3Ccircle%20cx%3D%22600%22%20cy%3D%22300%22%20r%3D%22115%22%20fill%3D%22rgba%28255%2C255%2C255%2C.16%29%22/%3E%0A%20%20%3Ctext%20x%3D%22600%22%20y%3D%22335%22%20text-anchor%3D%22middle%22%20font-size%3D%22130%22%20fill%3D%22%23fff%22%3E%E0%A5%90%3C/text%3E%0A%20%20%3Ctext%20x%3D%22600%22%20y%3D%22500%22%20text-anchor%3D%22middle%22%20font-family%3D%22Arial%2Csans-serif%22%20font-size%3D%2248%22%20fill%3D%22%23fff%22%3E%0A%20%20%20%20Guru%20Tirtha%20Yatra%20Seva%0A%20%20%3C/text%3E%0A%3C/svg%3E%0A"
 });
 
   </script>
@@ -1243,6 +1399,7 @@ window.GTYMS_UI = (() => {
     settings: {},
     sliders: [],
     destinations: [],
+    allDestinations: [],
     trips: [],
     currentSlide: 0,
     sliderTimer: null
@@ -1255,11 +1412,21 @@ window.GTYMS_UI = (() => {
 
     try {
       UI.showLoading("वेबसाइटको जानकारी लोड हुँदैछ...");
-      const homeData = await API.get("getHomeData");
+
+      const [homeData, allDestinationData] = await Promise.all([
+        API.get("getHomeData"),
+        API.get("getDestinations", {
+          page: 1,
+          pageSize: 100,
+          sortField: "DisplayOrder",
+          sortDirection: "asc"
+        })
+      ]);
 
       state.settings = homeData.settings || {};
       state.sliders = homeData.sliders || [];
       state.destinations = homeData.featuredDestinations || [];
+      state.allDestinations = allDestinationData.items || [];
       state.trips = homeData.openTrips || [];
 
       applySettings();
@@ -1268,7 +1435,9 @@ window.GTYMS_UI = (() => {
       renderDestinations(state.destinations);
       renderServices(homeData.services || []);
       renderLibrary(homeData.library || []);
-      fillDestinationSelect(state.destinations);
+
+      // Form dropdown uses ALL ACTIVE destinations, not only Featured destinations.
+      fillDestinationSelect(state.allDestinations);
     } catch (error) {
       console.error("GTYMS Home Load Error:", error);
       UI.showToast("हाल जानकारी लोड हुन सकेन । कृपया केही समयपछि पुनः प्रयास गर्नुहोस् ।", "error");
@@ -1288,9 +1457,9 @@ window.GTYMS_UI = (() => {
   }
 
   function applySettings() {
-    const companyName = state.settings.COMPANY_NAME || "Guru Tirtha Yatra Sewa";
+    const companyName = state.settings.COMPANY_NAME || "Guru Tirtha Yatra Seva";
 
-    // Official Guru Tirtha Yatra Sewa contact.
+    // Official Guru Tirtha Yatra Seva contact.
     const phone = "9843484934";
     const whatsapp = "9779843484934";
 
@@ -1523,16 +1692,124 @@ window.GTYMS_UI = (() => {
   }
 
   function fillDestinationSelect(destinations) {
-    const select = document.getElementById("interestDestination");
+    const picker = document.getElementById("destinationPicker");
+    const button = document.getElementById("interestDestinationButton");
+    const panel = document.getElementById("destinationPickerPanel");
+    const searchInput = document.getElementById("destinationSearchInput");
+    const optionsBox = document.getElementById("destinationOptions");
+    const hiddenInput = document.getElementById("interestDestination");
+    const label = document.getElementById("interestDestinationLabel");
 
-    select.innerHTML = `
-      <option value="">गन्तव्य छान्नुहोस्</option>
-      ${destinations.map((item) => `
-        <option value="${UI.escapeHtml(item.DestinationID || "")}">
-          ${UI.escapeHtml(item.DestinationName || "")}
-        </option>
-      `).join("")}
-    `;
+    if (!picker || !button || !panel || !searchInput || !optionsBox || !hiddenInput || !label) {
+      return;
+    }
+
+    const cleanDestinations = (destinations || [])
+      .filter((item) => item && item.DestinationID && item.DestinationName);
+
+    function closePicker() {
+      picker.classList.remove("open");
+      panel.hidden = true;
+      button.setAttribute("aria-expanded", "false");
+    }
+
+    function openPicker() {
+      picker.classList.add("open");
+      panel.hidden = false;
+      button.setAttribute("aria-expanded", "true");
+      searchInput.value = "";
+      renderOptions(cleanDestinations);
+      window.setTimeout(() => searchInput.focus(), 0);
+    }
+
+    function selectDestination(item) {
+      hiddenInput.value = item.DestinationID || "";
+      label.textContent = item.DestinationName || "गन्तव्य छान्नुहोस्";
+      closePicker();
+    }
+
+    function renderOptions(items) {
+      if (!items.length) {
+        optionsBox.innerHTML =
+          `<div class="destination-picker-empty">मिल्दो गन्तव्य भेटिएन ।</div>`;
+        return;
+      }
+
+      optionsBox.innerHTML = items.map((item) => {
+        const selected = String(hiddenInput.value) === String(item.DestinationID || "");
+        return `
+          <button
+            type="button"
+            class="destination-option${selected ? " selected" : ""}"
+            data-destination-id="${UI.escapeHtml(item.DestinationID || "")}"
+            role="option"
+            aria-selected="${selected ? "true" : "false"}"
+          >
+            ${UI.escapeHtml(item.DestinationName || "")}
+          </button>
+        `;
+      }).join("");
+
+      optionsBox.querySelectorAll(".destination-option").forEach((option) => {
+        option.addEventListener("click", () => {
+          const id = option.dataset.destinationId || "";
+          const item = cleanDestinations.find(
+            (destination) => String(destination.DestinationID || "") === String(id)
+          );
+          if (item) selectDestination(item);
+        });
+      });
+    }
+
+    button.onclick = () => {
+      if (panel.hidden) openPicker();
+      else closePicker();
+    };
+
+    searchInput.oninput = () => {
+      const keyword = String(searchInput.value || "").trim().toLowerCase();
+
+      const filtered = !keyword
+        ? cleanDestinations
+        : cleanDestinations.filter((item) =>
+            String(item.DestinationName || "").toLowerCase().includes(keyword) ||
+            String(item.DistrictCity || "").toLowerCase().includes(keyword) ||
+            String(item.Country || "").toLowerCase().includes(keyword)
+          );
+
+      renderOptions(filtered);
+    };
+
+    searchInput.onkeydown = (event) => {
+      if (event.key === "Escape") {
+        closePicker();
+        button.focus();
+      }
+    };
+
+    document.addEventListener("click", (event) => {
+      if (!picker.contains(event.target)) {
+        closePicker();
+      }
+    });
+
+    renderOptions(cleanDestinations);
+  }
+
+  function resetDestinationPicker() {
+    const hiddenInput = document.getElementById("interestDestination");
+    const label = document.getElementById("interestDestinationLabel");
+    const searchInput = document.getElementById("destinationSearchInput");
+    const panel = document.getElementById("destinationPickerPanel");
+    const picker = document.getElementById("destinationPicker");
+    const button = document.getElementById("interestDestinationButton");
+
+    if (hiddenInput) hiddenInput.value = "";
+    if (label) label.textContent = "गन्तव्य छान्नुहोस्";
+    if (searchInput) searchInput.value = "";
+    if (panel) panel.hidden = true;
+    if (picker) picker.classList.remove("open");
+    if (button) button.setAttribute("aria-expanded", "false");
   }
 
   async function refreshTrips() {
@@ -1578,10 +1855,17 @@ window.GTYMS_UI = (() => {
     const form = event.currentTarget;
     const payload = UI.formToObject(form);
 
+    if (!payload.destinationId) {
+      UI.showToast("कृपया गन्तव्य छान्नुहोस् ।", "error");
+      document.getElementById("interestDestinationButton")?.focus();
+      return;
+    }
+
     try {
       UI.showLoading("तपाईंको विवरण पठाइँदैछ...");
       const result = await API.post("submitTravelInterest", payload);
       form.reset();
+      resetDestinationPicker();
       document.getElementById("interestCount").value = 1;
       UI.showToast(`विवरण सफलतापूर्वक पठाइयो । ID: ${result.interestId}`);
     } catch (error) {
