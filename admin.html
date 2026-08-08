@@ -252,6 +252,43 @@
       }
     }
 
+
+    .reward-rule-grid{
+      display:grid;
+      grid-template-columns:repeat(4,minmax(0,1fr));
+      gap:12px;
+      margin-bottom:16px;
+    }
+
+    .reward-rule-stat{
+      border:1px solid var(--border);
+      background:#fffaf5;
+      border-radius:14px;
+      padding:14px;
+    }
+
+    .reward-rule-stat small{
+      display:block;
+      color:var(--muted);
+      margin-bottom:4px;
+    }
+
+    .reward-rule-stat strong{
+      font-size:1.15rem;
+    }
+
+    @media(max-width:900px){
+      .reward-rule-grid{
+        grid-template-columns:1fr 1fr;
+      }
+    }
+
+    @media(max-width:540px){
+      .reward-rule-grid{
+        grid-template-columns:1fr;
+      }
+    }
+
 </style>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
@@ -269,11 +306,12 @@
 
   <div id="adminApp" class="admin-layout hidden">
     <aside id="sidebar" class="sidebar">
-      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v2.8.0 • Production</small></div>
+      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v2.9.0 • Production</small></div>
       <nav class="nav">
         <button data-view="dashboard" class="active">▦ Dashboard</button>
         <button data-view="launcher">🔗 System Launcher</button>
         <button data-view="members">👤 Pilgrim & Rewards</button>
+        <button data-view="rewardengine">🎁 Automatic Rewards</button>
         <button data-view="sliders">▣ Slider Manager</button>
         <button data-view="destinations">⌖ Destination Manager</button>
         <button data-view="trips">🚌 Trip Manager</button>
@@ -499,7 +537,8 @@
       fleet:{title:"Fleet & Tracking",display:["TripTitle","VehicleNumber","DriverName","TrackingStatus"]},
       fieldops:{title:"QR Check-In & Field Ops",display:["PassengerName","BookingCode","TicketCode","BusID","SeatID","CheckInStatus"]},
       launcher:{title:"System Launcher",display:["ModuleName","URL","Role","Status","DisplayOrder"]},
-      members:{title:"Pilgrim & Rewards",display:["MembershipNo","FullName","MobilePrimary","MembershipLevel","RewardPoints","Status"]}
+      members:{title:"Pilgrim & Rewards",display:["MembershipNo","FullName","MobilePrimary","MembershipLevel","RewardPoints","Status"]},
+      rewardengine:{title:"Automatic Reward Engine",display:["RuleCode","RuleName","RuleType","Points","Status"]}
     };
 
     const TEXTAREA_HINTS = /Description|HTML|Message|Remarks|Notes|Terms|Advice|Attractions|Route|Content/i;
@@ -669,7 +708,7 @@ toast("Login सफल भयो ।");
       $("pageTitle").textContent=view==="dashboard"?"Dashboard":MODULES[view]?.title||view;
       showLoading();
       try{
-        if(view==="dashboard")await renderDashboard();else if(view==="launcher")await renderSystemLauncher();else if(view==="members")await renderMemberRewardsManager();else if(view==="trips")await renderTripManager();else if(view==="bookings")await renderBookingManager();else if(view==="payments")await renderPaymentManager();else if(view==="tickets")await renderTicketManager();else if(view==="fleet")await renderFleetManager();else if(view==="fieldops")await renderFieldOpsManager();else await renderModule(view);
+        if(view==="dashboard")await renderDashboard();else if(view==="launcher")await renderSystemLauncher();else if(view==="members")await renderMemberRewardsManager();else if(view==="rewardengine")await renderRewardEngineManager();else if(view==="trips")await renderTripManager();else if(view==="bookings")await renderBookingManager();else if(view==="payments")await renderPaymentManager();else if(view==="tickets")await renderTicketManager();else if(view==="fleet")await renderFleetManager();else if(view==="fieldops")await renderFieldOpsManager();else await renderModule(view);
       } catch (e) {
         handleAdminApiError(e);
       } finally {
@@ -729,6 +768,438 @@ toast("Login सफल भयो ।");
     let fieldLastScanToken="";
     let fieldScanLocked=false;
 
+
+
+
+    async function renderRewardEngineManager(){
+      const [dashboard,rulesData]=
+        await Promise.all([
+          api(
+            "adminGetRewardEngineDashboard",
+            {token:state.token}
+          ),
+
+          api(
+            "adminListRewardRules",
+            {token:state.token}
+          )
+        ]);
+
+      state.rewardRules=
+        rulesData.items||[];
+
+      const c=
+        dashboard.cards||{};
+
+      $("content").innerHTML=`
+        <div class="reward-rule-grid">
+          <div class="reward-rule-stat">
+            <small>Active Rules</small>
+            <strong>${c.activeRules||0}</strong>
+          </div>
+
+          <div class="reward-rule-stat">
+            <small>Total Rules</small>
+            <strong>${c.totalRules||0}</strong>
+          </div>
+
+          <div class="reward-rule-stat">
+            <small>Auto Transactions</small>
+            <strong>${c.autoTransactions||0}</strong>
+          </div>
+
+          <div class="reward-rule-stat">
+            <small>Net Auto Points</small>
+            <strong>${c.totalAutoPoints||0}</strong>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-bottom:18px">
+          <div class="panel-head">
+            <div>
+              <h3>Automatic Reward Rules</h3>
+              <small>
+                Google Sheet controlled reward policy
+              </small>
+            </div>
+
+            <div class="toolbar">
+              <button
+                id="addRewardRuleBtn"
+                class="btn btn-primary">
+                + Reward Rule
+              </button>
+            </div>
+          </div>
+
+          <div id="rewardRuleTable">
+            ${rewardRulesTable(
+              state.rewardRules
+            )}
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <h3>Trip Reward Operations</h3>
+              <small>
+                COMPLETED trip मा automatic reward पुनः process गर्न वा reversal गर्न
+              </small>
+            </div>
+          </div>
+
+          <div style="padding:18px">
+            <div class="toolbar">
+              <input
+                id="rewardTripId"
+                placeholder="Trip ID">
+
+              <button
+                id="processTripRewardBtn"
+                class="btn btn-primary">
+                Process Rewards
+              </button>
+
+              <button
+                id="reverseTripRewardBtn"
+                class="btn btn-soft">
+                Reverse Rewards
+              </button>
+            </div>
+
+            <div id="rewardOperationResult"></div>
+          </div>
+        </div>
+      `;
+
+      $("addRewardRuleBtn").onclick=
+        ()=>editRewardRule(null);
+
+      $("processTripRewardBtn").onclick=
+        processTripRewardAdmin;
+
+      $("reverseTripRewardBtn").onclick=
+        reverseTripRewardAdmin;
+
+      wireRewardRuleActions();
+    }
+
+    function rewardRulesTable(rows){
+      if(!rows?.length){
+        return `<div class="empty">Reward Rule छैन ।</div>`;
+      }
+
+      return `<div class="table-wrap"><table class="table">
+        <thead>
+          <tr>
+            <th>Priority</th>
+            <th>Rule Code</th>
+            <th>Rule Name</th>
+            <th>Type</th>
+            <th>Points</th>
+            <th>Condition</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          ${rows.map(r=>{
+            const active=
+              String(
+                r.Status||""
+              ).toUpperCase()==="ACTIVE";
+
+            return `
+              <tr>
+                <td>${esc(r.Priority||"")}</td>
+                <td><strong>${esc(r.RuleCode||"")}</strong></td>
+                <td>${esc(r.RuleName||"")}</td>
+                <td>${esc(r.RuleType||"")}</td>
+                <td><strong>${esc(r.Points||0)}</strong></td>
+                <td>${esc(r.ConditionValue||"-")}</td>
+                <td><span class="chip">${esc(r.Status||"")}</span></td>
+
+                <td>
+                  <div class="actions">
+                    <button
+                      class="editRewardRuleBtn"
+                      data-code="${esc(r.RuleCode||"")}">
+                      Edit
+                    </button>
+
+                    <button
+                      class="toggleRewardRuleBtn"
+                      data-code="${esc(r.RuleCode||"")}"
+                      data-status="${esc(r.Status||"INACTIVE")}">
+                      ${active?"Deactivate":"Activate"}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            `;
+          }).join("")}
+        </tbody>
+      </table></div>`;
+    }
+
+    function wireRewardRuleActions(){
+      document.querySelectorAll(
+        ".editRewardRuleBtn"
+      ).forEach(button=>{
+        button.onclick=()=>{
+          const row=
+            (state.rewardRules||[])
+              .find(r=>
+                String(r.RuleCode||"")===
+                String(button.dataset.code||"")
+              );
+
+          editRewardRule(row||null);
+        };
+      });
+
+      document.querySelectorAll(
+        ".toggleRewardRuleBtn"
+      ).forEach(button=>{
+        button.onclick=async()=>{
+          const current=
+            String(
+              button.dataset.status||
+              "INACTIVE"
+            ).toUpperCase();
+
+          const next=
+            current==="ACTIVE"
+              ?"INACTIVE"
+              :"ACTIVE";
+
+          showLoading();
+
+          try{
+            await api(
+              "adminSetRewardRuleStatus",
+              {
+                token:state.token,
+                ruleCode:
+                  button.dataset.code,
+                status:next
+              },
+              "POST"
+            );
+
+            toast(
+              `Reward Rule ${next} भयो ।`
+            );
+
+            await renderRewardEngineManager();
+
+          }catch(error){
+            handleAdminApiError(error);
+          }finally{
+            hideLoading();
+          }
+        };
+      });
+    }
+
+    async function editRewardRule(row){
+      const ruleCode=
+        prompt(
+          "Rule Code:",
+          row?.RuleCode||
+          "NEW_RULE"
+        );
+
+      if(
+        ruleCode===null ||
+        !ruleCode.trim()
+      )return;
+
+      const ruleName=
+        prompt(
+          "Rule Name:",
+          row?.RuleName||""
+        );
+
+      if(
+        ruleName===null ||
+        !ruleName.trim()
+      )return;
+
+      const ruleType=
+        prompt(
+          "Rule Type:\nTRIP_COMPLETION\nFIRST_TRIP_BONUS\nREPEAT_TRIP_BONUS\nEARLY_BOOKING_BONUS",
+          row?.RuleType||
+          "TRIP_COMPLETION"
+        );
+
+      if(!ruleType)return;
+
+      const points=
+        prompt(
+          "Points:",
+          row?.Points||"100"
+        );
+
+      if(points===null)return;
+
+      const conditionValue=
+        prompt(
+          "Condition Value:\nRepeat = minimum trip no.\nEarly Booking = minimum days\nOther = blank",
+          row?.ConditionValue||""
+        );
+
+      if(conditionValue===null)return;
+
+      const priority=
+        prompt(
+          "Priority:",
+          row?.Priority||"100"
+        );
+
+      if(priority===null)return;
+
+      const description=
+        prompt(
+          "Description:",
+          row?.Description||""
+        );
+
+      if(description===null)return;
+
+      showLoading();
+
+      try{
+        await api(
+          "adminSaveRewardRule",
+          {
+            token:state.token,
+            rule:{
+              ruleCode:
+                ruleCode.trim(),
+              ruleName:
+                ruleName.trim(),
+              ruleType:
+                ruleType.trim(),
+              points:
+                Number(points||0),
+              conditionValue:
+                conditionValue,
+              priority:
+                Number(priority||100),
+              status:
+                row?.Status||"ACTIVE",
+              effectiveFrom:
+                row?.EffectiveFrom||"",
+              effectiveTo:
+                row?.EffectiveTo||"",
+              description:
+                description
+            }
+          },
+          "POST"
+        );
+
+        toast(
+          row
+            ?"Reward Rule अपडेट भयो ।"
+            :"Reward Rule तयार भयो ।"
+        );
+
+        await renderRewardEngineManager();
+
+      }catch(error){
+        handleAdminApiError(error);
+      }finally{
+        hideLoading();
+      }
+    }
+
+    async function processTripRewardAdmin(){
+      const tripId=
+        $("rewardTripId").value.trim();
+
+      if(!tripId){
+        toast("Trip ID राख्नुहोस् ।");
+        return;
+      }
+
+      showLoading();
+
+      try{
+        const result=
+          await api(
+            "adminProcessTripRewards",
+            {
+              token:state.token,
+              tripId
+            },
+            "POST"
+          );
+
+        $("rewardOperationResult").innerHTML=`
+          <div class="empty">
+            Eligible: ${esc(result.eligibleMembers||0)}
+            • Rewarded: ${esc(result.rewardedMembers||0)}
+            • Transactions: ${esc(result.transactions||0)}
+            • Points: ${esc(result.totalPoints||0)}
+          </div>
+        `;
+
+        await renderRewardEngineManager();
+
+      }catch(error){
+        handleAdminApiError(error);
+      }finally{
+        hideLoading();
+      }
+    }
+
+    async function reverseTripRewardAdmin(){
+      const tripId=
+        $("rewardTripId").value.trim();
+
+      if(!tripId){
+        toast("Trip ID राख्नुहोस् ।");
+        return;
+      }
+
+      const reason=
+        prompt(
+          "Reversal कारण:",
+          "Trip cancelled / correction"
+        );
+
+      if(!reason)return;
+
+      showLoading();
+
+      try{
+        const result=
+          await api(
+            "adminReverseTripRewards",
+            {
+              token:state.token,
+              tripId,
+              reason
+            },
+            "POST"
+          );
+
+        toast(
+          `Reversed ${result.reversedTransactions||0} transactions / ${result.reversedPoints||0} points`
+        );
+
+        await renderRewardEngineManager();
+
+      }catch(error){
+        handleAdminApiError(error);
+      }finally{
+        hideLoading();
+      }
+    }
 
 
     async function renderMemberRewardsManager(){
