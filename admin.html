@@ -220,6 +220,38 @@
       .launcher-grid{grid-template-columns:1fr}
     }
 
+
+    .member-admin-grid{
+      display:grid;
+      grid-template-columns:repeat(4,minmax(0,1fr));
+      gap:12px;
+      margin-bottom:16px;
+    }
+    .member-admin-stat{
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:14px;
+      background:#fcfaf7;
+    }
+    .member-admin-stat small{
+      display:block;
+      color:var(--muted);
+      margin-bottom:4px;
+    }
+    .member-admin-stat strong{
+      font-size:1.15rem;
+    }
+    @media(max-width:900px){
+      .member-admin-grid{
+        grid-template-columns:1fr 1fr;
+      }
+    }
+    @media(max-width:540px){
+      .member-admin-grid{
+        grid-template-columns:1fr;
+      }
+    }
+
 </style>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
@@ -237,7 +269,7 @@
 
   <div id="adminApp" class="admin-layout hidden">
     <aside id="sidebar" class="sidebar">
-      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v2.6.0 • Production</small></div>
+      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v2.7.0 • Production</small></div>
       <nav class="nav">
         <button data-view="dashboard" class="active">▦ Dashboard</button>
         <button data-view="sliders">▣ Slider Manager</button>
@@ -464,7 +496,8 @@
       tickets:{title:"Ticket & Check-In",display:["TicketCode","BookingCode","PassengerName","BusID","SeatID","CheckInStatus"]},
       fleet:{title:"Fleet & Tracking",display:["TripTitle","VehicleNumber","DriverName","TrackingStatus"]},
       fieldops:{title:"QR Check-In & Field Ops",display:["PassengerName","BookingCode","TicketCode","BusID","SeatID","CheckInStatus"]},
-      launcher:{title:"System Launcher",display:["ModuleName","URL","Role","Status","DisplayOrder"]}
+      launcher:{title:"System Launcher",display:["ModuleName","URL","Role","Status","DisplayOrder"]},
+      members:{title:"Pilgrim & Rewards",display:["MembershipNo","FullName","MobilePrimary","MembershipLevel","RewardPoints","Status"]}
     };
 
     const TEXTAREA_HINTS = /Description|HTML|Message|Remarks|Notes|Terms|Advice|Attractions|Route|Content/i;
@@ -634,7 +667,7 @@ toast("Login सफल भयो ।");
       $("pageTitle").textContent=view==="dashboard"?"Dashboard":MODULES[view]?.title||view;
       showLoading();
       try{
-        if(view==="dashboard")await renderDashboard();else if(view==="launcher")await renderSystemLauncher();else if(view==="trips")await renderTripManager();else if(view==="bookings")await renderBookingManager();else if(view==="payments")await renderPaymentManager();else if(view==="tickets")await renderTicketManager();else if(view==="fleet")await renderFleetManager();else if(view==="fieldops")await renderFieldOpsManager();else await renderModule(view);
+        if(view==="dashboard")await renderDashboard();else if(view==="launcher")await renderSystemLauncher();else if(view==="members")await renderMemberRewardsManager();else if(view==="trips")await renderTripManager();else if(view==="bookings")await renderBookingManager();else if(view==="payments")await renderPaymentManager();else if(view==="tickets")await renderTicketManager();else if(view==="fleet")await renderFleetManager();else if(view==="fieldops")await renderFieldOpsManager();else await renderModule(view);
       } catch (e) {
         handleAdminApiError(e);
       } finally {
@@ -694,6 +727,248 @@ toast("Login सफल भयो ।");
     let fieldLastScanToken="";
     let fieldScanLocked=false;
 
+
+
+    async function renderMemberRewardsManager(){
+      const [dashboard,data]=await Promise.all([
+        api(
+          "adminGetMemberRewardsDashboard",
+          {token:state.token}
+        ),
+        api(
+          "adminListMembers",
+          {token:state.token}
+        )
+      ]);
+
+      state.memberRows=
+        data.items||[];
+
+      const c=
+        dashboard.cards||{};
+
+      $("content").innerHTML=`
+        <div class="member-admin-grid">
+          <div class="member-admin-stat"><small>Active Members</small><strong>${c.members||0}</strong></div>
+          <div class="member-admin-stat"><small>Portal Enabled</small><strong>${c.portalEnabled||0}</strong></div>
+          <div class="member-admin-stat"><small>Reward Transactions</small><strong>${c.ledgerTransactions||0}</strong></div>
+          <div class="member-admin-stat"><small>Total Reward Points</small><strong>${c.totalRewardPoints||0}</strong></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <h3>Pilgrim Member & Rewards Manager</h3>
+              <small>${state.memberRows.length} members</small>
+            </div>
+
+            <div class="toolbar">
+              <input id="memberAdminSearch" placeholder="Name / Membership / Mobile">
+
+              <button id="memberAdminSearchBtn" class="btn btn-soft">
+                Search
+              </button>
+            </div>
+          </div>
+
+          <div id="memberAdminTable">
+            ${memberAdminTable(state.memberRows)}
+          </div>
+        </div>
+      `;
+
+      $("memberAdminSearchBtn").onclick=
+        searchAdminMembers;
+
+      $("memberAdminSearch")
+        .addEventListener("keydown",e=>{
+          if(e.key==="Enter"){
+            searchAdminMembers();
+          }
+        });
+
+      wireMemberAdminActions();
+    }
+
+    function memberAdminTable(rows){
+      if(!rows?.length){
+        return `<div class="empty">Member record छैन ।</div>`;
+      }
+
+      return `<div class="table-wrap"><table class="table">
+        <thead>
+          <tr>
+            <th>Member</th>
+            <th>Membership No.</th>
+            <th>Mobile</th>
+            <th>Level</th>
+            <th>Reward</th>
+            <th>Trips</th>
+            <th>Portal</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          ${rows.map(r=>{
+            const portal=
+              String(
+                r.MemberPortalEnabled===""?
+                "TRUE":
+                r.MemberPortalEnabled
+              ).toUpperCase()==="TRUE";
+
+            return `
+              <tr>
+                <td><strong>${esc(r.FullName||"")}</strong><br><small>${esc(r.District||"")}</small></td>
+                <td>${esc(r.MembershipNo||r.PilgrimID||"")}</td>
+                <td>${esc(r.MobilePrimary||"")}</td>
+                <td><span class="chip">${esc(r.MembershipLevel||"NEW_PILGRIM")}</span></td>
+                <td><strong>${esc(r.RewardPoints||0)}</strong></td>
+                <td>${esc(r.TotalTrips||0)}</td>
+                <td>${portal?"ENABLED":"DISABLED"}</td>
+                <td><span class="chip">${esc(r.Status||"")}</span></td>
+
+                <td>
+                  <div class="actions">
+                    <button
+                      class="rewardAdjustBtn"
+                      data-id="${esc(r.PilgrimID||"")}"
+                      data-name="${esc(r.FullName||"")}">
+                      Reward
+                    </button>
+
+                    <button
+                      class="portalToggleBtn"
+                      data-id="${esc(r.PilgrimID||"")}"
+                      data-enabled="${portal?"TRUE":"FALSE"}">
+                      ${portal?"Disable Portal":"Enable Portal"}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            `;
+          }).join("")}
+        </tbody>
+      </table></div>`;
+    }
+
+    function wireMemberAdminActions(){
+      document.querySelectorAll(
+        ".rewardAdjustBtn"
+      ).forEach(button=>{
+        button.onclick=async()=>{
+          const points=prompt(
+            `${button.dataset.name||"Member"} का लागि Reward Points लेख्नुहोस् ।\nCredit = positive (जस्तै 500)\nDebit = negative (जस्तै -200):`,
+            "100"
+          );
+
+          if(points===null)return;
+
+          const reason=prompt(
+            "Reward कारण:",
+            "Trip Reward"
+          );
+
+          if(!reason)return;
+
+          showLoading();
+
+          try{
+            const result=await api(
+              "adminAdjustMemberReward",
+              {
+                token:state.token,
+                pilgrimId:button.dataset.id,
+                points:Number(points),
+                reason
+              },
+              "POST"
+            );
+
+            toast(
+              `Reward Balance: ${result.balance} • Level: ${result.membershipLevel}`
+            );
+
+            await renderMemberRewardsManager();
+
+          }catch(error){
+            handleAdminApiError(error);
+          }finally{
+            hideLoading();
+          }
+        };
+      });
+
+      document.querySelectorAll(
+        ".portalToggleBtn"
+      ).forEach(button=>{
+        button.onclick=async()=>{
+          const current=
+            String(
+              button.dataset.enabled||"FALSE"
+            ).toUpperCase()==="TRUE";
+
+          showLoading();
+
+          try{
+            await api(
+              "adminSetMemberPortalStatus",
+              {
+                token:state.token,
+                pilgrimId:button.dataset.id,
+                enabled:!current
+              },
+              "POST"
+            );
+
+            toast(
+              !current
+                ?"Member Portal Enable भयो ।"
+                :"Member Portal Disable भयो ।"
+            );
+
+            await renderMemberRewardsManager();
+
+          }catch(error){
+            handleAdminApiError(error);
+          }finally{
+            hideLoading();
+          }
+        };
+      });
+    }
+
+    async function searchAdminMembers(){
+      showLoading();
+
+      try{
+        const data=await api(
+          "adminListMembers",
+          {
+            token:state.token,
+            search:
+              $("memberAdminSearch").value
+          }
+        );
+
+        state.memberRows=
+          data.items||[];
+
+        $("memberAdminTable").innerHTML=
+          memberAdminTable(
+            state.memberRows
+          );
+
+        wireMemberAdminActions();
+
+      }catch(error){
+        handleAdminApiError(error);
+      }finally{
+        hideLoading();
+      }
+    }
 
     async function renderSystemLauncher(){
       const [launcherData,managerData]=await Promise.all([
