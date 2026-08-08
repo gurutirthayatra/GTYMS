@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- GTYMS Public Website v3.0.5 | Production Trip Management -->
+<!-- GTYMS Public Website v2.0.0 | Production Trip Management -->
 <html lang="ne">
 <head>
   <meta charset="UTF-8" />
@@ -556,6 +556,26 @@ button {
   margin-top: 22px;
 }
 
+.settings-contact-meta {
+  margin-top: 14px;
+  display: grid;
+  gap: 8px;
+}
+
+.settings-contact-meta a {
+  color: var(--primary, #8b1e1e);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.settings-contact-meta a:hover {
+  text-decoration: underline;
+}
+
+.settings-link-hidden {
+  display: none !important;
+}
+
 .site-footer {
   color: #fdf4e6;
   background: #26150f;
@@ -903,411 +923,7 @@ button {
   }
 }
 
-  
-/* GTYMS Booking & Passenger Production v2.1.0 */
-.booking-modal{
-  position:fixed;inset:0;z-index:4000;
-  background:rgba(32,18,12,.72);
-  display:grid;place-items:center;padding:18px;
-}
-.booking-modal[hidden]{display:none}
-.booking-dialog{
-  width:min(980px,100%);max-height:92vh;overflow:auto;
-  background:#fff;border-radius:22px;box-shadow:0 30px 90px rgba(0,0,0,.32)
-}
-.booking-head{
-  position:sticky;top:0;z-index:2;background:#fff;
-  display:flex;align-items:center;justify-content:space-between;
-  gap:16px;padding:18px 22px;border-bottom:1px solid var(--border)
-}
-.booking-head h3{margin:0}
-.booking-close{
-  border:0;width:40px;height:40px;border-radius:50%;
-  background:#f3e8df;font-size:1.35rem
-}
-.booking-body{padding:22px}
-.booking-trip-summary{
-  border:1px solid var(--border);border-radius:16px;
-  background:var(--surface-soft);padding:16px;margin-bottom:18px
-}
-.passenger-card{
-  border:1px solid var(--border);border-radius:16px;
-  padding:16px;margin-top:14px;background:#fff
-}
-.passenger-card-head{
-  display:flex;justify-content:space-between;align-items:center;gap:12px
-}
-.passenger-card-head h4{margin:0}
-.remove-passenger{
-  border:0;border-radius:9px;padding:7px 10px;
-  color:var(--danger);background:#fde7e3
-}
-.booking-actions{
-  display:flex;gap:10px;flex-wrap:wrap;margin-top:18px
-}
-.booking-success{
-  padding:18px;border-radius:14px;background:#edf8f2;color:#155f3b;margin-top:16px
-}
-.booking-status-box{
-  padding:18px;border:1px solid var(--border);border-radius:16px;background:#fff
-}
-@media(max-width:620px){
-  .booking-body{padding:15px}
-  .booking-dialog{border-radius:16px}
-}
-
-
-/* GTYMS Payment & Voucher Production v2.2.0 */
-.payment-lookup-card{
-  width:min(760px,100%);
-  margin:0 auto;
-  padding:26px;
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  background:#fff;
-  box-shadow:var(--shadow);
-}
-.payment-summary-grid{
-  display:grid;
-  grid-template-columns:repeat(4,minmax(0,1fr));
-  gap:12px;
-  margin:18px 0;
-}
-.payment-stat{
-  padding:14px;
-  border:1px solid var(--border);
-  border-radius:14px;
-  background:#fcfaf7;
-}
-.payment-stat small{
-  display:block;
-  color:var(--muted);
-  margin-bottom:4px;
-}
-.payment-stat strong{font-size:1.08rem}
-.payment-upload-box{
-  padding:18px;
-  border:1px dashed #d9c8b8;
-  border-radius:14px;
-  background:#fffdf9;
-}
-.payment-history{
-  display:grid;
-  gap:10px;
-  margin-top:18px;
-}
-.payment-history-item{
-  padding:13px;
-  border:1px solid var(--border);
-  border-radius:12px;
-  background:#fff;
-}
-.payment-status-pending{color:#9a6700}
-.payment-status-verified{color:var(--success)}
-.payment-status-rejected{color:var(--danger)}
-.receipt-print{
-  display:none;
-}
-@media(max-width:720px){
-  .payment-summary-grid{grid-template-columns:1fr 1fr}
-}
-@media(max-width:480px){
-  .payment-summary-grid{grid-template-columns:1fr}
-}
-@media print{
-  body *{visibility:hidden!important}
-  .receipt-print,.receipt-print *{visibility:visible!important}
-  .receipt-print{
-    display:block!important;
-    position:absolute;
-    inset:0;
-    padding:32px;
-    background:#fff;
-    color:#111;
-  }
-}
-
-
-/* GTYMS E-Ticket Production v2.3.0 */
-.ticket-section-card{
-  width:min(920px,100%);
-  margin:0 auto;
-  background:#fff;
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  box-shadow:var(--shadow);
-  padding:24px;
-}
-.ticket-list{display:grid;gap:16px;margin-top:18px}
-.eticket{
-  border:1px solid #d7c8ba;
-  border-radius:18px;
-  overflow:hidden;
-  background:#fff;
-}
-.eticket-head{
-  padding:15px 18px;
-  background:linear-gradient(135deg,var(--primary-dark),var(--primary));
-  color:#fff;
-  display:flex;
-  justify-content:space-between;
-  gap:12px;
-  align-items:center;
-}
-.eticket-body{
-  display:grid;
-  grid-template-columns:1fr 180px;
-  gap:18px;
-  padding:18px;
-}
-.eticket-info{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:10px;
-}
-.eticket-info div{
-  padding:10px;
-  border-radius:10px;
-  background:#faf6f1;
-}
-.eticket-info small{
-  display:block;
-  color:var(--muted);
-}
-.ticket-qr{
-  display:grid;
-  place-items:center;
-  align-content:center;
-  gap:8px;
-}
-.ticket-print-actions{
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-  margin-top:16px;
-}
-@media(max-width:700px){
-  .eticket-body{grid-template-columns:1fr}
-  .eticket-info{grid-template-columns:1fr}
-}
-@media print{
-  body *{visibility:hidden!important}
-  #ticketPrintArea,#ticketPrintArea *{
-    visibility:visible!important
-  }
-  #ticketPrintArea{
-    position:absolute;
-    inset:0;
-    background:#fff;
-    padding:18px;
-  }
-}
-
-
-/* GTYMS v2.4.0 – Back To Top + Live Tracking */
-.back-to-top{
-  position:fixed;
-  right:22px;
-  bottom:82px;
-  z-index:3200;
-  width:48px;
-  height:48px;
-  border:0;
-  border-radius:50%;
-  display:grid;
-  place-items:center;
-  color:#fff;
-  background:var(--primary);
-  box-shadow:0 12px 30px rgba(44,27,21,.24);
-  font-size:1.25rem;
-  font-weight:800;
-  opacity:0;
-  visibility:hidden;
-  transform:translateY(12px);
-  transition:.22s ease;
-}
-.back-to-top.show{
-  opacity:1;
-  visibility:visible;
-  transform:translateY(0);
-}
-.back-to-top:hover{
-  background:var(--primary-dark);
-  transform:translateY(-2px);
-}
-.live-tracking-card{
-  width:min(860px,100%);
-  margin:0 auto;
-  background:#fff;
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  box-shadow:var(--shadow);
-  padding:24px;
-}
-.live-map{
-  margin-top:16px;
-  min-height:320px;
-  border:1px solid var(--border);
-  border-radius:16px;
-  overflow:hidden;
-  background:#f5efe7;
-}
-.live-map iframe{
-  width:100%;
-  min-height:320px;
-  border:0;
-}
-.live-location-item{
-  border:1px solid var(--border);
-  border-radius:14px;
-  padding:14px;
-  background:#fffdf9;
-  margin-top:12px;
-}
-@media(max-width:620px){
-  .back-to-top{
-    right:14px;
-    bottom:74px;
-    width:44px;
-    height:44px;
-  }
-}
-
-
-/* GTYMS v2.6 Public Dynamic System Links */
-.public-systems-grid{
-  display:grid;
-  grid-template-columns:repeat(3,minmax(0,1fr));
-  gap:14px;
-}
-.public-system-card{
-  background:#fff;
-  border:1px solid var(--border);
-  border-radius:16px;
-  padding:18px;
-  box-shadow:var(--shadow-soft);
-}
-.public-system-card .system-icon{
-  font-size:1.8rem;
-}
-@media(max-width:850px){
-  .public-systems-grid{
-    grid-template-columns:1fr 1fr;
-  }
-}
-@media(max-width:560px){
-  .public-systems-grid{
-    grid-template-columns:1fr;
-  }
-}
-
-
-  /* =========================================================
-     GTYMS v3.0.4 - Universal Button / Action Feedback
-     Universal UX rule:
-     Click -> instant response -> short spinner -> restore
-     Prevents accidental rapid double-clicks.
-     ========================================================= */
-
-  button.gtyms-action-feedback,
-  a.gtyms-action-feedback,
-  [role="button"].gtyms-action-feedback{
-    position:relative!important;
-    pointer-events:none!important;
-    opacity:.82!important;
-  }
-
-  button.gtyms-action-feedback::after,
-  a.gtyms-action-feedback::after,
-  [role="button"].gtyms-action-feedback::after{
-    content:"";
-    display:inline-block;
-    width:13px;
-    height:13px;
-    margin-left:8px;
-    vertical-align:-2px;
-    border:2px solid currentColor;
-    border-right-color:transparent;
-    border-radius:50%;
-    animation:gtymsActionSpin .65s linear infinite;
-  }
-
-  @keyframes gtymsActionSpin{
-    to{transform:rotate(360deg)}
-  }
-
-  .gtyms-click-flash{
-    transform:scale(.98);
-    filter:brightness(.97);
-    transition:transform .12s ease,filter .12s ease;
-  }
-
-
-  /* =========================================================
-     GTYMS v3.0.5 - Dynamic Social & Contact Links
-     Settings are the single source of truth.
-     Blank/inactive public setting => link remains hidden.
-     ========================================================= */
-
-  .social-links-wrap{
-    margin-top:18px;
-  }
-
-  .social-links-title{
-    margin:0 0 10px;
-    font-size:.95rem;
-    font-weight:800;
-  }
-
-  .social-links{
-    display:flex;
-    flex-wrap:wrap;
-    gap:10px;
-  }
-
-  .social-link{
-    display:inline-flex;
-    align-items:center;
-    gap:8px;
-    min-height:42px;
-    padding:10px 14px;
-    border:1px solid var(--border);
-    border-radius:12px;
-    background:#fff;
-    color:var(--text);
-    font-weight:800;
-    text-decoration:none;
-    transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease;
-  }
-
-  .social-link:hover{
-    transform:translateY(-1px);
-    box-shadow:0 8px 22px rgba(55,35,18,.09);
-    border-color:var(--primary);
-  }
-
-  .social-link-icon{
-    font-size:1.05rem;
-    line-height:1;
-  }
-
-  .social-link.hidden{
-    display:none!important;
-  }
-
-  @media(max-width:560px){
-    .social-links{
-      display:grid;
-      grid-template-columns:1fr 1fr;
-    }
-
-    .social-link{
-      justify-content:center;
-    }
-  }
-
-</style>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  </style>
 </head>
 <body>
   <div id="loadingOverlay" class="loading-overlay hidden" aria-live="polite">
@@ -1345,11 +961,7 @@ button {
         <a href="#destinations">गन्तव्यहरू</a>
         <a href="#services">हाम्रा सेवाहरू</a>
         <a href="#library">डिजिटल लाइब्रेरी</a>
-        <a href="#payment-submit">भुक्तानी</a>
-        <a href="#e-ticket">E-Ticket</a>
-        <a href="#live-tracking">Live Tracking</a>
         <a href="#contact">सम्पर्क</a>
-        <a href="#" id="bookingStatusNav">Booking Status</a>
       </nav>
     </div>
   </header>
@@ -1551,134 +1163,6 @@ button {
       </div>
     </section>
 
-
-
-    <section id="e-ticket" class="section">
-      <div class="container">
-        <div class="section-heading centered">
-          <div>
-            <span class="eyebrow">Digital Travel Document</span>
-            <h2>तपाईंको E-Ticket</h2>
-          </div>
-        </div>
-
-        <div class="ticket-section-card">
-          <form id="ticketLookupForm" class="form-grid">
-            <div class="field">
-              <label>Booking Code *</label>
-              <input name="bookingCode" required>
-            </div>
-
-            <div class="field">
-              <label>Booking Mobile *</label>
-              <input name="mobile" required inputmode="tel">
-            </div>
-
-            <button class="btn btn-primary full-button" type="submit">
-              E-Ticket हेर्नुहोस्
-            </button>
-          </form>
-
-          <div id="ticketResult" class="ticket-list"></div>
-        </div>
-      </div>
-    </section>
-
-    <section id="payment-submit" class="section section-soft">
-      <div class="container">
-        <div class="section-heading centered">
-          <div>
-            <span class="eyebrow">Secure Payment Reporting</span>
-            <h2>भुक्तानी तथा Voucher पठाउनुहोस्</h2>
-          </div>
-        </div>
-
-        <div class="payment-lookup-card">
-          <form id="paymentLookupForm" class="form-grid">
-            <div class="field">
-              <label>Booking Code *</label>
-              <input name="bookingCode" required placeholder="GTY-B-...">
-            </div>
-
-            <div class="field">
-              <label>Booking Mobile *</label>
-              <input name="mobile" required inputmode="tel">
-            </div>
-
-            <button class="btn btn-primary full-button" type="submit">
-              Booking / Payment विवरण हेर्नुहोस्
-            </button>
-          </form>
-
-          <div id="paymentBookingBox" class="hidden">
-            <div id="paymentBookingSummary"></div>
-
-            <div class="payment-upload-box">
-              <h3>नयाँ Payment Report</h3>
-
-              <form id="paymentVoucherForm" class="form-grid">
-                <input type="hidden" name="bookingCode" id="payBookingCode">
-                <input type="hidden" name="mobile" id="payBookingMobile">
-
-                <div class="field">
-                  <label>भुक्तानी रकम *</label>
-                  <input
-                    id="paymentAmount"
-                    name="amount"
-                    type="number"
-                    min="1"
-                    step="1"
-                    required
-                  >
-                </div>
-
-                <div class="field">
-                  <label>Payment Method *</label>
-                  <select name="paymentMethod" required>
-                    <option value="QR">QR / Mobile Banking</option>
-                    <option value="BANK_TRANSFER">Bank Transfer</option>
-                    <option value="CASH_DEPOSIT">Cash Deposit</option>
-                    <option value="CASH">Cash</option>
-                  </select>
-                </div>
-
-                <div class="field">
-                  <label>Transaction / Reference No.</label>
-                  <input name="transactionId">
-                </div>
-
-                <div class="field">
-                  <label>Payment Date</label>
-                  <input name="paymentDate" type="date">
-                </div>
-
-                <div class="field full">
-                  <label>Voucher (JPG, PNG, PDF — Max 5 MB) *</label>
-                  <input
-                    id="paymentVoucherFile"
-                    type="file"
-                    accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
-                    required
-                  >
-                </div>
-
-                <div class="field full">
-                  <label>Remarks</label>
-                  <textarea name="remarks" rows="2"></textarea>
-                </div>
-
-                <button class="btn btn-primary full-button" type="submit">
-                  Payment Voucher पठाउनुहोस्
-                </button>
-              </form>
-            </div>
-
-            <div id="paymentHistory" class="payment-history"></div>
-          </div>
-        </div>
-      </div>
-    </section>
-
     <section id="payment" class="section">
       <div class="container payment-card">
         <div>
@@ -1697,38 +1181,6 @@ button {
       </div>
     </section>
 
-
-    <section id="live-tracking" class="section section-soft">
-      <div class="container">
-        <div class="section-heading centered">
-          <div>
-            <span class="eyebrow">Family Journey View</span>
-            <h2>Live Trip Tracking</h2>
-          </div>
-        </div>
-
-        <div class="live-tracking-card">
-          <form id="liveTrackingForm" class="form-grid">
-            <div class="field">
-              <label>Booking Code *</label>
-              <input name="bookingCode" required>
-            </div>
-
-            <div class="field">
-              <label>Booking Mobile *</label>
-              <input name="mobile" inputmode="tel" required>
-            </div>
-
-            <button class="btn btn-primary full-button" type="submit">
-              Live Location हेर्नुहोस्
-            </button>
-          </form>
-
-          <div id="liveTrackingResult"></div>
-        </div>
-      </div>
-    </section>
-
     <section id="contact" class="section contact-section">
       <div class="container two-column">
         <div>
@@ -1736,22 +1188,29 @@ button {
           <h2>हामीसँग सम्पर्क गर्नुहोस्</h2>
           <p id="officeAddress">कार्यालयको ठेगाना Admin Settings बाट देखाइनेछ ।</p>
 
-          <div class="contact-actions">
-            <a id="callButton" class="btn btn-primary" href="tel:+9779843484934">फोन गर्नुहोस्</a>
-            <a id="whatsAppButton" class="btn btn-secondary" href="https://wa.me/9779843484934?text=%E0%A4%A8%E0%A4%AE%E0%A4%B8%E0%A5%8D%E0%A4%95%E0%A4%BE%E0%A4%B0%20%E0%A4%97%E0%A5%81%E0%A4%B0%E0%A5%81%20%E0%A4%A4%E0%A5%80%E0%A4%B0%E0%A5%8D%E0%A4%A5%E0%A4%AF%E0%A4%BE%E0%A4%A4%E0%A5%8D%E0%A4%B0%E0%A4%BE%20%E0%A4%B8%E0%A5%87%E0%A4%B5%E0%A4%BE%20%E0%A5%A4" target="_blank" rel="noopener">WhatsApp</a>
+          <div class="settings-contact-meta">
+            <a
+              id="googleMapLink"
+              class="settings-link-hidden"
+              href="#"
+              target="_blank"
+              rel="noopener noreferrer">
+              📍 Google Map मा हेर्नुहोस्
+            </a>
+
+            <a
+              id="facebookLink"
+              class="settings-link-hidden"
+              href="#"
+              target="_blank"
+              rel="noopener noreferrer">
+              Facebook Page
+            </a>
           </div>
 
-          <div
-            id="socialLinksWrap"
-            class="social-links-wrap hidden">
-            <div class="social-links-title">
-              Social Media
-            </div>
-
-            <div
-              id="socialLinks"
-              class="social-links">
-            </div>
+          <div class="contact-actions">
+            <a id="callButton" class="btn btn-primary" href="tel:+9779843484934">फोन गर्नुहोस्</a>
+            <a id="whatsAppButton" class="btn btn-secondary" href="https://wa.me/9779843484934?text=%E0%A4%A8%E0%A4%AE%E0%A4%B8%E0%A5%8D%E0%A4%95%E0%A4%BE%E0%A4%B0%20%E0%A4%97%E0%A5%81%E0%A4%B0%E0%A5%81%20%E0%A4%A4%E0%A5%80%E0%A4%B0%E0%A5%8D%E0%A4%A5%E0%A4%AF%E0%A4%BE%20%E0%A4%B8%E0%A5%87%E0%A4%B5%E0%A4%BE%20%E0%A5%A4" target="_blank" rel="noopener">WhatsApp</a>
           </div>
         </div>
 
@@ -1784,23 +1243,6 @@ button {
     </section>
   </main>
 
-  
-    <section id="public-systems" class="section">
-      <div class="container">
-        <div class="section-heading centered">
-          <div>
-            <span class="eyebrow">Quick Access</span>
-            <h2>Digital Systems</h2>
-          </div>
-        </div>
-
-        <div
-          id="publicSystemsGrid"
-          class="public-systems-grid">
-        </div>
-      </div>
-    </section>
-
   <footer class="site-footer">
     <div class="container footer-inner">
       <div>
@@ -1814,130 +1256,6 @@ button {
       </div>
     </div>
   </footer>
-
-
-  <div id="bookingModal" class="booking-modal" hidden>
-    <div class="booking-dialog">
-      <div class="booking-head">
-        <div>
-          <small>Online Booking</small>
-          <h3 id="bookingTripTitle">यात्रा बुकिङ</h3>
-        </div>
-        <button id="bookingClose" class="booking-close" type="button">×</button>
-      </div>
-
-      <div class="booking-body">
-        <div id="bookingTripSummary" class="booking-trip-summary"></div>
-
-        <form id="productionBookingForm">
-          <input type="hidden" name="tripId" id="bookingTripId">
-
-          <div class="form-grid">
-            <div class="field">
-              <label>Primary Contact Name *</label>
-              <input name="fullName" required>
-            </div>
-
-            <div class="field">
-              <label>Mobile *</label>
-              <input name="mobile" inputmode="tel" required>
-            </div>
-
-            <div class="field">
-              <label>WhatsApp Number</label>
-              <input name="whatsAppNumber" inputmode="tel">
-            </div>
-
-            <div class="field">
-              <label>Email</label>
-              <input name="email" type="email">
-            </div>
-
-            <div class="field full">
-              <label>Boarding Point</label>
-              <input name="boardingPointText" placeholder="जस्तै: गौशाला, काठमाडौँ">
-            </div>
-
-            <div class="field full">
-              <label>Booking Note</label>
-              <textarea name="bookingNote" rows="2"></textarea>
-            </div>
-          </div>
-
-          <div style="margin-top:22px">
-            <div class="section-heading" style="margin-bottom:8px">
-              <div>
-                <span class="eyebrow">Passenger Details</span>
-                <h3 style="margin:4px 0 0">यात्रु विवरण</h3>
-              </div>
-              <button id="addPassengerBtn" type="button" class="btn btn-secondary">
-                + यात्रु थप्नुहोस्
-              </button>
-            </div>
-
-            <div id="passengerContainer"></div>
-          </div>
-
-          <div class="form-grid" style="margin-top:18px">
-            <label class="checkbox-row full">
-              <input type="checkbox" name="insuranceConsent" checked>
-              यात्रु बिमा आवश्यक भएमा विवरण उपलब्ध गराउन सहमत छु ।
-            </label>
-
-            <label class="checkbox-row full">
-              <input type="checkbox" name="healthConsent" checked>
-              यात्राका लागि आवश्यक स्वास्थ्य जानकारी उपलब्ध गराउन सहमत छु ।
-            </label>
-
-            <label class="checkbox-row full">
-              <input type="checkbox" name="whatsAppConsent" checked>
-              Booking तथा यात्रासम्बन्धी WhatsApp सूचना प्राप्त गर्न सहमत छु ।
-            </label>
-
-            <label class="checkbox-row full">
-              <input type="checkbox" name="termsAccepted" required>
-              यात्रा नियम तथा सर्त स्वीकार गर्दछु । *
-            </label>
-          </div>
-
-          <button class="btn btn-primary full-button" type="submit">
-            Booking Request पठाउनुहोस्
-          </button>
-
-          <div id="bookingSuccess" class="booking-success hidden"></div>
-        </form>
-      </div>
-    </div>
-  </div>
-
-  <div id="bookingStatusModal" class="booking-modal" hidden>
-    <div class="booking-dialog" style="width:min(560px,100%)">
-      <div class="booking-head">
-        <h3>Booking Status</h3>
-        <button id="bookingStatusClose" class="booking-close" type="button">×</button>
-      </div>
-      <div class="booking-body">
-        <form id="bookingStatusForm" class="form-grid">
-          <div class="field full">
-            <label>Booking Code</label>
-            <input name="bookingCode" required>
-          </div>
-          <div class="field full">
-            <label>Mobile Number</label>
-            <input name="mobile" required>
-          </div>
-          <button class="btn btn-primary full-button" type="submit">Status हेर्नुहोस्</button>
-        </form>
-        <div id="bookingStatusResult" class="booking-status-box hidden"></div>
-      </div>
-    </div>
-  </div>
-
-
-  <div id="receiptPrintArea" class="receipt-print"></div>
-  <div id="ticketPrintArea"></div>
-
-  <button id="backToTop" class="back-to-top" type="button" aria-label="माथि जानुहोस्">↑</button>
 
   <div id="toast" class="toast hidden" role="status"></div>
   <script>
@@ -2179,146 +1497,179 @@ window.GTYMS_UI = (() => {
   }
 
   function applySettings() {
-    const companyName = state.settings.COMPANY_NAME || "Guru Tirtha Yatra Sewa";
+    const settings = state.settings || {};
 
-    // Official Guru Tirtha Yatra Sewa contact.
-    const phone = "9843484934";
-    const whatsapp = "9779843484934";
+    const companyName =
+      settings.COMPANY_NAME ||
+      "Guru Tirtha Yatra Sewa";
 
-    // Developer credit remains separate from company contact.
-    const footer = "Designed & Developed by Nirajan Aryal | 9851113811";
+    const rawPhone =
+      String(
+        settings.SUPPORT_PHONE ||
+        settings.WHATSAPP_NUMBER ||
+        "9843484934"
+      ).replace(/\D/g, "");
 
-    document.getElementById("companyName").textContent = companyName;
-    document.getElementById("footerCompany").textContent = companyName;
-    document.getElementById("footerCredit").textContent = footer;
-    document.getElementById("officeAddress").textContent =
-      state.settings.OFFICE_ADDRESS || "कार्यालयको ठेगाना चाँडै अद्यावधिक गरिनेछ ।";
+    const phone =
+      rawPhone.length >= 10
+        ? rawPhone.slice(-10)
+        : "9843484934";
 
-    const callLink = `tel:+977${phone}`;
-    const whatsAppText = encodeURIComponent("नमस्कार गुरु तीर्थयात्रा सेवा । म यात्रासम्बन्धी जानकारी लिन चाहन्छु ।");
-    const whatsAppLink = `https://wa.me/${whatsapp}?text=${whatsAppText}`;
+    const whatsapp =
+      String(
+        settings.WHATSAPP_NUMBER ||
+        `977${phone}`
+      ).replace(/\D/g, "").replace(/^0+/, "");
+
+    const whatsappIntl =
+      whatsapp.startsWith("977")
+        ? whatsapp
+        : `977${whatsapp.slice(-10)}`;
+
+    const footer =
+      settings.FOOTER_TEXT ||
+      "Designed & Developed by Nirajan Aryal | 9851113811";
+
+    const companyNameEl =
+      document.getElementById("companyName");
+    const footerCompanyEl =
+      document.getElementById("footerCompany");
+    const footerCreditEl =
+      document.getElementById("footerCredit");
+    const officeAddressEl =
+      document.getElementById("officeAddress");
+
+    if (companyNameEl) {
+      companyNameEl.textContent = companyName;
+    }
+
+    if (footerCompanyEl) {
+      footerCompanyEl.textContent = companyName;
+    }
+
+    if (footerCreditEl) {
+      footerCreditEl.textContent = footer;
+    }
+
+    if (officeAddressEl) {
+      officeAddressEl.textContent =
+        settings.OFFICE_ADDRESS ||
+        "कार्यालयको ठेगाना चाँडै अद्यावधिक गरिनेछ ।";
+    }
+
+    const callLink =
+      `tel:+977${phone}`;
+
+    const whatsAppText =
+      encodeURIComponent(
+        "नमस्कार गुरु तीर्थयात्रा सेवा । म यात्रासम्बन्धी जानकारी लिन चाहन्छु ।"
+      );
+
+    const whatsAppLink =
+      `https://wa.me/${whatsappIntl}?text=${whatsAppText}`;
 
     ["topPhoneLink", "callButton"].forEach((id) => {
-      const element = document.getElementById(id);
-      if (element) element.href = callLink;
+      const element =
+        document.getElementById(id);
+
+      if (element) {
+        element.href = callLink;
+      }
     });
 
-    document.getElementById("topPhoneLink").textContent = `📞 ${phone}`;
+    const topPhoneLink =
+      document.getElementById("topPhoneLink");
+
+    if (topPhoneLink) {
+      topPhoneLink.textContent =
+        `📞 ${phone}`;
+    }
 
     ["topWhatsAppLink", "whatsAppButton"].forEach((id) => {
-      const element = document.getElementById(id);
-      if (element) element.href = whatsAppLink;
+      const element =
+        document.getElementById(id);
+
+      if (element) {
+        element.href = whatsAppLink;
+      }
     });
 
-    const qrUrl = state.settings.PAYMENT_QR_URL;
-    if (qrUrl) {
-      document.getElementById("paymentQrBox").innerHTML =
-        `<img src="${UI.escapeHtml(qrUrl)}" alt="Payment QR Code">
-         <small>QR स्क्यान गरी शुल्क तिर्नुहोस् ।</small>`;
-    }
+    const mapUrl =
+      String(
+        settings.GOOGLE_MAP_URL || ""
+      ).trim();
 
-    renderDynamicSocialLinks();
-  }
+    const googleMapLink =
+      document.getElementById("googleMapLink");
 
-  function renderDynamicSocialLinks() {
-    const container =
-      document.getElementById("socialLinks");
-
-    const wrapper =
-      document.getElementById("socialLinksWrap");
-
-    if (!container || !wrapper) {
-      return;
-    }
-
-    const socialSettings = [
-      {
-        key: "FACEBOOK_URL",
-        label: "Facebook",
-        icon: "f"
-      },
-      {
-        key: "INSTAGRAM_URL",
-        label: "Instagram",
-        icon: "◎"
-      },
-      {
-        key: "YOUTUBE_URL",
-        label: "YouTube",
-        icon: "▶"
-      },
-      {
-        key: "TIKTOK_URL",
-        label: "TikTok",
-        icon: "♪"
-      },
-      {
-        key: "X_URL",
-        label: "X",
-        icon: "𝕏"
+    if (googleMapLink) {
+      if (/^https?:\/\//i.test(mapUrl)) {
+        googleMapLink.href = mapUrl;
+        googleMapLink.classList.remove(
+          "settings-link-hidden"
+        );
+      } else {
+        googleMapLink.removeAttribute("href");
+        googleMapLink.classList.add(
+          "settings-link-hidden"
+        );
       }
-    ];
+    }
 
-    const links =
-      socialSettings
-        .map((item) => {
-          const raw =
-            String(
-              state.settings[item.key] || ""
-            ).trim();
+    const facebookUrl =
+      String(
+        settings.FACEBOOK_URL || ""
+      ).trim();
 
-          if (!raw) {
-            return "";
-          }
+    const facebookLink =
+      document.getElementById("facebookLink");
 
-          let safeUrl = "";
+    if (facebookLink) {
+      if (/^https?:\/\//i.test(facebookUrl)) {
+        facebookLink.href = facebookUrl;
+        facebookLink.classList.remove(
+          "settings-link-hidden"
+        );
+      } else {
+        facebookLink.removeAttribute("href");
+        facebookLink.classList.add(
+          "settings-link-hidden"
+        );
+      }
+    }
 
-          try {
-            const url =
-              new URL(raw);
+    const qrUrl =
+      String(
+        settings.PAYMENT_QR_URL || ""
+      ).trim();
 
-            if (
-              url.protocol !== "https:" &&
-              url.protocol !== "http:"
-            ) {
-              return "";
-            }
+    const qrImage =
+      document.getElementById("paymentQrImage");
 
-            safeUrl =
-              UI.escapeHtml(
-                url.toString()
-              );
+    if (qrImage) {
+      if (/^https?:\/\//i.test(qrUrl)) {
+        qrImage.src = qrUrl;
+        qrImage.style.display = "";
+      } else {
+        qrImage.removeAttribute("src");
+        qrImage.style.display = "none";
+      }
+    }
 
-          } catch (error) {
-            return "";
-          }
+    const youtubeUrl =
+      String(
+        settings.YOUTUBE_URL || ""
+      ).trim();
 
-          return `
-            <a
-              class="social-link"
-              href="${safeUrl}"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="${UI.escapeHtml(item.label)}">
-              <span class="social-link-icon">
-                ${UI.escapeHtml(item.icon)}
-              </span>
-              <span>
-                ${UI.escapeHtml(item.label)}
-              </span>
-            </a>
-          `;
-        })
-        .filter(Boolean)
-        .join("");
+    const youtubeLink =
+      document.getElementById("youtubeLink");
 
-    container.innerHTML =
-      links;
-
-    wrapper.classList.toggle(
-      "hidden",
-      !links
-    );
+    if (
+      youtubeLink &&
+      /^https?:\/\//i.test(youtubeUrl)
+    ) {
+      youtubeLink.href = youtubeUrl;
+    }
   }
 
   function renderSliders(sliders) {
@@ -2536,982 +1887,27 @@ window.GTYMS_UI = (() => {
       ".trip-register-btn"
     ).forEach((button) => {
       button.addEventListener("click", () => {
-        openProductionBooking(
-          button.dataset.id,
-          button.dataset.title || "यात्रा"
-        );
-      });
-    });
-  }
-
-
-  let bookingTripCache = [];
-  let bookingPassengerCounter = 0;
-
-  async function ensureBookingTripsLoaded() {
-    if (bookingTripCache.length) return bookingTripCache;
-
-    const data = await API.get("getBookingTripOptions");
-    bookingTripCache = data.items || [];
-    return bookingTripCache;
-  }
-
-  async function openProductionBooking(tripId, tripTitle) {
-    try {
-      UI.showLoading("Booking विवरण तयार हुँदैछ...");
-
-      const trips = await ensureBookingTripsLoaded();
-      const trip = trips.find(
-        item => String(item.TripID || "") === String(tripId || "")
-      );
-
-      if (!trip) {
-        throw new Error("यो यात्रा Booking का लागि उपलब्ध छैन ।");
-      }
-
-      document.getElementById("bookingTripId").value = trip.TripID;
-      document.getElementById("bookingTripTitle").textContent =
-        trip.TripTitle || tripTitle || "यात्रा बुकिङ";
-
-      const seats =
-        trip.AvailableSeats === null || trip.AvailableSeats === ""
-          ? "सम्पर्क गर्नुहोस्"
-          : trip.AvailableSeats;
-
-      document.getElementById("bookingTripSummary").innerHTML = `
-        <strong>${UI.escapeHtml(trip.TripTitle || "")}</strong><br>
-        <span>मिति: ${UI.escapeHtml(trip.StartDate || "")}</span><br>
-        <span>प्रति व्यक्ति: रु. ${formatMoney(trip.EffectivePrice || 0)}</span><br>
-        <span>उपलब्ध सिट: ${UI.escapeHtml(seats)}</span>
-      `;
-
-      const form = document.getElementById("productionBookingForm");
-      form.reset();
-      document.getElementById("bookingTripId").value = trip.TripID;
-
-      const container = document.getElementById("passengerContainer");
-      container.innerHTML = "";
-      bookingPassengerCounter = 0;
-      addPassengerCard(true);
-
-      document.getElementById("bookingSuccess").classList.add("hidden");
-      document.getElementById("bookingModal").hidden = false;
-
-    } catch (error) {
-      UI.showToast(error.message || "Booking खोल्न सकिएन ।", "error");
-    } finally {
-      UI.hideLoading();
-    }
-  }
-
-  function closeBookingModal() {
-    document.getElementById("bookingModal").hidden = true;
-  }
-
-  function addPassengerCard(isPrimary = false) {
-    bookingPassengerCounter += 1;
-
-    const container = document.getElementById("passengerContainer");
-    const card = document.createElement("div");
-    card.className = "passenger-card";
-    card.dataset.index = String(bookingPassengerCounter);
-
-    card.innerHTML = `
-      <div class="passenger-card-head">
-        <h4>${isPrimary ? "Primary Passenger" : `Passenger ${bookingPassengerCounter}`}</h4>
-        ${isPrimary ? "" : `<button type="button" class="remove-passenger">हटाउनुहोस्</button>`}
-      </div>
-
-      <div class="form-grid" style="margin-top:12px">
-        <div class="field">
-          <label>Passenger Name *</label>
-          <input data-pfield="passengerName" required>
-        </div>
-
-        <div class="field">
-          <label>Gender</label>
-          <select data-pfield="gender">
-            <option value="">छान्नुहोस्</option>
-            <option value="MALE">पुरुष</option>
-            <option value="FEMALE">महिला</option>
-            <option value="OTHER">अन्य</option>
-          </select>
-        </div>
-
-        <div class="field">
-          <label>Age</label>
-          <input type="number" min="0" max="120" data-pfield="age">
-        </div>
-
-        <div class="field">
-          <label>Mobile</label>
-          <input inputmode="tel" data-pfield="mobile">
-        </div>
-
-        <div class="field">
-          <label>Emergency Contact Name</label>
-          <input data-pfield="emergencyContactName">
-        </div>
-
-        <div class="field">
-          <label>Emergency Contact Mobile</label>
-          <input inputmode="tel" data-pfield="emergencyContactMobile">
-        </div>
-
-        <div class="field">
-          <label>Relation</label>
-          <input data-pfield="emergencyContactRelation">
-        </div>
-
-        <div class="field">
-          <label>Food Preference</label>
-          <select data-pfield="foodPreference">
-            <option value="VEGETARIAN">शाकाहारी</option>
-            <option value="JAIN">जैन भोजन</option>
-            <option value="OTHER">अन्य</option>
-          </select>
-        </div>
-
-        <div class="field full">
-          <label>Health Note / Special Assistance</label>
-          <textarea rows="2" data-pfield="healthNote"></textarea>
-        </div>
-      </div>
-    `;
-
-    card.querySelector(".remove-passenger")?.addEventListener("click", () => {
-      card.remove();
-    });
-
-    container.appendChild(card);
-  }
-
-  function collectPassengerData() {
-    return [...document.querySelectorAll("#passengerContainer .passenger-card")]
-      .map(card => {
-        const passenger = {};
-
-        card.querySelectorAll("[data-pfield]").forEach(field => {
-          passenger[field.dataset.pfield] = field.value;
-        });
-
-        passenger.specialAssistance = passenger.healthNote || "";
-        return passenger;
-      })
-      .filter(p => String(p.passengerName || "").trim());
-  }
-
-  document.getElementById("bookingClose")?.addEventListener(
-    "click",
-    closeBookingModal
-  );
-
-  document.getElementById("addPassengerBtn")?.addEventListener(
-    "click",
-    () => addPassengerCard(false)
-  );
-
-  document.getElementById("productionBookingForm")?.addEventListener(
-    "submit",
-    async event => {
-      event.preventDefault();
-
-      const form = event.currentTarget;
-      const payload = UI.formToObject(form);
-      payload.passengers = collectPassengerData();
-      payload.source = "WEBSITE";
-
-      if (!payload.passengers.length) {
-        UI.showToast("कम्तीमा एक जना यात्रुको नाम राख्नुहोस् ।", "error");
-        return;
-      }
-
-      try {
-        UI.showLoading("Booking Request पठाइँदैछ...");
-
-        const result = await API.post(
-          "createProductionBooking",
-          payload
-        );
-
-        const whatsappText = encodeURIComponent(
-          `नमस्कार Guru Tirtha Yatra Sewa । मेरो Booking Code ${result.bookingCode} हो । ${result.tripTitle || ""} यात्राको Booking सम्बन्धी जानकारी चाहियो ।`
-        );
-
-        const success = document.getElementById("bookingSuccess");
-        success.innerHTML = `
-          <strong>${UI.escapeHtml(result.message || "Booking सफल भयो ।")}</strong><br>
-          Booking Code: <strong>${UI.escapeHtml(result.bookingCode || "")}</strong><br>
-          Passenger: ${UI.escapeHtml(result.passengerCount || 0)}<br>
-          Amount: रु. ${formatMoney(result.netAmount || 0)}
-          ${result.waitlistPosition ? `<br>Waiting List Position: ${UI.escapeHtml(result.waitlistPosition)}` : ""}
-          <div class="booking-actions">
-            <a class="btn btn-secondary"
-              target="_blank"
-              rel="noopener"
-              href="https://wa.me/9779843484934?text=${whatsappText}">
-              WhatsApp Confirmation
-            </a>
-          </div>
-        `;
-        success.classList.remove("hidden");
-
-        UI.showToast("Booking Request सफल भयो ।");
-
-      } catch (error) {
-        UI.showToast(
-          error.message || "Booking Request पठाउन सकिएन ।",
-          "error"
-        );
-      } finally {
-        UI.hideLoading();
-      }
-    }
-  );
-
-  document.getElementById("bookingStatusNav")?.addEventListener(
-    "click",
-    event => {
-      event.preventDefault();
-      document.getElementById("bookingStatusModal").hidden = false;
-    }
-  );
-
-  document.getElementById("bookingStatusClose")?.addEventListener(
-    "click",
-    () => {
-      document.getElementById("bookingStatusModal").hidden = true;
-    }
-  );
-
-  document.getElementById("bookingStatusForm")?.addEventListener(
-    "submit",
-    async event => {
-      event.preventDefault();
-
-      const payload = UI.formToObject(event.currentTarget);
-
-      try {
-        UI.showLoading("Booking Status जाँच हुँदैछ...");
-
-        const result = await API.get(
-          "getBookingStatusPublic",
-          payload
-        );
-
-        const box = document.getElementById("bookingStatusResult");
-        box.innerHTML = `
-          <strong>${UI.escapeHtml(result.tripTitle || "")}</strong><br>
-          Booking Code: ${UI.escapeHtml(result.bookingCode || "")}<br>
-          Booking Status: <strong>${UI.escapeHtml(result.bookingStatus || "")}</strong><br>
-          Payment Status: <strong>${UI.escapeHtml(result.paymentStatus || "")}</strong><br>
-          Passenger: ${UI.escapeHtml(result.passengerCount || 0)}<br>
-          Total: रु. ${formatMoney(result.netAmount || 0)}<br>
-          Paid: रु. ${formatMoney(result.paidAmount || 0)}<br>
-          Due: रु. ${formatMoney(result.dueAmount || 0)}
-          ${result.waitlistPosition ? `<br>Waiting List Position: ${UI.escapeHtml(result.waitlistPosition)}` : ""}
-        `;
-        box.classList.remove("hidden");
-
-      } catch (error) {
-        UI.showToast(
-          error.message || "Booking विवरण भेटिएन ।",
-          "error"
-        );
-      } finally {
-        UI.hideLoading();
-      }
-    }
-  );
-
-
-  let currentPaymentSummary = null;
-
-  document.getElementById("paymentLookupForm")
-    ?.addEventListener("submit", async event => {
-      event.preventDefault();
-
-      const payload =
-        UI.formToObject(event.currentTarget);
-
-      try {
-        UI.showLoading("Payment विवरण लोड हुँदैछ...");
-
-        const result = await API.get(
-          "getPaymentBookingSummary",
-          payload
-        );
-
-        currentPaymentSummary = result;
-        renderPaymentBookingSummary(
-          result,
-          payload.bookingCode,
-          payload.mobile
-        );
-
-      } catch (error) {
-        UI.showToast(
-          error.message || "Booking विवरण भेटिएन ।",
-          "error"
-        );
-      } finally {
-        UI.hideLoading();
-      }
-    });
-
-  function renderPaymentBookingSummary(
-    data,
-    bookingCode,
-    mobile
-  ) {
-    document.getElementById("payBookingCode").value =
-      bookingCode || data.bookingCode || "";
-
-    document.getElementById("payBookingMobile").value =
-      mobile || "";
-
-    const qr = data.paymentQrUrl
-      ? `<img src="${UI.escapeHtml(data.paymentQrUrl)}"
-           alt="Payment QR"
-           style="width:190px;max-height:190px;object-fit:contain;margin:12px auto">`
-      : `<div class="empty-card" style="padding:18px">
-           Payment QR Admin Settings बाट राख्नुहोस् ।
-         </div>`;
-
-    document.getElementById("paymentBookingSummary").innerHTML = `
-      <div style="text-align:center">
-        <span class="eyebrow">Booking Payment</span>
-        <h3 style="margin:6px 0">${UI.escapeHtml(data.tripTitle || "")}</h3>
-        <small>${UI.escapeHtml(data.bookingCode || "")}</small>
-      </div>
-
-      <div class="payment-summary-grid">
-        <div class="payment-stat">
-          <small>Total</small>
-          <strong>रु. ${formatMoney(data.netAmount || 0)}</strong>
-        </div>
-
-        <div class="payment-stat">
-          <small>Paid</small>
-          <strong>रु. ${formatMoney(data.paidAmount || 0)}</strong>
-        </div>
-
-        <div class="payment-stat">
-          <small>Due</small>
-          <strong>रु. ${formatMoney(data.dueAmount || 0)}</strong>
-        </div>
-
-        <div class="payment-stat">
-          <small>Status</small>
-          <strong>${UI.escapeHtml(data.paymentStatus || "UNPAID")}</strong>
-        </div>
-      </div>
-
-      <div style="text-align:center">
-        ${qr}
-        ${data.advanceAmount
-          ? `<small>Suggested Advance: रु. ${formatMoney(data.advanceAmount)}</small>`
-          : ""}
-      </div>
-    `;
-
-    const amount =
-      document.getElementById("paymentAmount");
-
-    if (amount) {
-      amount.max =
-        String(data.dueAmount || "");
-      amount.value =
-        data.advanceAmount > 0 &&
-        data.advanceAmount <= data.dueAmount
-          ? data.advanceAmount
-          : data.dueAmount || "";
-    }
-
-    renderPaymentHistory(data.payments || []);
-    document.getElementById("paymentBookingBox")
-      .classList.remove("hidden");
-  }
-
-  function renderPaymentHistory(payments) {
-    const box =
-      document.getElementById("paymentHistory");
-
-    if (!payments.length) {
-      box.innerHTML =
-        `<div class="empty-card" style="padding:18px">
-           अहिलेसम्म Payment Report छैन ।
-         </div>`;
-      return;
-    }
-
-    box.innerHTML =
-      `<h3>Payment History</h3>` +
-      payments.map(payment => {
-        const status =
-          String(
-            payment.VerificationStatus || "PENDING"
-          ).toUpperCase();
-
-        const cls =
-          status === "VERIFIED"
-            ? "payment-status-verified"
-            : status === "REJECTED"
-              ? "payment-status-rejected"
-              : "payment-status-pending";
-
-        return `
-          <div class="payment-history-item">
-            <strong>${UI.escapeHtml(payment.PaymentCode || "")}</strong>
-            — रु. ${formatMoney(payment.Amount || 0)}
-            <br>
-            <span class="${cls}">
-              ${UI.escapeHtml(status)}
-            </span>
-            ${payment.TransactionID
-              ? `<br><small>Ref: ${UI.escapeHtml(payment.TransactionID)}</small>`
-              : ""}
-            ${payment.ReceiptNumber
-              ? `<br>
-                 <button
-                   type="button"
-                   class="text-button print-receipt-btn"
-                   data-receipt="${UI.escapeHtml(payment.ReceiptNumber)}"
-                   data-amount="${UI.escapeHtml(payment.VerifiedAmount || payment.Amount || 0)}">
-                   Receipt Print
-                 </button>`
-              : ""}
-            ${payment.RejectionReason
-              ? `<br><small style="color:var(--danger)">
-                   ${UI.escapeHtml(payment.RejectionReason)}
-                 </small>`
-              : ""}
-          </div>
-        `;
-      }).join("");
-
-    box.querySelectorAll(".print-receipt-btn")
-      .forEach(button => {
-        button.addEventListener("click", () => {
-          printPaymentReceipt(
-            button.dataset.receipt,
-            button.dataset.amount
-          );
-        });
-      });
-  }
-
-  document.getElementById("paymentVoucherForm")
-    ?.addEventListener("submit", async event => {
-      event.preventDefault();
-
-      const form = event.currentTarget;
-      const payload =
-        UI.formToObject(form);
-
-      const file =
-        document.getElementById(
-          "paymentVoucherFile"
-        ).files[0];
-
-      if (!file) {
-        UI.showToast(
-          "Voucher file छान्नुहोस् ।",
-          "error"
-        );
-        return;
-      }
-
-      if (file.size > 5 * 1024 * 1024) {
-        UI.showToast(
-          "Voucher अधिकतम 5 MB सम्म हुनुपर्छ ।",
-          "error"
-        );
-        return;
-      }
-
-      try {
-        UI.showLoading("Voucher Upload हुँदैछ...");
-
-        const base64 =
-          await fileToBase64Payload(file);
-
-        payload.voucher = {
-          name: file.name,
-          mimeType: file.type,
-          base64: base64
-        };
-
-        const result =
-          await API.post(
-            "submitPaymentVoucher",
-            payload
-          );
-
-        UI.showToast(
-          result.message ||
-          "Payment Voucher पठाइयो ।"
-        );
-
-        form.reset();
-
-        // Reload summary/history.
-        const refreshed =
-          await API.get(
-            "getPaymentBookingSummary",
-            {
-              bookingCode:
-                document.getElementById(
-                  "payBookingCode"
-                ).value,
-              mobile:
-                document.getElementById(
-                  "payBookingMobile"
-                ).value
-            }
-          );
-
-        currentPaymentSummary = refreshed;
-
-        renderPaymentBookingSummary(
-          refreshed,
-          refreshed.bookingCode,
+        const subject =
           document.getElementById(
-            "payBookingMobile"
-          ).value
-        );
+            "contactSubject"
+          );
 
-      } catch (error) {
-        UI.showToast(
-          error.message ||
-          "Payment Voucher पठाउन सकिएन ।",
-          "error"
-        );
-      } finally {
-        UI.hideLoading();
-      }
-    });
+        if (subject) {
+          subject.value =
+            `${button.dataset.title || "यात्रा"} सम्बन्धी बुकिङ सोधपुछ`;
+        }
 
-  function fileToBase64Payload(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
+        document.getElementById("contact")
+          ?.scrollIntoView({
+            behavior: "smooth"
+          });
 
-      reader.onload = () => {
-        const result =
-          String(reader.result || "");
-
-        resolve(
-          result.includes(",")
-            ? result.split(",")[1]
-            : result
-        );
-      };
-
-      reader.onerror = () =>
-        reject(
-          new Error(
-            "Voucher file पढ्न सकिएन ।"
-          )
-        );
-
-      reader.readAsDataURL(file);
-    });
-  }
-
-  function printPaymentReceipt(
-    receiptNumber,
-    amount
-  ) {
-    if (!currentPaymentSummary) return;
-
-    const area =
-      document.getElementById(
-        "receiptPrintArea"
-      );
-
-    area.innerHTML = `
-      <div style="max-width:720px;margin:0 auto;border:1px solid #bbb;padding:30px">
-        <div style="text-align:center">
-          <h2>Guru Tirtha Yatra Sewa</h2>
-          <h3>PAYMENT RECEIPT</h3>
-        </div>
-        <hr>
-        <p><strong>Receipt No:</strong> ${UI.escapeHtml(receiptNumber || "")}</p>
-        <p><strong>Booking Code:</strong> ${UI.escapeHtml(currentPaymentSummary.bookingCode || "")}</p>
-        <p><strong>Trip:</strong> ${UI.escapeHtml(currentPaymentSummary.tripTitle || "")}</p>
-        <p><strong>Received Amount:</strong> रु. ${formatMoney(amount || 0)}</p>
-        <p><strong>Payment Status:</strong> ${UI.escapeHtml(currentPaymentSummary.paymentStatus || "")}</p>
-        <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
-        <hr>
-        <p style="text-align:center">धन्यवाद ।</p>
-        <p style="text-align:center;font-size:12px">
-          Designed & Developed by Nirajan Aryal | 9851113811
-        </p>
-      </div>
-    `;
-
-    window.print();
-  }
-
-
-  let currentTicketData = null;
-
-  document.getElementById("ticketLookupForm")
-    ?.addEventListener("submit", async event => {
-      event.preventDefault();
-
-      const payload = UI.formToObject(event.currentTarget);
-
-      try {
-        UI.showLoading("E-Ticket लोड हुँदैछ...");
-
-        const result = await API.get(
-          "getPublicBookingTickets",
-          payload
-        );
-
-        currentTicketData = result;
-        renderPublicTickets(result);
-
-      } catch (error) {
-        UI.showToast(
-          error.message || "E-Ticket उपलब्ध छैन ।",
-          "error"
-        );
-      } finally {
-        UI.hideLoading();
-      }
-    });
-
-  function renderPublicTickets(data) {
-    const box = document.getElementById("ticketResult");
-
-    if (!data.tickets?.length) {
-      box.innerHTML = `
-        <div class="empty-card">
-          यस Booking को E-Ticket अझै Issue गरिएको छैन ।
-          Admin बाट Booking Approve तथा Ticket Issue भएपछि यहाँ देखिन्छ ।
-        </div>
-      `;
-      return;
-    }
-
-    box.innerHTML = data.tickets.map((ticket, index) => `
-      <article class="eticket">
-        <div class="eticket-head">
-          <div>
-            <strong>Guru Tirtha Yatra Sewa</strong><br>
-            <small>${UI.escapeHtml(data.tripTitle || "")}</small>
-          </div>
-          <strong>${UI.escapeHtml(ticket.TicketCode || "")}</strong>
-        </div>
-
-        <div class="eticket-body">
-          <div>
-            <div class="eticket-info">
-              <div><small>Passenger</small><strong>${UI.escapeHtml(ticket.PassengerName || "")}</strong></div>
-              <div><small>Booking</small><strong>${UI.escapeHtml(data.bookingCode || "")}</strong></div>
-              <div><small>Journey Date</small><strong>${UI.escapeHtml(data.startDate || "")}</strong></div>
-              <div><small>Reporting Time</small><strong>${UI.escapeHtml(data.reportingTime || "-")}</strong></div>
-              <div><small>Bus</small><strong>${UI.escapeHtml(ticket.BusID || "To be assigned")}</strong></div>
-              <div><small>Seat</small><strong>${UI.escapeHtml(ticket.SeatID || "To be assigned")}</strong></div>
-              <div><small>Boarding Point</small><strong>${UI.escapeHtml(data.boardingPoint || "-")}</strong></div>
-              <div><small>Payment</small><strong>${UI.escapeHtml(data.paymentStatus || "")}</strong></div>
-              <div><small>Check-In</small><strong>${UI.escapeHtml(ticket.CheckInStatus || "NOT_CHECKED_IN")}</strong></div>
-              <div><small>Invoice</small><strong>${UI.escapeHtml(data.invoiceNumber || "-")}</strong></div>
-            </div>
-
-            <div class="ticket-print-actions">
-              <button
-                type="button"
-                class="btn btn-secondary print-one-ticket"
-                data-index="${index}">
-                Print Ticket
-              </button>
-            </div>
-          </div>
-
-          <div class="ticket-qr">
-            <div id="ticketQr${index}"></div>
-            <small>Check-In QR</small>
-          </div>
-        </div>
-      </article>
-    `).join("");
-
-    data.tickets.forEach((ticket, index) => {
-      const el = document.getElementById(`ticketQr${index}`);
-      if (el && window.QRCode) {
-        new QRCode(el, {
-          text: ticket.TicketToken || ticket.TicketCode || "",
-          width: 140,
-          height: 140
-        });
-      }
-    });
-
-    box.querySelectorAll(".print-one-ticket")
-      .forEach(button => {
-        button.addEventListener("click", () => {
-          printOneTicket(Number(button.dataset.index || 0));
-        });
-      });
-  }
-
-  function printOneTicket(index) {
-    if (!currentTicketData?.tickets?.[index]) return;
-
-    const data = currentTicketData;
-    const ticket = data.tickets[index];
-
-    const area = document.getElementById("ticketPrintArea");
-
-    area.innerHTML = `
-      <div style="max-width:760px;margin:0 auto;border:1px solid #aaa;padding:28px;background:#fff">
-        <div style="text-align:center">
-          <h2>Guru Tirtha Yatra Sewa</h2>
-          <h3>E-TICKET</h3>
-        </div>
-        <hr>
-        <p><strong>Trip:</strong> ${UI.escapeHtml(data.tripTitle || "")}</p>
-        <p><strong>Passenger:</strong> ${UI.escapeHtml(ticket.PassengerName || "")}</p>
-        <p><strong>Ticket Code:</strong> ${UI.escapeHtml(ticket.TicketCode || "")}</p>
-        <p><strong>Booking Code:</strong> ${UI.escapeHtml(data.bookingCode || "")}</p>
-        <p><strong>Journey Date:</strong> ${UI.escapeHtml(data.startDate || "")}</p>
-        <p><strong>Reporting:</strong> ${UI.escapeHtml(data.reportingTime || "-")}</p>
-        <p><strong>Bus:</strong> ${UI.escapeHtml(ticket.BusID || "-")}</p>
-        <p><strong>Seat:</strong> ${UI.escapeHtml(ticket.SeatID || "-")}</p>
-        <p><strong>Boarding Point:</strong> ${UI.escapeHtml(data.boardingPoint || "-")}</p>
-        <p><strong>Invoice:</strong> ${UI.escapeHtml(data.invoiceNumber || "-")}</p>
-        <p><strong>Payment Status:</strong> ${UI.escapeHtml(data.paymentStatus || "")}</p>
-        <hr>
-        <p style="text-align:center;font-size:12px">
-          Official Contact: 9843484934<br>
-          Designed & Developed by Nirajan Aryal | 9851113811
-        </p>
-      </div>
-    `;
-
-    area.style.display = "block";
-    window.print();
-    area.style.display = "none";
-  }
-
-
-  /* Back To Top */
-  const backToTopButton =
-    document.getElementById("backToTop");
-
-  function updateBackToTopVisibility() {
-    if (!backToTopButton) return;
-
-    if (window.scrollY > 500) {
-      backToTopButton.classList.add("show");
-    } else {
-      backToTopButton.classList.remove("show");
-    }
-  }
-
-  window.addEventListener(
-    "scroll",
-    updateBackToTopVisibility,
-    { passive: true }
-  );
-
-  backToTopButton?.addEventListener(
-    "click",
-    () => {
-      window.scrollTo({
-        top: 0,
-        behavior: "smooth"
-      });
-    }
-  );
-
-  updateBackToTopVisibility();
-
-  /* Live Tracking – only available to matching Booking Code + Mobile */
-  document.getElementById("liveTrackingForm")
-    ?.addEventListener("submit", async event => {
-      event.preventDefault();
-
-      const payload =
-        UI.formToObject(event.currentTarget);
-
-      try {
-        UI.showLoading("Live Location लोड हुँदैछ...");
-
-        const data = await API.get(
-          "getPublicLiveTripTracking",
-          payload
-        );
-
-        renderPublicLiveTracking(data);
-
-      } catch (error) {
-        UI.showToast(
-          error.message ||
-          "Live Tracking विवरण लोड हुन सकेन ।",
-          "error"
-        );
-      } finally {
-        UI.hideLoading();
-      }
-    });
-
-  function renderPublicLiveTracking(data) {
-    const box =
-      document.getElementById(
-        "liveTrackingResult"
-      );
-
-    if (!data.available) {
-      box.innerHTML = `
-        <div class="empty-card" style="margin-top:18px">
-          ${UI.escapeHtml(
-            data.message ||
-            "Live Tracking उपलब्ध छैन ।"
-          )}
-        </div>
-      `;
-      return;
-    }
-
-    const locations =
-      (data.vehicles || [])
-        .map((vehicle, index) => {
-          const latest = vehicle.latest;
-
-          if (!latest) {
-            return `
-              <div class="live-location-item">
-                <strong>${UI.escapeHtml(
-                  vehicle.vehicleNumber ||
-                  vehicle.vehicleName ||
-                  `Vehicle ${index + 1}`
-                )}</strong><br>
-                <small>Location अझै प्राप्त भएको छैन ।</small>
-              </div>
-            `;
-          }
-
-          const lat = Number(latest.latitude || 0);
-          const lng = Number(latest.longitude || 0);
-
-          const mapUrl =
-            `https://www.google.com/maps?q=${encodeURIComponent(lat + "," + lng)}&z=15&output=embed`;
-
-          const openMap =
-            `https://www.google.com/maps?q=${encodeURIComponent(lat + "," + lng)}`;
-
-          return `
-            <div class="live-location-item">
-              <strong>${UI.escapeHtml(
-                vehicle.vehicleNumber ||
-                vehicle.vehicleName ||
-                `Vehicle ${index + 1}`
-              )}</strong><br>
-
-              <small>
-                Last Update:
-                ${UI.escapeHtml(
-                  latest.recordedAt || ""
-                )}
-              </small>
-
-              <div class="live-map">
-                <iframe
-                  loading="lazy"
-                  src="${mapUrl}"
-                  title="Live Trip Location">
-                </iframe>
-              </div>
-
-              <div class="card-actions">
-                <a
-                  class="btn btn-secondary"
-                  href="${openMap}"
-                  target="_blank"
-                  rel="noopener">
-                  Google Maps मा खोल्नुहोस्
-                </a>
-              </div>
-            </div>
-          `;
-        })
-        .join("");
-
-    box.innerHTML = `
-      <div style="margin-top:18px">
-        <span class="eyebrow">Current Journey</span>
-        <h3>${UI.escapeHtml(
-          data.tripTitle || ""
-        )}</h3>
-        ${locations}
-      </div>
-    `;
-  }
-
-
-  async function loadPublicSystemLinks(){
-    const grid=
-      document.getElementById(
-        "publicSystemsGrid"
-      );
-
-    if(!grid)return;
-
-    try{
-      const data=
-        await API.get(
-          "getPublicSystemLinks"
-        );
-
-      const items=
-        data.items||[];
-
-      if(!items.length){
         document.getElementById(
-          "public-systems"
-        )?.classList.add("hidden");
-        return;
-      }
-
-      grid.innerHTML=
-        items.map(link=>`
-          <article class="public-system-card">
-            <span class="system-icon">
-              ${UI.escapeHtml(link.Icon||"🔗")}
-            </span>
-
-            <h3>
-              ${UI.escapeHtml(link.ModuleName||"")}
-            </h3>
-
-            <p>
-              ${UI.escapeHtml(link.Description||"")}
-            </p>
-
-            <a
-              class="btn btn-secondary"
-              href="${UI.escapeHtml(link.URL||"#")}"
-              ${String(link.OpenMode||"")
-                .toUpperCase()==="NEW_TAB"
-                ? 'target="_blank" rel="noopener"'
-                : ""}>
-              Open
-            </a>
-          </article>
-        `).join("");
-
-    }catch(error){
-      document.getElementById(
-        "public-systems"
-      )?.classList.add("hidden");
-    }
+          "contactName"
+        )?.focus();
+      });
+    });
   }
-
-  loadPublicSystemLinks();
 
   function renderDestinations(destinations) {
     const grid = document.getElementById("destinationGrid");
@@ -3839,167 +2235,5 @@ window.GTYMS_UI = (() => {
 })();
 
   </script>
-
-  <script>
-  /* =========================================================
-     GTYMS v3.0.4 Universal Frontend Action Feedback
-     Non-invasive: does not change existing business logic.
-     ========================================================= */
-  (function(){
-    "use strict";
-
-    const ACTIVE_CLASS="gtyms-action-feedback";
-    const FLASH_CLASS="gtyms-click-flash";
-    const FEEDBACK_MS=900;
-
-    function isUsableActionElement(el){
-      if(!el)return false;
-
-      if(
-        el.matches(
-          "button, a[href], [role='button'], input[type='button'], input[type='submit']"
-        )
-      ){
-        return true;
-      }
-
-      return false;
-    }
-
-    function findActionElement(target){
-      if(!target || !target.closest)return null;
-
-      return target.closest(
-        "button, a[href], [role='button'], input[type='button'], input[type='submit']"
-      );
-    }
-
-    function shouldSkip(el){
-      if(!el)return true;
-
-      if(
-        el.disabled ||
-        el.getAttribute("aria-disabled")==="true" ||
-        el.classList.contains(ACTIVE_CLASS)
-      ){
-        return true;
-      }
-
-      // Do not delay native select/file controls.
-      if(
-        el.matches("input[type='file']")
-      ){
-        return true;
-      }
-
-      return false;
-    }
-
-    function showFeedback(el){
-      if(
-        !isUsableActionElement(el) ||
-        shouldSkip(el)
-      ){
-        return;
-      }
-
-      el.classList.add(
-        FLASH_CLASS
-      );
-
-      window.setTimeout(
-        ()=>el.classList.remove(
-          FLASH_CLASS
-        ),
-        140
-      );
-
-      // Native <input> pseudo-elements are inconsistent.
-      // For them, visual click flash is enough.
-      if(el.tagName==="INPUT"){
-        return;
-      }
-
-      el.classList.add(
-        ACTIVE_CLASS
-      );
-
-      el.setAttribute(
-        "aria-busy",
-        "true"
-      );
-
-      window.setTimeout(
-        ()=>{
-          el.classList.remove(
-            ACTIVE_CLASS
-          );
-
-          el.removeAttribute(
-            "aria-busy"
-          );
-        },
-        FEEDBACK_MS
-      );
-    }
-
-    document.addEventListener(
-      "click",
-      event=>{
-        showFeedback(
-          findActionElement(
-            event.target
-          )
-        );
-      },
-      true
-    );
-
-    // Keyboard form submit (Enter) also gets feedback.
-    document.addEventListener(
-      "submit",
-      event=>{
-        const form=
-          event.target;
-
-        if(!form || !form.querySelector){
-          return;
-        }
-
-        const submitter=
-          event.submitter ||
-          form.querySelector(
-            "button[type='submit'], input[type='submit']"
-          );
-
-        showFeedback(
-          submitter
-        );
-      },
-      true
-    );
-
-    // Programmatic helper for future modules.
-    window.GTYMSActionUX={
-      start:function(el){
-        showFeedback(el);
-      },
-
-      stop:function(el){
-        if(!el)return;
-
-        el.classList.remove(
-          ACTIVE_CLASS,
-          FLASH_CLASS
-        );
-
-        el.removeAttribute(
-          "aria-busy"
-        );
-      }
-    };
-  })();
-  </script>
-
 </body>
 </html>
