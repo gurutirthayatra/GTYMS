@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <title>Pilgrim Member Portal v2.7.2 | Guru Tirtha Yatra Sewa</title>
+  <title>Pilgrim Member Portal v2.7.3 | Guru Tirtha Yatra Sewa</title>
 
   <style>
     :root{
@@ -675,28 +675,105 @@
 
 
 
+    const NEPAL_LOCATION_CACHE_KEY =
+      "gtymsNepalLocationMasterV273";
+
+    const NEPAL_LOCATION_CACHE_MS =
+      24 * 60 * 60 * 1000;
+
     const nepalAddressState = {
-      provinces: null
+      master: null,
+      loadingPromise: null
     };
 
-    async function getNepalProvincesCached(){
+    function readNepalMasterCache(){
+      try{
+        const raw=
+          localStorage.getItem(
+            NEPAL_LOCATION_CACHE_KEY
+          );
+
+        if(!raw)return null;
+
+        const cached=
+          JSON.parse(raw);
+
+        if(
+          !cached.savedAt ||
+          Date.now() -
+            Number(cached.savedAt) >
+            NEPAL_LOCATION_CACHE_MS ||
+          !cached.data ||
+          !Array.isArray(
+            cached.data.items
+          )
+        ){
+          localStorage.removeItem(
+            NEPAL_LOCATION_CACHE_KEY
+          );
+          return null;
+        }
+
+        return cached.data;
+
+      }catch(error){
+        localStorage.removeItem(
+          NEPAL_LOCATION_CACHE_KEY
+        );
+        return null;
+      }
+    }
+
+    function writeNepalMasterCache(data){
+      try{
+        localStorage.setItem(
+          NEPAL_LOCATION_CACHE_KEY,
+          JSON.stringify({
+            savedAt:Date.now(),
+            data
+          })
+        );
+      }catch(ignored){}
+    }
+
+    async function loadNepalLocationMaster(){
       if(
+        nepalAddressState.master &&
         Array.isArray(
-          nepalAddressState.provinces
+          nepalAddressState.master.items
         )
       ){
-        return nepalAddressState.provinces;
+        return nepalAddressState.master;
       }
 
-      const data=
-        await api(
-          "getNepalProvinces"
-        );
+      const cached=
+        readNepalMasterCache();
 
-      nepalAddressState.provinces=
-        data.items||[];
+      if(cached){
+        nepalAddressState.master=cached;
+        return cached;
+      }
 
-      return nepalAddressState.provinces;
+      if(
+        nepalAddressState.loadingPromise
+      ){
+        return nepalAddressState.loadingPromise;
+      }
+
+      nepalAddressState.loadingPromise=
+        api(
+          "getNepalLocationMaster"
+        )
+          .then(data=>{
+            nepalAddressState.master=data;
+            writeNepalMasterCache(data);
+            return data;
+          })
+          .finally(()=>{
+            nepalAddressState.loadingPromise=null;
+          });
+
+      return nepalAddressState.loadingPromise;
     }
 
     function setLocationSelectLoading(
@@ -764,6 +841,63 @@
         ) || null;
     }
 
+    function getSelectedProvinceData(
+      master,
+      provinceSelect
+    ){
+      const option=
+        provinceSelect.options[
+          provinceSelect.selectedIndex
+        ];
+
+      const id=
+        option?.dataset?.id||"";
+
+      return (master.items||[])
+        .find(item=>
+          String(item.id)===
+          String(id)
+        ) || null;
+    }
+
+    function getSelectedDistrictData(
+      provinceData,
+      districtSelect
+    ){
+      const option=
+        districtSelect.options[
+          districtSelect.selectedIndex
+        ];
+
+      const id=
+        option?.dataset?.id||"";
+
+      return (provinceData?.districts||[])
+        .find(item=>
+          String(item.id)===
+          String(id)
+        ) || null;
+    }
+
+    function getSelectedLocalLevelData(
+      districtData,
+      municipalitySelect
+    ){
+      const option=
+        municipalitySelect.options[
+          municipalitySelect.selectedIndex
+        ];
+
+      const id=
+        option?.dataset?.id||"";
+
+      return (districtData?.localLevels||[])
+        .find(item=>
+          String(item.id)===
+          String(id)
+        ) || null;
+    }
+
     async function setupNepalAddressCascade({
       provinceId,
       districtId,
@@ -774,17 +908,10 @@
       initialMunicipality="",
       initialWard=""
     }){
-      const province=
-        $(provinceId);
-
-      const district=
-        $(districtId);
-
-      const municipality=
-        $(municipalityId);
-
-      const ward=
-        $(wardId);
+      const province=$(provinceId);
+      const district=$(districtId);
+      const municipality=$(municipalityId);
+      const ward=$(wardId);
 
       if(
         !province ||
@@ -795,52 +922,36 @@
         return;
       }
 
-      const loadProvinces=async()=>{
-        setLocationSelectLoading(
-          province,
-          "Province लोड हुँदैछ..."
-        );
+      setLocationSelectLoading(
+        province,
+        "Province लोड हुँदैछ..."
+      );
 
-        try{
-          const items=
-            await getNepalProvincesCached();
+      const master=
+        await loadNepalLocationMaster();
 
-          fillLocationSelect(
+      fillLocationSelect(
+        province,
+        master.items||[],
+        "Province छान्नुहोस्"
+      );
+
+      if(initialProvince){
+        const option=
+          findOptionByText(
             province,
-            items,
-            "Province छान्नुहोस्"
+            initialProvince
           );
 
-          if(initialProvince){
-            const option=
-              findOptionByText(
-                province,
-                initialProvince
-              );
-
-            if(option){
-              province.value=
-                option.value;
-            }
-          }
-
-        }catch(error){
-          province.innerHTML=
-            `<option value="">Province load हुन सकेन</option>`;
-
-          province.disabled=true;
-          throw error;
+        if(option){
+          province.value=
+            option.value;
         }
-      };
+      }
 
-      const loadDistricts=async(
+      const loadDistricts=(
         restoreValue=""
       )=>{
-        setLocationSelectLoading(
-          district,
-          "District लोड हुँदैछ..."
-        );
-
         municipality.disabled=true;
         municipality.innerHTML=
           `<option value="">पहिले District छान्नुहोस्</option>`;
@@ -849,32 +960,22 @@
         ward.innerHTML=
           `<option value="">पहिले Local Level छान्नुहोस्</option>`;
 
-        const selected=
-          province.options[
-            province.selectedIndex
-          ];
+        const provinceData=
+          getSelectedProvinceData(
+            master,
+            province
+          );
 
-        const provinceApiId=
-          selected?.dataset?.id||"";
-
-        if(!provinceApiId){
+        if(!provinceData){
+          district.disabled=true;
           district.innerHTML=
             `<option value="">पहिले Province छान्नुहोस्</option>`;
           return;
         }
 
-        const data=
-          await api(
-            "getNepalDistricts",
-            {
-              provinceId:
-                provinceApiId
-            }
-          );
-
         fillLocationSelect(
           district,
-          data.items||[],
+          provinceData.districts||[],
           "District छान्नुहोस्"
         );
 
@@ -892,44 +993,35 @@
         }
       };
 
-      const loadMunicipalities=async(
+      const loadMunicipalities=(
         restoreValue=""
       )=>{
-        setLocationSelectLoading(
-          municipality,
-          "Local Level लोड हुँदैछ..."
-        );
-
         ward.disabled=true;
         ward.innerHTML=
           `<option value="">पहिले Local Level छान्नुहोस्</option>`;
 
-        const selected=
-          district.options[
-            district.selectedIndex
-          ];
+        const provinceData=
+          getSelectedProvinceData(
+            master,
+            province
+          );
 
-        const districtApiId=
-          selected?.dataset?.id||"";
+        const districtData=
+          getSelectedDistrictData(
+            provinceData,
+            district
+          );
 
-        if(!districtApiId){
+        if(!districtData){
+          municipality.disabled=true;
           municipality.innerHTML=
             `<option value="">पहिले District छान्नुहोस्</option>`;
           return;
         }
 
-        const data=
-          await api(
-            "getNepalLocalLevels",
-            {
-              districtId:
-                districtApiId
-            }
-          );
-
         fillLocationSelect(
           municipality,
-          data.items||[],
+          districtData.localLevels||[],
           "Municipality / Rural Municipality छान्नुहोस्",
           "name",
           item=>
@@ -950,45 +1042,53 @@
         }
       };
 
-      const loadWards=async(
+      const loadWards=(
         restoreValue=""
       )=>{
-        setLocationSelectLoading(
-          ward,
-          "Ward लोड हुँदैछ..."
-        );
+        const provinceData=
+          getSelectedProvinceData(
+            master,
+            province
+          );
 
-        const selected=
-          municipality.options[
-            municipality.selectedIndex
-          ];
+        const districtData=
+          getSelectedDistrictData(
+            provinceData,
+            district
+          );
 
-        const localLevelApiId=
-          selected?.dataset?.id||"";
+        const localData=
+          getSelectedLocalLevelData(
+            districtData,
+            municipality
+          );
 
-        if(!localLevelApiId){
+        if(!localData){
+          ward.disabled=true;
           ward.innerHTML=
             `<option value="">पहिले Local Level छान्नुहोस्</option>`;
           return;
         }
 
-        const data=
-          await api(
-            "getNepalWards",
-            {
-              localLevelId:
-                localLevelApiId
-            }
-          );
+        const wards=[];
+
+        for(
+          let i=1;
+          i<=Number(localData.totalWards||0);
+          i++
+        ){
+          wards.push({
+            number:i,
+            label:`वडा नं. ${i}`
+          });
+        }
 
         fillLocationSelect(
           ward,
-          data.items||[],
+          wards,
           "Ward No. छान्नुहोस्",
           "number",
-          item=>
-            item.label||
-            `वडा नं. ${item.number}`
+          item=>item.label
         );
 
         if(
@@ -1014,46 +1114,20 @@
         }
       };
 
-      province.addEventListener(
-        "change",
-        async()=>{
-          try{
-            await loadDistricts();
-          }catch(error){
-            alert(error.message);
-          }
-        }
-      );
+      province.onchange=()=>{
+        loadDistricts();
+      };
 
-      district.addEventListener(
-        "change",
-        async()=>{
-          try{
-            await loadMunicipalities();
-          }catch(error){
-            alert(error.message);
-          }
-        }
-      );
+      district.onchange=()=>{
+        loadMunicipalities();
+      };
 
-      municipality.addEventListener(
-        "change",
-        async()=>{
-          try{
-            await loadWards();
-          }catch(error){
-            alert(error.message);
-          }
-        }
-      );
+      municipality.onchange=()=>{
+        loadWards();
+      };
 
-      await loadProvinces();
-
-      if(
-        province.value &&
-        initialDistrict
-      ){
-        await loadDistricts(
+      if(province.value){
+        loadDistricts(
           initialDistrict
         );
       }
@@ -1062,7 +1136,7 @@
         district.value &&
         initialMunicipality
       ){
-        await loadMunicipalities(
+        loadMunicipalities(
           initialMunicipality
         );
       }
@@ -1071,7 +1145,7 @@
         municipality.value &&
         initialWard!==""
       ){
-        await loadWards(
+        loadWards(
           initialWard
         );
       }
@@ -1080,14 +1154,10 @@
     async function initializeRegistrationAddress(){
       try{
         await setupNepalAddressCascade({
-          provinceId:
-            "regProvince",
-          districtId:
-            "regDistrict",
-          municipalityId:
-            "regMunicipality",
-          wardId:
-            "regWard"
+          provinceId:"regProvince",
+          districtId:"regDistrict",
+          municipalityId:"regMunicipality",
+          wardId:"regWard"
         });
       }catch(error){
         $("registrationMessage")
@@ -1824,6 +1894,12 @@
         </div>
       `;
     }
+
+
+    // Start loading Nepal location master quietly in the background.
+    // If localStorage has a valid 24-hour cache, this returns instantly.
+    loadNepalLocationMaster()
+      .catch(()=>{});
 
     initializePortal();
   </script>
