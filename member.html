@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <title>Pilgrim Member Portal v2.7.3 | Guru Tirtha Yatra Sewa</title>
+  <title>Pilgrim Member Portal v2.8.0 | Guru Tirtha Yatra Sewa</title>
 
   <style>
     :root{
@@ -507,6 +507,36 @@
         <div
           id="registrationSuccess"
           class="registration-success hidden">
+        </div>
+
+        <div class="otp-box" style="margin-top:18px">
+          <strong>Application Status हेर्नुहोस्</strong>
+
+          <form
+            id="applicationStatusForm"
+            style="margin-top:10px">
+
+            <label>Application ID</label>
+            <input
+              name="applicationId"
+              required
+              placeholder="APP-...">
+
+            <label>Registered Mobile</label>
+            <input
+              name="mobile"
+              inputmode="tel"
+              required>
+
+            <button
+              class="soft"
+              type="submit"
+              style="width:100%;margin-top:12px">
+              Status Check
+            </button>
+          </form>
+
+          <div id="applicationStatusResult"></div>
         </div>
       </div>
     </section>
@@ -1312,10 +1342,10 @@
 
             $("registrationSuccess")
               .innerHTML=
-              `<strong>${esc(result.message||"Registration सफल भयो ।")}</strong><br><br>
-               Membership No: <strong>${esc(result.membershipNo||"")}</strong><br>
+              `<strong>${esc(result.message||"Application सफल भयो ।")}</strong><br><br>
+               Application ID: <strong>${esc(result.applicationId||result.pilgrimId||"")}</strong><br>
                Mobile: ${esc(result.mobile||"")}<br><br>
-               अब Member Login tab बाट Login गर्नुहोस् ।`;
+               Admin Approval भएपछि Member ID / Membership No प्राप्त हुनेछ ।`;
 
             $("registrationSuccess")
               .classList.remove("hidden");
@@ -1336,6 +1366,61 @@
               error.message ||
               "OTP Verify हुन सकेन ।"
             );
+          }
+        }
+      );
+
+    $("applicationStatusForm")
+      ?.addEventListener(
+        "submit",
+        async event=>{
+          event.preventDefault();
+
+          const payload=
+            Object.fromEntries(
+              new FormData(
+                event.currentTarget
+              ).entries()
+            );
+
+          const box=
+            $("applicationStatusResult");
+
+          box.innerHTML=
+            `<div class="message">Status जाँच हुँदैछ...</div>`;
+
+          try{
+            const result=
+              await api(
+                "getMemberApplicationStatus",
+                payload
+              );
+
+            const status=
+              String(
+                result.approvalStatus||
+                "PENDING_APPROVAL"
+              ).toUpperCase();
+
+            box.innerHTML=`
+              <div class="message">
+                <strong>${esc(result.fullName||"")}</strong><br>
+                Application: ${esc(result.applicationId||"")}<br>
+                Status: <strong>${esc(status)}</strong>
+                ${result.memberId
+                  ? `<br>Member ID: <strong>${esc(result.memberId)}</strong>`
+                  : ""}
+                ${result.rejectionReason
+                  ? `<br>Reason: ${esc(result.rejectionReason)}`
+                  : ""}
+              </div>
+            `;
+
+          }catch(error){
+            box.innerHTML=
+              `<div class="message" style="background:#fde7e3;color:#8a1c12">
+                ${esc(error.message)}
+              </div>`;
           }
         }
       );
