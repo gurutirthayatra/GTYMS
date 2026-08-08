@@ -317,6 +317,66 @@
       .identity-grid{grid-template-columns:1fr}
     }
 
+
+    /* GTYMS v3.0.3 Universal Action Feedback */
+    button{
+      position:relative;
+      transition:transform .12s ease,opacity .12s ease,box-shadow .12s ease;
+    }
+    button:active{transform:scale(.97)}
+    button.ux-click-feedback{
+      box-shadow:0 0 0 3px rgba(139,30,30,.12);
+    }
+    button.ux-busy{
+      pointer-events:none;
+      opacity:.78;
+      padding-left:36px!important;
+    }
+    button.ux-busy::before{
+      content:"";
+      position:absolute;
+      left:12px;
+      top:50%;
+      width:14px;
+      height:14px;
+      margin-top:-7px;
+      border:2px solid currentColor;
+      border-right-color:transparent;
+      border-radius:50%;
+      animation:spin .7s linear infinite;
+    }
+    button:disabled{cursor:not-allowed;opacity:.65}
+    .safe-delete-btn{
+      background:#fff1ef!important;
+      color:#a1261b!important;
+      border:1px solid #efc6c0!important;
+    }
+    .confirm-card{
+      background:#fff;
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:18px;
+      max-width:520px;
+      width:calc(100% - 32px);
+      box-shadow:0 22px 70px rgba(41,25,15,.22);
+    }
+    .confirm-card h3{margin:0 0 8px;color:var(--primary)}
+    .confirm-card p{color:var(--muted);line-height:1.6}
+    .confirm-danger-note{
+      padding:11px 12px;
+      border-radius:10px;
+      background:#fde7e3;
+      color:#8a1c12;
+      margin:12px 0;
+      font-size:.9rem;
+    }
+    .confirm-actions{
+      display:flex;
+      justify-content:flex-end;
+      gap:8px;
+      margin-top:16px;
+    }
+
 </style>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
@@ -334,7 +394,7 @@
 
   <div id="adminApp" class="admin-layout hidden">
     <aside id="sidebar" class="sidebar">
-      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v3.0.0 • Production</small></div>
+      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v3.0.3 • Production</small></div>
       <nav class="nav">
         <button data-view="dashboard" class="active">▦ Dashboard</button>
         <button data-view="launcher">🔗 System Launcher</button>
@@ -546,6 +606,38 @@
     </div>
   </div>
 
+  <div id="universalConfirmOverlay"
+    class="loading hidden"
+    style="z-index:260;background:rgba(38,24,15,.46)">
+    <div class="confirm-card">
+      <h3 id="universalConfirmTitle">Confirm Action</h3>
+      <p id="universalConfirmMessage"></p>
+
+      <div id="universalConfirmDanger"
+        class="confirm-danger-note hidden"></div>
+
+      <div id="universalConfirmDeleteBox"
+        class="hidden">
+        <label>
+          स्थायी Delete confirm गर्न <strong>DELETE</strong> लेख्नुहोस्
+        </label>
+        <input id="universalConfirmDeleteText"
+          autocomplete="off"
+          placeholder="DELETE">
+      </div>
+
+      <div class="confirm-actions">
+        <button id="universalConfirmCancel"
+          type="button"
+          class="btn btn-soft">Cancel</button>
+
+        <button id="universalConfirmOk"
+          type="button"
+          class="btn btn-danger">Confirm</button>
+      </div>
+    </div>
+  </div>
+
   <div id="loading" class="loading hidden"><div class="spinner"></div></div>
   <div id="toast" class="toast hidden"></div>
 
@@ -579,6 +671,112 @@
     const $=id=>document.getElementById(id);
     const showLoading=()=>$("loading").classList.remove("hidden");
     const hideLoading=()=>$("loading").classList.add("hidden");
+
+    document.addEventListener(
+      "click",
+      event=>{
+        const button=event.target.closest("button");
+        if(!button || button.disabled)return;
+
+        button.classList.add("ux-click-feedback");
+
+        window.setTimeout(()=>{
+          button.classList.remove("ux-click-feedback");
+        },450);
+      },
+      true
+    );
+
+    function setButtonBusy(button,busy,busyText="Processing..."){
+      if(!button)return;
+
+      if(busy){
+        if(!button.dataset.originalText){
+          button.dataset.originalText=button.textContent.trim();
+        }
+
+        button.disabled=true;
+        button.classList.add("ux-busy");
+
+        if(busyText){
+          button.textContent=busyText;
+        }
+
+      }else{
+        button.disabled=false;
+        button.classList.remove("ux-busy");
+
+        if(button.dataset.originalText){
+          button.textContent=button.dataset.originalText;
+          delete button.dataset.originalText;
+        }
+      }
+    }
+
+    function askUniversalConfirm({
+      title="Confirm Action",
+      message="यो action confirm गर्ने हो?",
+      dangerText="",
+      requireDeleteText=false,
+      confirmLabel="Confirm"
+    }={}){
+      return new Promise(resolve=>{
+        const overlay=$("universalConfirmOverlay");
+        const danger=$("universalConfirmDanger");
+        const deleteBox=$("universalConfirmDeleteBox");
+        const deleteInput=$("universalConfirmDeleteText");
+        const ok=$("universalConfirmOk");
+        const cancel=$("universalConfirmCancel");
+
+        $("universalConfirmTitle").textContent=title;
+        $("universalConfirmMessage").textContent=message;
+        ok.textContent=confirmLabel;
+
+        if(dangerText){
+          danger.textContent=dangerText;
+          danger.classList.remove("hidden");
+        }else{
+          danger.classList.add("hidden");
+        }
+
+        if(requireDeleteText){
+          deleteBox.classList.remove("hidden");
+          deleteInput.value="";
+        }else{
+          deleteBox.classList.add("hidden");
+        }
+
+        overlay.classList.remove("hidden");
+
+        const finish=value=>{
+          overlay.classList.add("hidden");
+          ok.onclick=null;
+          cancel.onclick=null;
+          resolve(value);
+        };
+
+        cancel.onclick=()=>finish(null);
+
+        ok.onclick=()=>{
+          if(
+            requireDeleteText &&
+            deleteInput.value.trim().toUpperCase()!=="DELETE"
+          ){
+            toast("स्थायी Delete गर्न DELETE लेख्नुहोस् ।");
+            deleteInput.focus();
+            return;
+          }
+
+          finish({
+            confirmText:
+              requireDeleteText
+                ?"DELETE"
+                :"CONFIRMED"
+          });
+        };
+      });
+    }
+
     function toast(msg,type="success"){const el=$("toast");el.textContent=msg;el.className="toast "+type;el.classList.remove("hidden");clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.add("hidden"),3500)}
     function esc(v=""){return String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;")}
     function money(v){return new Intl.NumberFormat("en-IN",{maximumFractionDigits:0}).format(Number(v||0))}
@@ -764,11 +962,15 @@ toast("Login सफल भयो ।");
     }
 
     async function renderModule(module){
-      const [schema,data]=await Promise.all([
+      const [schema,data,deletePolicy]=await Promise.all([
         api("adminGetSchema",{token:state.token,module}),
-        api("adminListModule",{token:state.token,module,page:1,pageSize:100})
+        api("adminListModule",{token:state.token,module,page:1,pageSize:100}),
+        api("adminGetDeletePolicy",{token:state.token,module})
       ]);
-      state.schema=schema;state.records=data.items||[];
+
+      state.schema=schema;
+      state.records=data.items||[];
+      state.deletePolicy=deletePolicy||{};
       $("content").innerHTML=`
         <div class="panel">
           <div class="panel-head">
@@ -4196,15 +4398,66 @@ toast("Login सफल भयो ।");
     }
 
     function tableHtml(rows,cols,actions){
-      if(!rows?.length)return `<div class="empty">रेकर्ड छैन ।</div>`;
-      return `<div class="table-wrap"><table class="table"><thead><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join("")}${actions?"<th>Action</th>":""}</tr></thead>
-        <tbody>${rows.map(r=>`<tr>${cols.map(c=>`<td>${cell(r[c],c)}</td>`).join("")}${actions?`<td><div class="actions"><button class="editRow" data-id="${esc(r[state.schema?.idField]||"")}">Edit</button>${state.view!=="settings"?`<button class="archiveRow" data-id="${esc(r[state.schema?.idField]||"")}">Archive</button>`:""}</div></td>`:""}</tr>`).join("")}</tbody></table></div>`;
+      if(!rows?.length){
+        return `<div class="empty">रेकर्ड छैन ।</div>`;
+      }
+
+      const destructiveLabel=
+        state.deletePolicy?.actionLabel||
+        "Delete / Archive";
+
+      return `<div class="table-wrap"><table class="table">
+        <thead>
+          <tr>
+            ${cols.map(c=>`<th>${esc(c)}</th>`).join("")}
+            ${actions?"<th>Action</th>":""}
+          </tr>
+        </thead>
+
+        <tbody>
+          ${rows.map(r=>`
+            <tr>
+              ${cols.map(c=>`<td>${cell(r[c],c)}</td>`).join("")}
+              ${actions
+                ? `<td><div class="actions">
+                    <button class="editRow"
+                      data-id="${esc(r[state.schema?.idField]||"")}">
+                      Edit
+                    </button>
+                    <button class="safeDeleteRow safe-delete-btn"
+                      data-id="${esc(r[state.schema?.idField]||"")}">
+                      ${esc(destructiveLabel)}
+                    </button>
+                  </div></td>`
+                : ""}
+            </tr>
+          `).join("")}
+        </tbody>
+      </table></div>`;
     }
+
     function cell(v,c){if(/Status|Featured|IsPublic|AccessLevel/i.test(c))return `<span class="chip">${esc(v)}</span>`;if(/Amount|Price/i.test(c))return money(v);return esc(v)}
 
     function wireTableActions(){
-      document.querySelectorAll(".editRow").forEach(b=>b.onclick=()=>{const id=b.dataset.id;openRecordModal(state.records.find(r=>String(r[state.schema.idField])===id))});
-      document.querySelectorAll(".archiveRow").forEach(b=>b.onclick=()=>archiveRecord(b.dataset.id));
+      document.querySelectorAll(".editRow").forEach(button=>{
+        button.onclick=()=>{
+          const id=button.dataset.id;
+          openRecordModal(
+            state.records.find(
+              row=>String(row[state.schema.idField])===id
+            )
+          );
+        };
+      });
+
+      document.querySelectorAll(".safeDeleteRow").forEach(button=>{
+        button.onclick=()=>{
+          safeDeleteRecord(
+            button.dataset.id,
+            button
+          );
+        };
+      });
     }
 
     function openRecordModal(record){
@@ -4238,14 +4491,104 @@ toast("Login सफल भयो ।");
       }
     });
 
-    async function archiveRecord(id){
-      if(!confirm("यो रेकर्ड Archive गर्ने हो ?"))return;
+    async function safeDeleteRecord(id,button){
+      const policy=state.deletePolicy||{};
+      const mode=String(policy.mode||"ARCHIVE_ONLY").toUpperCase();
+
+      const hardDelete=
+        mode==="HARD_DELETE" ||
+        mode==="DELETE_IF_UNREFERENCED";
+
+      const record=
+        state.records.find(
+          row=>String(row[state.schema.idField])===String(id)
+        )||{};
+
+      const displayName=
+        record.Title ||
+        record.Name ||
+        record.DestinationName ||
+        record.ServiceName ||
+        record.SettingKey ||
+        id;
+
+      const confirmation=
+        await askUniversalConfirm({
+          title:
+            hardDelete
+              ?"Delete / Safe Archive"
+              :"Archive Record",
+
+          message:
+            `"${displayName}" मा destructive action गर्ने हो?`,
+
+          dangerText:
+            hardDelete
+              ?"Linked record भए system ले hard delete नगरी सुरक्षित Archive गर्नेछ। Unlinked record मात्र स्थायी Delete हुन्छ।"
+              :"यो relational/history record स्थायी Delete हुँदैन; Archive मात्र हुन्छ।",
+
+          requireDeleteText:hardDelete,
+
+          confirmLabel:
+            hardDelete
+              ?"Confirm Delete"
+              :"Confirm Archive"
+        });
+
+      if(!confirmation)return;
+
+      const reason=
+        prompt(
+          "Delete / Archive कारण:",
+          "Admin cleanup"
+        );
+
+      if(reason===null)return;
+
+      setButtonBusy(
+        button,
+        true,
+        "Processing..."
+      );
+
       showLoading();
-      try{await api("adminArchiveRecord",{token:state.token,module:state.view,id},"POST");toast("रेकर्ड Archive भयो ।");await renderModule(state.view)}
-      catch (e) {
-        handleAdminApiError(e);
-      } finally {
+
+      try{
+        const result=
+          await api(
+            "adminSafeDeleteRecord",
+            {
+              token:state.token,
+              module:state.view,
+              id,
+              reason,
+              confirmText:
+                confirmation.confirmText
+            },
+            "POST"
+          );
+
+        toast(
+          result.message||
+          (
+            result.action==="DELETED"
+              ?"रेकर्ड Delete भयो ।"
+              :"रेकर्ड Archive भयो ।"
+          )
+        );
+
+        await renderModule(
+          state.view
+        );
+
+      }catch(error){
+        handleAdminApiError(error);
+      }finally{
         hideLoading();
+        setButtonBusy(
+          button,
+          false
+        );
       }
     }
 
