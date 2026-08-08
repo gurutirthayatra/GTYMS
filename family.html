@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ne">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Family Live Tracking | Guru Tirtha Yatra Sewa</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;background:#f7f3ed;color:#2c1b15;font-family:"Noto Sans Devanagari",sans-serif}
+    .wrap{width:min(760px,calc(100% - 28px));margin:28px auto}
+    .card{background:#fff;border:1px solid #e5d8cc;border-radius:20px;padding:22px;box-shadow:0 16px 44px rgba(50,28,16,.12);margin-bottom:15px}
+    h1,h2,p{margin-top:0}h1{color:#8b1e1e}.muted{color:#786a62}
+    input{width:100%;padding:12px;border:1px solid #d7c8ba;border-radius:11px;font:inherit}
+    button,a.btn{display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:11px;padding:11px 14px;font:inherit;font-weight:800;text-decoration:none;cursor:pointer}
+    .primary{background:#8b1e1e;color:#fff}.soft{background:#f3e8df;color:#8b1e1e}.danger{background:#b42318;color:#fff}
+    .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+    .stat{border:1px solid #e6d9cc;border-radius:12px;padding:12px;background:#fcfaf7}
+    .stat small{display:block;color:#786a62}.stat strong{font-size:1.05rem}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+    .hidden{display:none!important}.loading{position:fixed;inset:0;background:rgba(255,255,255,.72);display:grid;place-items:center}
+    .spinner{width:44px;height:44px;border:4px solid #e8d9cf;border-top-color:#8b1e1e;border-radius:50%;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+    .note{background:#fff8e8;border:1px solid #ead6b2;border-radius:12px;padding:12px;line-height:1.6}
+    @media(max-width:580px){.grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Family Live Tracking</h1>
+      <p class="muted">यो पेज अधिकृत परिवार सदस्यका लागि मात्र हो ।</p>
+      <form id="accessForm">
+        <input id="accessKey" placeholder="Family Tracking Access Key" required>
+        <button class="primary" style="width:100%;margin-top:10px" type="submit">Tracking खोल्नुहोस्</button>
+      </form>
+    </div>
+
+    <div id="trackingCard" class="card hidden">
+      <h2 id="tripTitle"></h2>
+      <div class="grid">
+        <div class="stat"><small>Authorized Family</small><strong id="familyName">-</strong></div>
+        <div class="stat"><small>Vehicle</small><strong id="vehicleNumber">-</strong></div>
+        <div class="stat"><small>Tracking Status</small><strong id="trackingStatus">-</strong></div>
+        <div class="stat"><small>Last Location</small><strong id="lastLocationAt">-</strong></div>
+      </div>
+
+      <div id="locationNote" class="note" style="margin-top:14px"></div>
+
+      <div class="actions">
+        <a id="mapBtn" class="btn primary hidden" target="_blank" rel="noopener">Google Map</a>
+        <a id="hospitalBtn" class="btn soft hidden" target="_blank" rel="noopener">Nearest Hospital</a>
+        <a id="policeBtn" class="btn soft hidden" target="_blank" rel="noopener">Nearest Police</a>
+        <button id="refreshBtn" class="soft" type="button">Refresh Location</button>
+      </div>
+
+      <p class="muted" style="margin-top:14px;font-size:12px">
+        Location driver/tracker बाट update भएको समयअनुसार देखिन्छ । यो emergency service dispatch system होइन ।
+      </p>
+    </div>
+
+    <div class="card" style="text-align:center;font-size:12px;color:#786a62">
+      Designed & Developed by Nirajan Aryal | 9851113811
+    </div>
+  </div>
+
+  <div id="loading" class="loading hidden"><div class="spinner"></div></div>
+
+  <script>
+    const API_URL="https://script.google.com/macros/s/AKfycbzrKZBb_lg8TiI_HHp390Cscr31XWgcnsG0Jp5qFkkpUYaCoin3TLnJ6TY1RDFyRuI2/exec";
+    const $=id=>document.getElementById(id);
+    let refreshTimer=null;
+
+    const show=()=> $("loading").classList.remove("hidden");
+    const hide=()=> $("loading").classList.add("hidden");
+
+    async function api(action,payload={}){
+      const url=new URL(API_URL);
+      url.searchParams.set("action",action);
+      Object.entries(payload).forEach(([k,v])=>{if(v!==""&&v!==null&&v!==undefined)url.searchParams.set(k,v)});
+      const response=await fetch(url);
+      const result=await response.json();
+      if(!result.success)throw new Error(result?.error?.message||"Tracking load हुन सकेन ।");
+      return result.data;
+    }
+
+    function mapsSearchUrl(query,lat,lon){
+      return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query+" near "+lat+","+lon)}`;
+    }
+
+    async function loadTracking(){
+      const key=$("accessKey").value.trim();
+      if(!key)return;
+
+      show();
+
+      try{
+        const data=await api("getFamilyTrackingPublic",{accessKey:key});
+
+        $("trackingCard").classList.remove("hidden");
+        $("tripTitle").textContent=data.tripTitle||"Trip Tracking";
+        $("familyName").textContent=(data.familyName||"-")+(data.relation?` (${data.relation})`:"");
+        $("vehicleNumber").textContent=data.vehicleNumber||"-";
+        $("trackingStatus").textContent=data.trackingStatus||"INACTIVE";
+        $("lastLocationAt").textContent=data.lastLocationAt||"Location update छैन";
+
+        if(data.hasLocation){
+          const lat=data.latitude, lon=data.longitude;
+          $("locationNote").innerHTML=`Current Location: <strong>${lat}, ${lon}</strong>`;
+          $("mapBtn").href=`https://www.google.com/maps?q=${lat},${lon}`;
+          $("hospitalBtn").href=mapsSearchUrl("hospital",lat,lon);
+          $("policeBtn").href=mapsSearchUrl("police station",lat,lon);
+          ["mapBtn","hospitalBtn","policeBtn"].forEach(id=>$(id).classList.remove("hidden"));
+        }else{
+          $("locationNote").textContent="हाल location उपलब्ध छैन । केही समयपछि Refresh गर्नुहोस् ।";
+          ["mapBtn","hospitalBtn","policeBtn"].forEach(id=>$(id).classList.add("hidden"));
+        }
+
+        if(!refreshTimer){
+          refreshTimer=setInterval(loadTracking,30000);
+        }
+
+      }catch(error){
+        alert(error.message);
+      }finally{
+        hide();
+      }
+    }
+
+    $("accessForm").addEventListener("submit",e=>{e.preventDefault();loadTracking()});
+    $("refreshBtn").onclick=loadTracking;
+
+    const params=new URLSearchParams(location.search);
+    if(params.get("key")){
+      $("accessKey").value=params.get("key");
+      loadTracking();
+    }
+  </script>
+</body>
+</html>
