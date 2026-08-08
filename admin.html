@@ -418,6 +418,68 @@
     transition:transform .12s ease,filter .12s ease;
   }
 
+
+    .cleanup-grid{
+      display:grid;
+      grid-template-columns:repeat(4,minmax(0,1fr));
+      gap:12px;
+      margin-bottom:16px;
+    }
+
+    .cleanup-stat{
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:14px;
+      background:#fffaf5;
+    }
+
+    .cleanup-stat small{
+      display:block;
+      color:var(--muted);
+      margin-bottom:4px;
+    }
+
+    .cleanup-stat strong{
+      font-size:1.15rem;
+    }
+
+    .cleanup-policy-note{
+      margin:0 0 16px;
+      padding:14px;
+      border:1px solid #ead6b2;
+      border-radius:14px;
+      background:#fff8e8;
+      line-height:1.65;
+    }
+
+    .cleanup-dependency{
+      font-size:.82rem;
+      color:var(--muted);
+      line-height:1.45;
+    }
+
+    .cleanup-hard{
+      color:#147344;
+      font-weight:800;
+    }
+
+    .cleanup-safe{
+      color:#9a5b00;
+      font-weight:800;
+    }
+
+    @media(max-width:900px){
+      .cleanup-grid{
+        grid-template-columns:1fr 1fr;
+      }
+    }
+
+    @media(max-width:540px){
+      .cleanup-grid{
+        grid-template-columns:1fr;
+      }
+    }
+
 </style>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
@@ -435,13 +497,14 @@
 
   <div id="adminApp" class="admin-layout hidden">
     <aside id="sidebar" class="sidebar">
-      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v3.0.3 • Production</small></div>
+      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v3.0.6 • Production</small></div>
       <nav class="nav">
         <button data-view="dashboard" class="active">▦ Dashboard</button>
         <button data-view="launcher">🔗 System Launcher</button>
         <button data-view="members">👤 Pilgrim & Rewards</button>
         <button data-view="rewardengine">🎁 Automatic Rewards</button>
         <button data-view="identity">🔗 Traveller ↔ Member Identity</button>
+        <button data-view="cleanup">🧹 Fake/Test Data Cleanup</button>
         <button data-view="sliders">▣ Slider Manager</button>
         <button data-view="destinations">⌖ Destination Manager</button>
         <button data-view="trips">🚌 Trip Manager</button>
@@ -976,7 +1039,7 @@ toast("Login सफल भयो ।");
       $("pageTitle").textContent=view==="dashboard"?"Dashboard":MODULES[view]?.title||view;
       showLoading();
       try{
-        if(view==="dashboard")await renderDashboard();else if(view==="launcher")await renderSystemLauncher();else if(view==="members")await renderMemberRewardsManager();else if(view==="rewardengine")await renderRewardEngineManager();else if(view==="identity")await renderIdentityManager();else if(view==="trips")await renderTripManager();else if(view==="bookings")await renderBookingManager();else if(view==="payments")await renderPaymentManager();else if(view==="tickets")await renderTicketManager();else if(view==="fleet")await renderFleetManager();else if(view==="fieldops")await renderFieldOpsManager();else await renderModule(view);
+        if(view==="dashboard")await renderDashboard();else if(view==="launcher")await renderSystemLauncher();else if(view==="members")await renderMemberRewardsManager();else if(view==="rewardengine")await renderRewardEngineManager();else if(view==="identity")await renderIdentityManager();else if(view==="cleanup")await renderCleanupManager();else if(view==="trips")await renderTripManager();else if(view==="bookings")await renderBookingManager();else if(view==="payments")await renderPaymentManager();else if(view==="tickets")await renderTicketManager();else if(view==="fleet")await renderFleetManager();else if(view==="fieldops")await renderFieldOpsManager();else await renderModule(view);
       } catch (e) {
         handleAdminApiError(e);
       } finally {
@@ -1042,6 +1105,401 @@ toast("Login सफल भयो ।");
 
 
 
+
+
+
+    async function renderCleanupManager(){
+      const dashboard=
+        await api(
+          "adminGetCleanupDashboard",
+          {
+            token:state.token
+          }
+        );
+
+      const cards=
+        dashboard.cards||{};
+
+      $("content").innerHTML=`
+        <div class="cleanup-grid">
+          <div class="cleanup-stat">
+            <small>Members</small>
+            <strong>${cards.members||0}</strong>
+          </div>
+
+          <div class="cleanup-stat">
+            <small>Travellers</small>
+            <strong>${cards.travellers||0}</strong>
+          </div>
+
+          <div class="cleanup-stat">
+            <small>Bookings</small>
+            <strong>${cards.bookings||0}</strong>
+          </div>
+
+          <div class="cleanup-stat">
+            <small>Fake Flagged</small>
+            <strong>${cards.fakeFlagged||0}</strong>
+          </div>
+        </div>
+
+        <div class="cleanup-policy-note">
+          <strong>Universal Cleanup Policy:</strong>
+          Fake/Test record मा कुनै Booking, Ticket, Payment, Reward वा history छैन भने मात्र
+          Hard Delete गर्न सकिन्छ । सम्बन्धित transaction/history भए system ले hard delete रोक्छ
+          र record लाई FAKE / INACTIVE / CANCELLED / VOID बनाइ audit सुरक्षित राख्छ ।
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <h3>Fake / Test Data Cleanup</h3>
+              <small>
+                Member, Traveller र Booking सुरक्षित रूपमा review/cleanup गर्नुहोस् ।
+              </small>
+            </div>
+
+            <div class="toolbar">
+              <select id="cleanupRecordType">
+                <option value="MEMBER">Members</option>
+                <option value="TRAVELLER">Travellers</option>
+                <option value="BOOKING">Bookings</option>
+              </select>
+
+              <input
+                id="cleanupSearch"
+                placeholder="Name / Mobile / ID खोज्नुहोस्">
+
+              <button
+                id="cleanupSearchBtn"
+                class="btn btn-primary">
+                Search
+              </button>
+            </div>
+          </div>
+
+          <div id="cleanupTable">
+            <div class="empty">
+              Record load हुँदैछ...
+            </div>
+          </div>
+        </div>
+      `;
+
+      $("cleanupSearchBtn").onclick=
+        ()=>loadCleanupRecords();
+
+      $("cleanupRecordType").onchange=
+        ()=>loadCleanupRecords();
+
+      $("cleanupSearch").addEventListener(
+        "keydown",
+        event=>{
+          if(event.key==="Enter"){
+            loadCleanupRecords();
+          }
+        }
+      );
+
+      await loadCleanupRecords();
+    }
+
+    async function loadCleanupRecords(){
+      const button=
+        $("cleanupSearchBtn");
+
+      setButtonBusy(
+        button,
+        true,
+        "Loading..."
+      );
+
+      try{
+        const data=
+          await api(
+            "adminListCleanupRecords",
+            {
+              token:state.token,
+              recordType:
+                $("cleanupRecordType").value,
+              search:
+                $("cleanupSearch").value.trim()
+            }
+          );
+
+        state.cleanupRecords=
+          data.items||[];
+
+        $("cleanupTable").innerHTML=
+          cleanupRecordsTable(
+            state.cleanupRecords
+          );
+
+        wireCleanupActions();
+
+      }catch(error){
+        handleAdminApiError(error);
+      }finally{
+        setButtonBusy(
+          button,
+          false
+        );
+      }
+    }
+
+    function cleanupRecordsTable(rows){
+      if(!rows?.length){
+        return `<div class="empty">Record भेटिएन ।</div>`;
+      }
+
+      return `<div class="table-wrap"><table class="table">
+        <thead>
+          <tr>
+            <th>ID / Name</th>
+            <th>Contact</th>
+            <th>Status</th>
+            <th>Dependency</th>
+            <th>Cleanup Policy</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          ${rows.map(row=>{
+            const hard=
+              !!row.dependency?.hardDeleteAllowed;
+
+            return `
+              <tr>
+                <td>
+                  <strong>${esc(row.displayName||"")}</strong><br>
+                  <small>${esc(row.id||"")}</small>
+                </td>
+
+                <td>
+                  ${esc(row.mobile||"-")}<br>
+                  <small>${esc(row.email||"")}</small>
+                </td>
+
+                <td>
+                  <span class="chip">
+                    ${esc(row.primaryStatus||"-")}
+                  </span>
+
+                  ${row.lifecycleStatus
+                    ? `<br><small>${esc(row.lifecycleStatus)}</small>`
+                    : ""}
+                </td>
+
+                <td>
+                  <div class="cleanup-dependency">
+                    ${esc(row.dependency?.summary||"")}
+                  </div>
+                </td>
+
+                <td>
+                  <span class="${hard?"cleanup-hard":"cleanup-safe"}">
+                    ${hard
+                      ?"Hard Delete Allowed"
+                      :"History सुरक्षित राख्ने"}
+                  </span>
+                </td>
+
+                <td>
+                  <div class="actions">
+                    <button
+                      class="markFakeBtn"
+                      data-id="${esc(row.id||"")}">
+                      Mark Fake
+                    </button>
+
+                    <button
+                      class="cleanupRecordBtn safe-delete-btn"
+                      data-id="${esc(row.id||"")}"
+                      data-hard="${hard?"1":"0"}">
+                      ${hard
+                        ?"Delete Fake/Test"
+                        :"Safe Void / Disable"}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            `;
+          }).join("")}
+        </tbody>
+      </table></div>`;
+    }
+
+    function wireCleanupActions(){
+      document.querySelectorAll(
+        ".markFakeBtn"
+      ).forEach(button=>{
+        button.onclick=()=>{
+          markCleanupRecordFake(
+            button.dataset.id,
+            button
+          );
+        };
+      });
+
+      document.querySelectorAll(
+        ".cleanupRecordBtn"
+      ).forEach(button=>{
+        button.onclick=()=>{
+          cleanupRecordNow(
+            button.dataset.id,
+            button.dataset.hard==="1",
+            button
+          );
+        };
+      });
+    }
+
+    async function markCleanupRecordFake(
+      recordId,
+      button
+    ){
+      const reason=
+        prompt(
+          "Fake/Test mark गर्ने कारण:",
+          "Fake / Test data"
+        );
+
+      if(!reason)return;
+
+      const confirmed=
+        await askUniversalConfirm({
+          title:"Mark as Fake / Test",
+          message:
+            "यो record लाई FAKE_REPORTED status दिने हो?",
+          dangerText:
+            "यसले Member भए portal disable गर्छ; Booking भए cancel/void flow लागू हुन सक्छ ।",
+          requireDeleteText:false,
+          confirmLabel:"Mark Fake"
+        });
+
+      if(!confirmed)return;
+
+      setButtonBusy(
+        button,
+        true,
+        "Processing..."
+      );
+
+      try{
+        const result=
+          await api(
+            "adminMarkRecordFake",
+            {
+              token:state.token,
+              recordType:
+                $("cleanupRecordType").value,
+              recordId,
+              reason
+            },
+            "POST"
+          );
+
+        toast(
+          result.message||
+          "Record Fake भनेर mark भयो ।"
+        );
+
+        await loadCleanupRecords();
+
+      }catch(error){
+        handleAdminApiError(error);
+      }finally{
+        setButtonBusy(
+          button,
+          false
+        );
+      }
+    }
+
+    async function cleanupRecordNow(
+      recordId,
+      hardDeleteAllowed,
+      button
+    ){
+      const confirmResult=
+        await askUniversalConfirm({
+          title:
+            hardDeleteAllowed
+              ?"Delete Fake / Test Record"
+              :"Safe Void / Disable",
+
+          message:
+            hardDeleteAllowed
+              ?"Dependency नभएको Fake/Test record स्थायी रूपमा delete गर्ने हो?"
+              :"सम्बन्धित history भएकाले Hard Delete हुनेछैन । सुरक्षित Void/Disable गर्ने हो?",
+
+          dangerText:
+            hardDeleteAllowed
+              ?"यो action स्थायी हो । Record snapshot audit sheet मा रहनेछ ।"
+              :"Payment/Reward/history delete हुँदैन । Audit trail सुरक्षित रहन्छ ।",
+
+          requireDeleteText:
+            hardDeleteAllowed,
+
+          confirmLabel:
+            hardDeleteAllowed
+              ?"Confirm Delete"
+              :"Confirm Safe Cleanup"
+        });
+
+      if(!confirmResult)return;
+
+      const reason=
+        prompt(
+          "Cleanup कारण:",
+          "Fake / Test data cleanup"
+        );
+
+      if(reason===null)return;
+
+      setButtonBusy(
+        button,
+        true,
+        "Processing..."
+      );
+
+      showLoading();
+
+      try{
+        const result=
+          await api(
+            "adminCleanupRecord",
+            {
+              token:state.token,
+              recordType:
+                $("cleanupRecordType").value,
+              recordId,
+              reason,
+              confirmText:
+                confirmResult.confirmText
+            },
+            "POST"
+          );
+
+        toast(
+          result.message||
+          "Cleanup पूरा भयो ।"
+        );
+
+        await renderCleanupManager();
+
+      }catch(error){
+        handleAdminApiError(error);
+      }finally{
+        hideLoading();
+
+        setButtonBusy(
+          button,
+          false
+        );
+      }
+    }
 
 
     async function renderIdentityManager(){
