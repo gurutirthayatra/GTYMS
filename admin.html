@@ -173,6 +173,53 @@
     @media(max-width:980px){.fieldops-grid{grid-template-columns:1fr 1fr}.scanner-panel{grid-template-columns:1fr}}
     @media(max-width:540px){.fieldops-grid{grid-template-columns:1fr}}
 
+
+    .launcher-grid{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:14px;
+      margin-bottom:18px;
+    }
+    .launcher-card{
+      border:1px solid var(--border);
+      background:#fff;
+      border-radius:16px;
+      padding:18px;
+      box-shadow:0 10px 24px rgba(65,36,20,.06);
+    }
+    .launcher-icon{
+      font-size:2rem;
+      display:block;
+      margin-bottom:10px;
+    }
+    .launcher-card h3{
+      margin:0 0 5px;
+    }
+    .launcher-card p{
+      color:var(--muted);
+      min-height:42px;
+    }
+    .launcher-link{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-height:40px;
+      border-radius:10px;
+      padding:8px 12px;
+      text-decoration:none;
+      font-weight:800;
+      background:var(--primary);
+      color:#fff;
+    }
+    .link-status-active{color:var(--success);font-weight:800}
+    .link-status-inactive{color:var(--danger);font-weight:800}
+    @media(max-width:1000px){
+      .launcher-grid{grid-template-columns:1fr 1fr}
+    }
+    @media(max-width:620px){
+      .launcher-grid{grid-template-columns:1fr}
+    }
+
 </style>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
@@ -190,7 +237,7 @@
 
   <div id="adminApp" class="admin-layout hidden">
     <aside id="sidebar" class="sidebar">
-      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v2.5.0 • Production</small></div>
+      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v2.6.0 • Production</small></div>
       <nav class="nav">
         <button data-view="dashboard" class="active">▦ Dashboard</button>
         <button data-view="sliders">▣ Slider Manager</button>
@@ -416,7 +463,8 @@
       payments:{title:"Payment Manager",display:["PaymentCode","BookingCode","PrimaryContactName","Amount","VerificationStatus"]},
       tickets:{title:"Ticket & Check-In",display:["TicketCode","BookingCode","PassengerName","BusID","SeatID","CheckInStatus"]},
       fleet:{title:"Fleet & Tracking",display:["TripTitle","VehicleNumber","DriverName","TrackingStatus"]},
-      fieldops:{title:"QR Check-In & Field Ops",display:["PassengerName","BookingCode","TicketCode","BusID","SeatID","CheckInStatus"]}
+      fieldops:{title:"QR Check-In & Field Ops",display:["PassengerName","BookingCode","TicketCode","BusID","SeatID","CheckInStatus"]},
+      launcher:{title:"System Launcher",display:["ModuleName","URL","Role","Status","DisplayOrder"]}
     };
 
     const TEXTAREA_HINTS = /Description|HTML|Message|Remarks|Notes|Terms|Advice|Attractions|Route|Content/i;
@@ -586,7 +634,7 @@ toast("Login सफल भयो ।");
       $("pageTitle").textContent=view==="dashboard"?"Dashboard":MODULES[view]?.title||view;
       showLoading();
       try{
-        if(view==="dashboard")await renderDashboard();else if(view==="trips")await renderTripManager();else if(view==="bookings")await renderBookingManager();else if(view==="payments")await renderPaymentManager();else if(view==="tickets")await renderTicketManager();else if(view==="fleet")await renderFleetManager();else if(view==="fieldops")await renderFieldOpsManager();else await renderModule(view);
+        if(view==="dashboard")await renderDashboard();else if(view==="launcher")await renderSystemLauncher();else if(view==="trips")await renderTripManager();else if(view==="bookings")await renderBookingManager();else if(view==="payments")await renderPaymentManager();else if(view==="tickets")await renderTicketManager();else if(view==="fleet")await renderFleetManager();else if(view==="fieldops")await renderFieldOpsManager();else await renderModule(view);
       } catch (e) {
         handleAdminApiError(e);
       } finally {
@@ -645,6 +693,373 @@ toast("Login सफल भयो ।");
     let fieldQrScanner=null;
     let fieldLastScanToken="";
     let fieldScanLocked=false;
+
+
+    async function renderSystemLauncher(){
+      const [launcherData,managerData]=await Promise.all([
+        api(
+          "adminGetSystemLauncher",
+          {token:state.token}
+        ),
+        api(
+          "adminListSystemLinks",
+          {token:state.token}
+        )
+      ]);
+
+      state.systemLinks=
+        managerData.items||[];
+
+      $("content").innerHTML=`
+        <div class="panel" style="margin-bottom:18px">
+          <div class="panel-head">
+            <div>
+              <h3>Universal System Launcher</h3>
+              <small>
+                सबै GTYMS HTML / Module links एउटै ठाउँबाट खोल्नुहोस् ।
+              </small>
+            </div>
+
+            <div class="toolbar">
+              <button
+                id="addSystemLinkBtn"
+                class="btn btn-primary">
+                + नयाँ Link
+              </button>
+            </div>
+          </div>
+
+          <div style="padding:18px">
+            <div class="launcher-grid">
+              ${(launcherData.items||[]).map(link=>`
+                <article class="launcher-card">
+                  <span class="launcher-icon">
+                    ${esc(link.Icon||"🔗")}
+                  </span>
+
+                  <h3>${esc(link.ModuleName||"")}</h3>
+
+                  <p>
+                    ${esc(link.Description||"")}
+                  </p>
+
+                  <a
+                    class="launcher-link"
+                    href="${esc(link.URL||"#")}"
+                    ${String(link.OpenMode||"")
+                      .toUpperCase()==="NEW_TAB"
+                      ? 'target="_blank" rel="noopener"'
+                      : ""}>
+                    Open System
+                  </a>
+                </article>
+              `).join("") ||
+                `<div class="empty">Active System Link छैन ।</div>`}
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <h3>Dynamic Links Manager</h3>
+              <small>${state.systemLinks.length} links</small>
+            </div>
+
+            <div class="toolbar">
+              <input
+                id="systemLinkSearch"
+                placeholder="Module / URL / Role">
+
+              <button
+                id="systemLinkSearchBtn"
+                class="btn btn-soft">
+                Search
+              </button>
+            </div>
+          </div>
+
+          <div id="systemLinkTable">
+            ${systemLinksTable(state.systemLinks)}
+          </div>
+        </div>
+      `;
+
+      $("addSystemLinkBtn").onclick=
+        ()=>editSystemLink(null);
+
+      $("systemLinkSearchBtn").onclick=
+        searchSystemLinks;
+
+      $("systemLinkSearch")
+        .addEventListener("keydown",e=>{
+          if(e.key==="Enter"){
+            searchSystemLinks();
+          }
+        });
+
+      wireSystemLinkActions();
+    }
+
+    function systemLinksTable(rows){
+      if(!rows?.length){
+        return `<div class="empty">System Link छैन ।</div>`;
+      }
+
+      return `<div class="table-wrap"><table class="table">
+        <thead>
+          <tr>
+            <th>Order</th>
+            <th>Module</th>
+            <th>URL</th>
+            <th>Role</th>
+            <th>Public</th>
+            <th>Open</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          ${rows.map(row=>{
+            const active=
+              String(row.Status||"")
+                .toUpperCase()==="ACTIVE";
+
+            return `
+              <tr>
+                <td>${esc(row.DisplayOrder||0)}</td>
+
+                <td>
+                  <strong>
+                    ${esc(row.Icon||"🔗")}
+                    ${esc(row.ModuleName||"")}
+                  </strong><br>
+                  <small>${esc(row.Description||"")}</small>
+                </td>
+
+                <td>
+                  <small style="word-break:break-all">
+                    ${esc(row.URL||"")}
+                  </small>
+                </td>
+
+                <td>${esc(row.Role||"ALL")}</td>
+                <td>${String(row.IsPublic||"").toUpperCase()==="TRUE"?"YES":"NO"}</td>
+                <td>${esc(row.OpenMode||"")}</td>
+
+                <td>
+                  <span class="${active?"link-status-active":"link-status-inactive"}">
+                    ${esc(row.Status||"")}
+                  </span>
+                </td>
+
+                <td>
+                  <div class="actions">
+                    <button
+                      class="editSystemLinkBtn"
+                      data-id="${esc(row.LinkID||"")}">
+                      Edit
+                    </button>
+
+                    <button
+                      class="toggleSystemLinkBtn"
+                      data-id="${esc(row.LinkID||"")}"
+                      data-status="${esc(row.Status||"INACTIVE")}">
+                      ${active?"Deactivate":"Activate"}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            `;
+          }).join("")}
+        </tbody>
+      </table></div>`;
+    }
+
+    function wireSystemLinkActions(){
+      document.querySelectorAll(
+        ".editSystemLinkBtn"
+      ).forEach(button=>{
+        button.onclick=()=>{
+          const row=
+            (state.systemLinks||[])
+              .find(item=>
+                String(item.LinkID||"")===
+                String(button.dataset.id||"")
+              );
+
+          editSystemLink(row||null);
+        };
+      });
+
+      document.querySelectorAll(
+        ".toggleSystemLinkBtn"
+      ).forEach(button=>{
+        button.onclick=async()=>{
+          const current=
+            String(
+              button.dataset.status||
+              "INACTIVE"
+            ).toUpperCase();
+
+          const next=
+            current==="ACTIVE"
+              ?"INACTIVE"
+              :"ACTIVE";
+
+          showLoading();
+
+          try{
+            await api(
+              "adminSetSystemLinkStatus",
+              {
+                token:state.token,
+                linkId:button.dataset.id,
+                status:next
+              },
+              "POST"
+            );
+
+            toast(`System Link ${next} भयो ।`);
+            await renderSystemLauncher();
+
+          }catch(error){
+            handleAdminApiError(error);
+          }finally{
+            hideLoading();
+          }
+        };
+      });
+    }
+
+    async function searchSystemLinks(){
+      showLoading();
+
+      try{
+        const data=await api(
+          "adminListSystemLinks",
+          {
+            token:state.token,
+            search:
+              $("systemLinkSearch").value
+          }
+        );
+
+        state.systemLinks=
+          data.items||[];
+
+        $("systemLinkTable").innerHTML=
+          systemLinksTable(
+            state.systemLinks
+          );
+
+        wireSystemLinkActions();
+
+      }catch(error){
+        handleAdminApiError(error);
+      }finally{
+        hideLoading();
+      }
+    }
+
+    async function editSystemLink(row){
+      const moduleName=prompt(
+        "Module Name:",
+        row?.ModuleName||""
+      );
+
+      if(moduleName===null || !moduleName.trim()){
+        return;
+      }
+
+      const description=prompt(
+        "Description:",
+        row?.Description||""
+      );
+
+      if(description===null)return;
+
+      const icon=prompt(
+        "Icon / Emoji:",
+        row?.Icon||"🔗"
+      );
+
+      if(icon===null)return;
+
+      const url=prompt(
+        "URL / Relative HTML Path:",
+        row?.URL||"./"
+      );
+
+      if(url===null || !url.trim()){
+        return;
+      }
+
+      const role=prompt(
+        "Role (ALL / ADMIN / DRIVER / PUBLIC):",
+        row?.Role||"ALL"
+      );
+
+      if(role===null)return;
+
+      const publicAnswer=confirm(
+        "यो Link Public Website मा पनि देखाउने हो?"
+      );
+
+      const openMode=confirm(
+        "नयाँ Tab मा खोल्ने हो?"
+      )
+        ?"NEW_TAB"
+        :"SAME_TAB";
+
+      const displayOrder=prompt(
+        "Display Order:",
+        row?.DisplayOrder||"10"
+      );
+
+      if(displayOrder===null)return;
+
+      showLoading();
+
+      try{
+        await api(
+          "adminSaveSystemLink",
+          {
+            token:state.token,
+            link:{
+              linkId:row?.LinkID||"",
+              moduleName:moduleName.trim(),
+              description:
+                description||"",
+              icon:icon||"🔗",
+              url:url.trim(),
+              role:role||"ALL",
+              isPublic:publicAnswer,
+              openMode,
+              status:
+                row?.Status||"ACTIVE",
+              displayOrder:
+                Number(displayOrder||0)
+            }
+          },
+          "POST"
+        );
+
+        toast(
+          row
+            ?"System Link अपडेट भयो ।"
+            :"नयाँ System Link तयार भयो ।"
+        );
+
+        await renderSystemLauncher();
+
+      }catch(error){
+        handleAdminApiError(error);
+      }finally{
+        hideLoading();
+      }
+    }
 
     async function renderFieldOpsManager(){
       stopFieldScanner();
