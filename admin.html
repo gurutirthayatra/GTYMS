@@ -769,7 +769,7 @@
 
   <div id="adminApp" class="admin-layout hidden">
     <aside id="sidebar" class="sidebar">
-      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v3.3.0 • Production</small></div>
+      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v3.4.0 • Production</small></div>
       <nav class="nav">
         <button data-view="dashboard" class="active">▦ Dashboard</button>
         <button data-view="launcher">🔗 System Launcher</button>
@@ -3355,6 +3355,41 @@ toast("Login सफल भयो ।");
         <div class="panel" style="margin-bottom:16px">
           <div class="panel-head">
             <div>
+              <h3>Post-Trip Lifecycle</h3>
+              <small>
+                Feedback & Rating • Repeat Traveller History • Final Post-Trip Report
+              </small>
+            </div>
+
+            <div class="toolbar">
+              <button id="copyFeedbackLinkBtn" class="btn btn-soft">
+                Copy Feedback Link
+              </button>
+
+              <button id="processPostTripBtn" class="btn btn-primary">
+                Process Post-Trip
+              </button>
+
+              <button id="loadPostTripReportBtn" class="btn btn-soft">
+                Load Report
+              </button>
+
+              <button id="printPostTripReportBtn" class="btn btn-primary">
+                Print Report
+              </button>
+            </div>
+          </div>
+
+          <div id="postTripLifecycleBox">
+            <div class="empty">
+              COMPLETED Trip छानेर Post-Trip Processing चलाउनुहोस् ।
+            </div>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-bottom:16px">
+          <div class="panel-head">
+            <div>
               <h3>Bus-wise Seat Occupancy</h3>
               <small>
                 Trip अनुसार खाली, occupied, checked-in र duplicate seat हेर्नुहोस् ।
@@ -3450,6 +3485,10 @@ toast("Login सफल भयो ।");
       $("printTripDayOpsBtn").onclick=printTripDayOperations;
       $("previewTripCompletionBtn").onclick=previewTripCompletion;
       $("finalizeTripBtn").onclick=finalizeTripCompletion;
+      $("copyFeedbackLinkBtn").onclick=copyTripFeedbackLink;
+      $("processPostTripBtn").onclick=processPostTripLifecycle;
+      $("loadPostTripReportBtn").onclick=loadPostTripReport;
+      $("printPostTripReportBtn").onclick=printPostTripReport;
       $("fieldTripSelect").onchange=loadFieldManifest;
       $("fieldStartCameraBtn").onclick=startFieldScanner;
       $("fieldStopCameraBtn").onclick=stopFieldScanner;
@@ -4491,6 +4530,318 @@ toast("Login सफल भयो ।");
           false
         );
       }
+    }
+
+
+    function getSelectedFieldTripId(){
+      return $("fieldTripSelect")?.value||"";
+    }
+
+
+    async function copyTripFeedbackLink(){
+      const tripId=getSelectedFieldTripId();
+
+      if(!tripId){
+        toast("पहिले Trip छान्नुहोस् ।","error");
+        return;
+      }
+
+      const url=new URL("feedback.html",window.location.href);
+      url.searchParams.set("tripId",tripId);
+
+      try{
+        await navigator.clipboard.writeText(url.toString());
+        toast("Feedback Link Copy भयो ।");
+      }catch(error){
+        prompt("Feedback Link:",url.toString());
+      }
+    }
+
+
+    async function processPostTripLifecycle(){
+      const tripId=getSelectedFieldTripId();
+
+      if(!tripId){
+        toast("पहिले Trip छान्नुहोस् ।","error");
+        return;
+      }
+
+      const ok=await askUniversalConfirm({
+        title:"Process Post-Trip Lifecycle",
+        message:
+          "Completed यात्रुको traveller history तयार गरी Pilgrim TotalTrips / LastTripDate update र final summary बनाउने?",
+        dangerText:
+          "Existing Booking, Ticket, Payment वा पुरानो history delete हुँदैन ।",
+        confirmLabel:"Process"
+      });
+
+      if(!ok)return;
+
+      const button=$("processPostTripBtn");
+      setButtonBusy(button,true,"Processing...");
+      showLoading();
+
+      try{
+        const result=await api(
+          "adminProcessPostTripLifecycle",
+          {
+            token:state.token,
+            tripId
+          },
+          "POST"
+        );
+
+        toast(result.message||"Post-Trip Processing पूरा भयो ।");
+
+        $("postTripLifecycleBox").innerHTML=`
+          <div class="trip-day-grid">
+            <div class="trip-day-stat">
+              <small>New Traveller History</small>
+              <strong>${esc(result.newHistoryRecords||0)}</strong>
+            </div>
+            <div class="trip-day-stat">
+              <small>No-Show Skipped</small>
+              <strong>${esc(result.noShowSkipped||0)}</strong>
+            </div>
+            <div class="trip-day-stat">
+              <small>Pilgrim Profiles Updated</small>
+              <strong>${esc(result.pilgrimProfilesUpdated||0)}</strong>
+            </div>
+            <div class="trip-day-stat">
+              <small>Feedback Received</small>
+              <strong>${esc(result.summary?.feedbackCount||0)}</strong>
+            </div>
+          </div>
+        `;
+
+        await loadPostTripReport();
+
+      }catch(error){
+        handleAdminApiError(error);
+      }finally{
+        hideLoading();
+        setButtonBusy(button,false);
+      }
+    }
+
+
+    async function loadPostTripReport(){
+      const tripId=getSelectedFieldTripId();
+
+      if(!tripId){
+        toast("पहिले Trip छान्नुहोस् ।","error");
+        return;
+      }
+
+      showLoading();
+
+      try{
+        const report=await api(
+          "adminGetPostTripReport",
+          {
+            token:state.token,
+            tripId
+          }
+        );
+
+        state.currentPostTripReport=report;
+
+        $("postTripLifecycleBox").innerHTML=
+          postTripReportHtml(report);
+
+      }catch(error){
+        handleAdminApiError(error);
+      }finally{
+        hideLoading();
+      }
+    }
+
+
+    function postTripReportHtml(r){
+      const buses=Array.isArray(r.busSummary)?r.busSummary:[];
+
+      return `
+        <div class="trip-day-grid">
+          <div class="trip-day-stat">
+            <small>Completed Travellers</small>
+            <strong>${esc(r.completedPassengers||0)}</strong>
+          </div>
+
+          <div class="trip-day-stat">
+            <small>No-Show</small>
+            <strong>${esc(r.noShowPassengers||0)}</strong>
+          </div>
+
+          <div class="trip-day-stat">
+            <small>Total Bookings</small>
+            <strong>${esc(r.totalBookings||0)}</strong>
+          </div>
+
+          <div class="trip-day-stat">
+            <small>Paid Amount</small>
+            <strong>रु. ${money(r.paidAmount||0)}</strong>
+          </div>
+
+          <div class="trip-day-stat">
+            <small>Due Amount</small>
+            <strong>रु. ${money(r.dueAmount||0)}</strong>
+          </div>
+
+          <div class="trip-day-stat">
+            <small>Feedback Count</small>
+            <strong>${esc(r.feedbackCount||0)}</strong>
+          </div>
+
+          <div class="trip-day-stat">
+            <small>Overall Rating</small>
+            <strong>${esc(r.averageOverallRating||0)} / 5</strong>
+          </div>
+
+          <div class="trip-day-stat">
+            <small>Driver Rating</small>
+            <strong>${esc(r.averageDriverRating||0)} / 5</strong>
+          </div>
+
+          <div class="trip-day-stat">
+            <small>Bus Rating</small>
+            <strong>${esc(r.averageBusRating||0)} / 5</strong>
+          </div>
+
+          <div class="trip-day-stat">
+            <small>Service Rating</small>
+            <strong>${esc(r.averageServiceRating||0)} / 5</strong>
+          </div>
+
+          <div class="trip-day-stat">
+            <small>Recommend</small>
+            <strong>${esc(r.recommendPercent||0)}%</strong>
+          </div>
+        </div>
+
+        <div class="trip-day-bus-table">
+          <h4 style="margin:0 0 10px">Completed Travellers by Bus</h4>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Bus</th>
+                  <th>Completed Travellers</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${buses.length
+                  ?buses.map(b=>`
+                    <tr>
+                      <td>${esc(b.busId||"UNASSIGNED")}</td>
+                      <td>${esc(b.completedPassengers||0)}</td>
+                    </tr>
+                  `).join("")
+                  :`<tr><td colspan="2">Bus summary छैन ।</td></tr>`}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        ${(r.recentFeedback||[]).length
+          ?`
+            <div style="padding:0 16px 16px">
+              <h4>Recent Feedback</h4>
+              ${(r.recentFeedback||[]).map(f=>`
+                <div class="trip-day-alert">
+                  <strong>${esc(f.travellerName||"Traveller")}</strong>
+                  — Overall ${esc(f.overallRating||"-")}/5
+                  — Driver ${esc(f.driverRating||"-")}/5
+                  — Bus ${esc(f.busRating||"-")}/5
+                  ${f.feedbackText?`<br>${esc(f.feedbackText)}`:""}
+                  ${f.complaintText?`<br><span class="trip-day-bad">Complaint: ${esc(f.complaintText)}</span>`:""}
+                </div>
+              `).join("")}
+            </div>
+          `
+          :""}
+      `;
+    }
+
+
+    function printPostTripReport(){
+      const r=state.currentPostTripReport;
+
+      if(!r){
+        toast("पहिले Post-Trip Report Load गर्नुहोस् ।","error");
+        return;
+      }
+
+      const w=window.open("","_blank","width=1100,height=800");
+
+      if(!w){
+        toast("Print window खुल्न सकेन ।","error");
+        return;
+      }
+
+      w.document.open();
+      w.document.write(`
+        <!DOCTYPE html>
+        <html lang="ne">
+        <head>
+          <meta charset="UTF-8">
+          <title>${esc(r.tripTitle||"Trip")} - Post Trip Report</title>
+          <style>
+            @page{size:A4;margin:12mm}
+            body{font-family:"Noto Sans Devanagari",Arial,sans-serif;color:#222;font-size:12px}
+            h1,h2,h3{text-align:center;margin:0 0 6px}
+            .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:16px 0}
+            .card{border:1px solid #bbb;border-radius:8px;padding:10px}
+            .card small{display:block;color:#555}.card strong{font-size:17px}
+            table{width:100%;border-collapse:collapse;margin-top:12px}
+            th,td{border:1px solid #bbb;padding:6px;text-align:left;vertical-align:top}
+            th{background:#f2f2f2}
+            .footer{margin-top:28px;display:flex;justify-content:space-between}
+            .sign{width:180px;border-top:1px solid #444;text-align:center;padding-top:4px}
+          </style>
+        </head>
+        <body>
+          <h1>Guru Tirtha Yatra Sewa</h1>
+          <h2>${esc(r.tripTitle||"")}</h2>
+          <h3>Post-Trip Summary Report</h3>
+
+          <div class="grid">
+            <div class="card"><small>Completed Travellers</small><strong>${esc(r.completedPassengers||0)}</strong></div>
+            <div class="card"><small>No-Show</small><strong>${esc(r.noShowPassengers||0)}</strong></div>
+            <div class="card"><small>Bookings</small><strong>${esc(r.totalBookings||0)}</strong></div>
+            <div class="card"><small>Paid</small><strong>रु. ${money(r.paidAmount||0)}</strong></div>
+            <div class="card"><small>Due</small><strong>रु. ${money(r.dueAmount||0)}</strong></div>
+            <div class="card"><small>Feedback</small><strong>${esc(r.feedbackCount||0)}</strong></div>
+            <div class="card"><small>Overall Rating</small><strong>${esc(r.averageOverallRating||0)} / 5</strong></div>
+            <div class="card"><small>Driver Rating</small><strong>${esc(r.averageDriverRating||0)} / 5</strong></div>
+            <div class="card"><small>Bus Rating</small><strong>${esc(r.averageBusRating||0)} / 5</strong></div>
+            <div class="card"><small>Recommend</small><strong>${esc(r.recommendPercent||0)}%</strong></div>
+          </div>
+
+          <h3 style="text-align:left">Bus-wise Completed Travellers</h3>
+          <table>
+            <thead><tr><th>Bus</th><th>Completed Travellers</th></tr></thead>
+            <tbody>
+              ${(r.busSummary||[]).map(b=>`
+                <tr>
+                  <td>${esc(b.busId||"UNASSIGNED")}</td>
+                  <td>${esc(b.completedPassengers||0)}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+
+          <div class="footer">
+            <div>Designed & Developed by Nirajan Aryal | 9851113811</div>
+            <div class="sign">Authorized Signature</div>
+          </div>
+
+          <script>
+            window.onload=function(){window.focus();window.print();};
+          <\/script>
+        </body>
+        </html>
+      `);
+      w.document.close();
     }
 
 
