@@ -148,6 +148,16 @@
   border-radius:10px;
 }
 
+
+    .fleet-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}
+    .fleet-stat{border:1px solid var(--border);border-radius:14px;padding:14px;background:#fcfaf7}
+    .fleet-stat small{display:block;color:var(--muted);margin-bottom:4px}
+    .fleet-stat strong{font-size:1.15rem}
+    .fleet-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+    .fleet-tabs button{border:1px solid var(--border);background:#fff;border-radius:10px;padding:8px 12px;font-weight:700}
+    @media(max-width:900px){.fleet-grid{grid-template-columns:1fr 1fr}}
+    @media(max-width:540px){.fleet-grid{grid-template-columns:1fr}}
+
 </style>
 </head>
 <body>
@@ -164,7 +174,7 @@
 
   <div id="adminApp" class="admin-layout hidden">
     <aside id="sidebar" class="sidebar">
-      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v2.3.1 • Production</small></div>
+      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v2.4.0 • Production</small></div>
       <nav class="nav">
         <button data-view="dashboard" class="active">▦ Dashboard</button>
         <button data-view="sliders">▣ Slider Manager</button>
@@ -173,6 +183,7 @@
         <button data-view="bookings">📋 Booking Manager</button>
         <button data-view="payments">💳 Payment Manager</button>
         <button data-view="tickets">🎫 Ticket & Check-In</button>
+        <button data-view="fleet">📍 Fleet & Tracking</button>
         <button data-view="services">✓ Services Manager</button>
         <button data-view="library">▤ Digital Library</button>
         <button data-view="settings">⚙ Settings</button>
@@ -386,7 +397,8 @@
       settings:{title:"Settings",display:["SettingKey","SettingValue","Category","IsPublic","Status"]},
       bookings:{title:"Booking Manager",display:["BookingCode","TripTitle","PrimaryContactName","PrimaryContactMobile","PassengerCount","PaymentStatus","BookingStatus"]},
       payments:{title:"Payment Manager",display:["PaymentCode","BookingCode","PrimaryContactName","Amount","VerificationStatus"]},
-      tickets:{title:"Ticket & Check-In",display:["TicketCode","BookingCode","PassengerName","BusID","SeatID","CheckInStatus"]}
+      tickets:{title:"Ticket & Check-In",display:["TicketCode","BookingCode","PassengerName","BusID","SeatID","CheckInStatus"]},
+      fleet:{title:"Fleet & Tracking",display:["TripTitle","VehicleNumber","DriverName","TrackingStatus"]}
     };
 
     const TEXTAREA_HINTS = /Description|HTML|Message|Remarks|Notes|Terms|Advice|Attractions|Route|Content/i;
@@ -556,7 +568,7 @@ toast("Login सफल भयो ।");
       $("pageTitle").textContent=view==="dashboard"?"Dashboard":MODULES[view]?.title||view;
       showLoading();
       try{
-        if(view==="dashboard")await renderDashboard();else if(view==="trips")await renderTripManager();else if(view==="bookings")await renderBookingManager();else if(view==="payments")await renderPaymentManager();else if(view==="tickets")await renderTicketManager();else await renderModule(view);
+        if(view==="dashboard")await renderDashboard();else if(view==="trips")await renderTripManager();else if(view==="bookings")await renderBookingManager();else if(view==="payments")await renderPaymentManager();else if(view==="tickets")await renderTicketManager();else if(view==="fleet")await renderFleetManager();else await renderModule(view);
       } catch (e) {
         handleAdminApiError(e);
       } finally {
@@ -609,6 +621,287 @@ toast("Login सफल भयो ।");
 
 
 
+
+
+    async function renderFleetManager(){
+      const [dashboard, vehicles, drivers, assignments, editor] =
+        await Promise.all([
+          api("adminGetFleetDashboard",{token:state.token}),
+          api("adminListVehicles",{token:state.token}),
+          api("adminListDrivers",{token:state.token}),
+          api("adminListTripVehicleAssignments",{token:state.token}),
+          api("adminGetFleetEditorData",{token:state.token})
+        ]);
+
+      state.fleetEditorData=editor;
+      state.fleetVehicles=vehicles.items||[];
+      state.fleetDrivers=drivers.items||[];
+      state.fleetAssignments=assignments.items||[];
+
+      const c=dashboard.cards||{};
+
+      $("content").innerHTML=`
+        <div class="fleet-grid">
+          <div class="fleet-stat"><small>Vehicles</small><strong>${c.vehicles||0}</strong></div>
+          <div class="fleet-stat"><small>Active Vehicles</small><strong>${c.activeVehicles||0}</strong></div>
+          <div class="fleet-stat"><small>Drivers</small><strong>${c.drivers||0}</strong></div>
+          <div class="fleet-stat"><small>Tracking ON</small><strong>${c.trackingOn||0}</strong></div>
+        </div>
+
+        <div class="panel" style="margin-bottom:16px">
+          <div class="panel-head">
+            <h3>Vehicle & Driver Setup</h3>
+            <div class="toolbar">
+              <button id="addVehicleBtn" class="btn btn-soft">+ Vehicle</button>
+              <button id="addDriverBtn" class="btn btn-soft">+ Driver</button>
+              <button id="assignTripVehicleBtn" class="btn btn-primary">+ Trip Assignment</button>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr><th>Vehicle</th><th>Number</th><th>Type</th><th>Capacity</th><th>Status</th></tr>
+              </thead>
+              <tbody>
+                ${state.fleetVehicles.map(v=>`
+                  <tr>
+                    <td>${esc(v.VehicleName||"")}</td>
+                    <td><strong>${esc(v.VehicleNumber||"")}</strong></td>
+                    <td>${esc(v.VehicleType||"")}</td>
+                    <td>${esc(v.Capacity||"")}</td>
+                    <td><span class="chip">${esc(v.Status||"")}</span></td>
+                  </tr>
+                `).join("") || `<tr><td colspan="5">Vehicle छैन ।</td></tr>`}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <h3>Trip Vehicle Assignments & Live Tracking</h3>
+              <small>${state.fleetAssignments.length} assignments</small>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Trip</th>
+                  <th>Vehicle</th>
+                  <th>Driver</th>
+                  <th>Tracking</th>
+                  <th>Last Location</th>
+                  <th>Driver Link Key</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                ${state.fleetAssignments.map(a=>`
+                  <tr>
+                    <td>${esc(a.TripTitle||a.TripID||"")}</td>
+                    <td>${esc(a.VehicleNumber||a.VehicleID||"")}</td>
+                    <td>${esc(a.DriverName||a.DriverID||"")}</td>
+                    <td><span class="chip">${esc(a.TrackingStatus||"INACTIVE")}</span></td>
+                    <td>
+                      ${a.LastLocationAt
+                        ? `${esc(a.Latitude||"")}, ${esc(a.Longitude||"")}<br><small>${esc(a.LastLocationAt||"")}</small>`
+                        : "No Location"}
+                    </td>
+                    <td>
+                      <small style="word-break:break-all">${esc(a.TrackingKey||"")}</small>
+                    </td>
+                    <td>
+                      <button
+                        class="toggleTrackingBtn"
+                        data-id="${esc(a.AssignmentID||"")}"
+                        data-status="${esc(a.TrackingStatus||"INACTIVE")}">
+                        ${String(a.TrackingStatus||"").toUpperCase()==="ACTIVE" ? "Stop" : "Start"}
+                      </button>
+                    </td>
+                  </tr>
+                `).join("") || `<tr><td colspan="7">Assignment छैन ।</td></tr>`}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+
+      $("addVehicleBtn").onclick=addVehiclePrompt;
+      $("addDriverBtn").onclick=addDriverPrompt;
+      $("assignTripVehicleBtn").onclick=assignTripVehiclePrompt;
+
+      document.querySelectorAll(".toggleTrackingBtn")
+        .forEach(button=>{
+          button.onclick=()=>toggleTrackingAssignment(button);
+        });
+    }
+
+    async function addVehiclePrompt(){
+      const vehicleNumber=prompt("Vehicle Number:");
+      if(!vehicleNumber)return;
+
+      const vehicleName=prompt("Vehicle Name / Label:","Bus 1")||"";
+      const vehicleType=prompt("Vehicle Type:","BUS")||"BUS";
+      const capacity=prompt("Capacity:","40")||"0";
+
+      showLoading();
+
+      try{
+        await api(
+          "adminSaveVehicle",
+          {
+            token:state.token,
+            vehicle:{
+              vehicleNumber,
+              vehicleName,
+              vehicleType,
+              capacity,
+              status:"ACTIVE"
+            }
+          },
+          "POST"
+        );
+
+        toast("Vehicle Save भयो ।");
+        await renderFleetManager();
+
+      }catch(error){
+        handleAdminApiError(error);
+      }finally{
+        hideLoading();
+      }
+    }
+
+    async function addDriverPrompt(){
+      const driverName=prompt("Driver Name:");
+      if(!driverName)return;
+
+      const mobile=prompt("Mobile:");
+      if(!mobile)return;
+
+      const licenseNumber=prompt("License Number:","")||"";
+
+      showLoading();
+
+      try{
+        await api(
+          "adminSaveDriver",
+          {
+            token:state.token,
+            driver:{
+              driverName,
+              mobile,
+              licenseNumber,
+              status:"ACTIVE"
+            }
+          },
+          "POST"
+        );
+
+        toast("Driver Save भयो ।");
+        await renderFleetManager();
+
+      }catch(error){
+        handleAdminApiError(error);
+      }finally{
+        hideLoading();
+      }
+    }
+
+    async function assignTripVehiclePrompt(){
+      const trips=state.fleetEditorData?.trips||[];
+      const vehicles=state.fleetEditorData?.vehicles||[];
+      const drivers=state.fleetEditorData?.drivers||[];
+
+      if(!trips.length || !vehicles.length || !drivers.length){
+        toast("Trip, Vehicle र Driver तयार हुनुपर्छ ।",true);
+        return;
+      }
+
+      const tripChoice=prompt(
+        "TripID लेख्नुहोस्:\\n" +
+        trips.map(t=>`${t.TripID} — ${t.TripTitle}`).join("\\n")
+      );
+      if(!tripChoice)return;
+
+      const vehicleChoice=prompt(
+        "VehicleID लेख्नुहोस्:\\n" +
+        vehicles.map(v=>`${v.VehicleID} — ${v.VehicleNumber}`).join("\\n")
+      );
+      if(!vehicleChoice)return;
+
+      const driverChoice=prompt(
+        "DriverID लेख्नुहोस्:\\n" +
+        drivers.map(d=>`${d.DriverID} — ${d.DriverName}`).join("\\n")
+      );
+      if(!driverChoice)return;
+
+      showLoading();
+
+      try{
+        const result=await api(
+          "adminAssignTripVehicle",
+          {
+            token:state.token,
+            tripId:tripChoice.trim(),
+            vehicleId:vehicleChoice.trim(),
+            driverId:driverChoice.trim()
+          },
+          "POST"
+        );
+
+        alert(
+          "Assignment तयार भयो ।\\n\\n" +
+          "Driver Tracking Key:\\n" +
+          result.trackingKey +
+          "\\n\\nDriver ले driver.html खोलेर यो Key प्रयोग गर्नुपर्छ ।"
+        );
+
+        await renderFleetManager();
+
+      }catch(error){
+        handleAdminApiError(error);
+      }finally{
+        hideLoading();
+      }
+    }
+
+    async function toggleTrackingAssignment(button){
+      const current=
+        String(button.dataset.status||"INACTIVE").toUpperCase();
+
+      const next=
+        current==="ACTIVE"
+          ? "INACTIVE"
+          : "ACTIVE";
+
+      showLoading();
+
+      try{
+        await api(
+          "adminSetTrackingStatus",
+          {
+            token:state.token,
+            assignmentId:button.dataset.id,
+            trackingStatus:next
+          },
+          "POST"
+        );
+
+        toast(`Live Tracking ${next} भयो ।`);
+        await renderFleetManager();
+
+      }catch(error){
+        handleAdminApiError(error);
+      }finally{
+        hideLoading();
+      }
+    }
 
     async function renderTicketManager(){
       const [dashboard,data]=await Promise.all([
