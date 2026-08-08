@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
 
-  <title>Member Verification | Guru Tirtha Yatra Sewa</title>
+  <title>Member Verification v2.8.2 | Guru Tirtha Yatra Sewa</title>
 
   <style>
     :root{
@@ -89,7 +89,26 @@
         grid-template-columns:1fr;
       }
     }
-  </style>
+  
+    .verify-time{
+      margin-top:16px;
+      text-align:center;
+      color:var(--muted);
+      font-size:.82rem;
+    }
+
+    .official-note{
+      margin-top:18px;
+      padding:12px;
+      border:1px solid var(--border);
+      border-radius:12px;
+      background:#fffdf8;
+      color:var(--muted);
+      font-size:.86rem;
+      line-height:1.55;
+    }
+
+</style>
 </head>
 
 <body>
@@ -104,6 +123,11 @@
 
     <div id="verificationResult">
       Verification हुँदैछ...
+    </div>
+
+    <div class="official-note">
+      यो page Guru Tirtha Yatra Sewa को Digital Membership Verification का लागि हो ।
+      Member को सुरक्षित सार्वजनिक विवरण मात्र देखाइन्छ ।
     </div>
   </main>
 
@@ -247,6 +271,11 @@
               <small>Approval</small>
               <strong>${esc(member.approvalStatus||"")}</strong>
             </div>
+          </div>
+
+          <div class="verify-time">
+            Verified at:
+            ${esc(new Date().toLocaleString())}
           </div>
         `;
     }
