@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ne">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>यात्रा Feedback | Guru Tirtha Yatra Sewa</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;font-family:"Noto Sans Devanagari",sans-serif;background:#f7f3ed;color:#2c1b15}
+    .wrap{width:min(760px,calc(100% - 28px));margin:30px auto}
+    .card{background:#fff;border:1px solid #e6d9cc;border-radius:20px;padding:22px;box-shadow:0 16px 45px rgba(54,31,19,.12);margin-bottom:16px}
+    h1,h2,p{margin-top:0} h1{color:#8b1e1e} .muted{color:#786a62}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .field{display:grid;gap:6px;margin-bottom:13px}
+    label{font-weight:700}
+    input,select,textarea{width:100%;padding:12px;border:1px solid #d7c8ba;border-radius:11px;font:inherit}
+    textarea{min-height:100px;resize:vertical}
+    button{border:0;border-radius:11px;padding:12px 16px;font:inherit;font-weight:800;cursor:pointer}
+    .primary{background:#8b1e1e;color:#fff} .soft{background:#f3e8df;color:#8b1e1e}
+    .full{width:100%} .hidden{display:none!important}
+    .summary{background:#fff8e8;border:1px solid #ead6b2;border-radius:12px;padding:13px;line-height:1.7}
+    .toast{position:fixed;right:18px;bottom:18px;max-width:380px;background:#2c1b15;color:#fff;padding:12px 15px;border-radius:10px}
+    .error{background:#b42318}
+    .loading{position:fixed;inset:0;background:rgba(255,255,255,.72);display:grid;place-items:center;z-index:20}
+    .spinner{width:44px;height:44px;border:4px solid #eadcd2;border-top-color:#8b1e1e;border-radius:50%;animation:spin .8s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @media(max-width:620px){.grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>यात्रा Feedback</h1>
+      <p class="muted">Guru Tirtha Yatra Sewa को यात्रा अनुभव, Driver, Bus र सेवाबारे आफ्नो प्रतिक्रिया दिनुहोस् ।</p>
+
+      <form id="lookupForm">
+        <div class="grid">
+          <div class="field">
+            <label>Booking Code</label>
+            <input id="bookingCode" required autocomplete="off">
+          </div>
+          <div class="field">
+            <label>Booking Mobile Number</label>
+            <input id="mobile" required inputmode="numeric" autocomplete="tel">
+          </div>
+        </div>
+        <button class="primary full" type="submit">Feedback Form खोल्नुहोस्</button>
+      </form>
+    </div>
+
+    <div id="feedbackCard" class="card hidden">
+      <div id="tripSummary" class="summary"></div>
+
+      <form id="feedbackForm" style="margin-top:16px">
+        <div class="grid">
+          <div class="field"><label>Overall Rating *</label><select id="overallRating" required><option value="5">5 / 5</option><option value="4">4 / 5</option><option value="3">3 / 5</option><option value="2">2 / 5</option><option value="1">1 / 5</option></select></div>
+          <div class="field"><label>Driver Rating</label><select id="driverRating"><option value="">Select</option><option value="5">5 / 5</option><option value="4">4 / 5</option><option value="3">3 / 5</option><option value="2">2 / 5</option><option value="1">1 / 5</option></select></div>
+          <div class="field"><label>Bus Rating</label><select id="busRating"><option value="">Select</option><option value="5">5 / 5</option><option value="4">4 / 5</option><option value="3">3 / 5</option><option value="2">2 / 5</option><option value="1">1 / 5</option></select></div>
+          <div class="field"><label>Service Rating</label><select id="serviceRating"><option value="">Select</option><option value="5">5 / 5</option><option value="4">4 / 5</option><option value="3">3 / 5</option><option value="2">2 / 5</option><option value="1">1 / 5</option></select></div>
+          <div class="field"><label>Food Rating</label><select id="foodRating"><option value="">Select</option><option value="5">5 / 5</option><option value="4">4 / 5</option><option value="3">3 / 5</option><option value="2">2 / 5</option><option value="1">1 / 5</option></select></div>
+          <div class="field"><label>Accommodation Rating</label><select id="accommodationRating"><option value="">Select</option><option value="5">5 / 5</option><option value="4">4 / 5</option><option value="3">3 / 5</option><option value="2">2 / 5</option><option value="1">1 / 5</option></select></div>
+          <div class="field"><label>Health Support Rating</label><select id="healthSupportRating"><option value="">Select</option><option value="5">5 / 5</option><option value="4">4 / 5</option><option value="3">3 / 5</option><option value="2">2 / 5</option><option value="1">1 / 5</option></select></div>
+          <div class="field"><label>अरूलाई Recommend गर्नुहुन्छ ?</label><select id="wouldRecommend"><option value="YES">हो</option><option value="NO">होइन</option></select></div>
+        </div>
+
+        <div class="field">
+          <label>Feedback / सुझाव</label>
+          <textarea id="feedbackText"></textarea>
+        </div>
+
+        <div class="field">
+          <label>Complaint / सुधार गर्नुपर्ने कुरा</label>
+          <textarea id="complaintText"></textarea>
+        </div>
+
+        <button class="primary full" type="submit">Feedback Submit गर्नुहोस्</button>
+      </form>
+    </div>
+
+    <div class="card" style="text-align:center;font-size:12px;color:#786a62">
+      Designed & Developed by Nirajan Aryal | 9851113811
+    </div>
+  </div>
+
+  <div id="loading" class="loading hidden"><div class="spinner"></div></div>
+  <div id="toast" class="toast hidden"></div>
+
+  <script>
+    const API_URL="https://script.google.com/macros/s/AKfycbzrKZBb_lg8TiI_HHp390Cscr31XWgcnsG0Jp5qFkkpUYaCoin3TLnJ6TY1RDFyRuI2/exec";
+    let context=null;
+
+    const $=id=>document.getElementById(id);
+    const esc=v=>String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;");
+    const show=()=> $("loading").classList.remove("hidden");
+    const hide=()=> $("loading").classList.add("hidden");
+    function toast(msg,error=false){
+      const t=$("toast"); t.textContent=msg; t.className="toast"+(error?" error":""); t.classList.remove("hidden");
+      clearTimeout(toast.t); toast.t=setTimeout(()=>t.classList.add("hidden"),3500);
+    }
+
+    async function api(action,payload={},method="GET"){
+      let response;
+      if(method==="POST"){
+        response=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action,...payload})});
+      }else{
+        const url=new URL(API_URL); url.searchParams.set("action",action);
+        Object.entries(payload).forEach(([k,v])=>{if(v!==""&&v!==null&&v!==undefined)url.searchParams.set(k,v)});
+        response=await fetch(url);
+      }
+      const result=await response.json();
+      if(!result.success)throw new Error(result?.error?.message||"अनुरोध पूरा हुन सकेन ।");
+      return result.data;
+    }
+
+    const params=new URLSearchParams(location.search);
+    if(params.get("bookingCode")) $("bookingCode").value=params.get("bookingCode");
+
+    $("lookupForm").addEventListener("submit",async e=>{
+      e.preventDefault(); show();
+      try{
+        context=await api("getPublicFeedbackContext",{bookingCode:$("bookingCode").value.trim(),mobile:$("mobile").value.trim()});
+        $("tripSummary").innerHTML=`
+          <strong>${esc(context.tripTitle||"")}</strong><br>
+          Traveller: ${esc(context.travellerName||"")}<br>
+          Booking: ${esc(context.bookingCode||"")}
+          ${context.busId?` • Bus: ${esc(context.busId)}`:""}
+          ${context.seatId?` • Seat: ${esc(context.seatId)}`:""}
+          ${context.alreadySubmitted?`<br><strong>पहिले दिएको Feedback edit/update गर्न सक्नुहुन्छ ।</strong>`:""}
+        `;
+        if(context.feedback){
+          const f=context.feedback;
+          ["overallRating","driverRating","busRating","serviceRating","foodRating","accommodationRating","healthSupportRating","wouldRecommend","feedbackText","complaintText"].forEach(id=>{
+            if($(id) && f[id]!==undefined && f[id]!==null)$(id).value=f[id];
+          });
+        }
+        $("feedbackCard").classList.remove("hidden");
+        $("feedbackCard").scrollIntoView({behavior:"smooth"});
+      }catch(err){toast(err.message,true)}finally{hide()}
+    });
+
+    $("feedbackForm").addEventListener("submit",async e=>{
+      e.preventDefault();
+      if(!context){toast("पहिले Booking verify गर्नुहोस् ।",true);return}
+      show();
+      try{
+        const data=await api("submitTripFeedback",{
+          bookingCode:$("bookingCode").value.trim(),
+          mobile:$("mobile").value.trim(),
+          overallRating:$("overallRating").value,
+          driverRating:$("driverRating").value,
+          busRating:$("busRating").value,
+          serviceRating:$("serviceRating").value,
+          foodRating:$("foodRating").value,
+          accommodationRating:$("accommodationRating").value,
+          healthSupportRating:$("healthSupportRating").value,
+          wouldRecommend:$("wouldRecommend").value,
+          feedbackText:$("feedbackText").value.trim(),
+          complaintText:$("complaintText").value.trim()
+        },"POST");
+        toast(data.message||"Feedback प्राप्त भयो ।");
+      }catch(err){toast(err.message,true)}finally{hide()}
+    });
+  </script>
+</body>
+</html>
