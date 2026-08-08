@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- GTYMS Public Website v2.7.1 | Production Trip Management -->
+<!-- GTYMS Public Website v3.0.4 | Production Trip Management -->
 <html lang="ne">
 <head>
   <meta charset="UTF-8" />
@@ -1200,6 +1200,47 @@ button {
     grid-template-columns:1fr;
   }
 }
+
+
+  /* =========================================================
+     GTYMS v3.0.4 - Universal Button / Action Feedback
+     Universal UX rule:
+     Click -> instant response -> short spinner -> restore
+     Prevents accidental rapid double-clicks.
+     ========================================================= */
+
+  button.gtyms-action-feedback,
+  a.gtyms-action-feedback,
+  [role="button"].gtyms-action-feedback{
+    position:relative!important;
+    pointer-events:none!important;
+    opacity:.82!important;
+  }
+
+  button.gtyms-action-feedback::after,
+  a.gtyms-action-feedback::after,
+  [role="button"].gtyms-action-feedback::after{
+    content:"";
+    display:inline-block;
+    width:13px;
+    height:13px;
+    margin-left:8px;
+    vertical-align:-2px;
+    border:2px solid currentColor;
+    border-right-color:transparent;
+    border-radius:50%;
+    animation:gtymsActionSpin .65s linear infinite;
+  }
+
+  @keyframes gtymsActionSpin{
+    to{transform:rotate(360deg)}
+  }
+
+  .gtyms-click-flash{
+    transform:scale(.98);
+    filter:brightness(.97);
+    transition:transform .12s ease,filter .12s ease;
+  }
 
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -3618,5 +3659,167 @@ window.GTYMS_UI = (() => {
 })();
 
   </script>
+
+  <script>
+  /* =========================================================
+     GTYMS v3.0.4 Universal Frontend Action Feedback
+     Non-invasive: does not change existing business logic.
+     ========================================================= */
+  (function(){
+    "use strict";
+
+    const ACTIVE_CLASS="gtyms-action-feedback";
+    const FLASH_CLASS="gtyms-click-flash";
+    const FEEDBACK_MS=900;
+
+    function isUsableActionElement(el){
+      if(!el)return false;
+
+      if(
+        el.matches(
+          "button, a[href], [role='button'], input[type='button'], input[type='submit']"
+        )
+      ){
+        return true;
+      }
+
+      return false;
+    }
+
+    function findActionElement(target){
+      if(!target || !target.closest)return null;
+
+      return target.closest(
+        "button, a[href], [role='button'], input[type='button'], input[type='submit']"
+      );
+    }
+
+    function shouldSkip(el){
+      if(!el)return true;
+
+      if(
+        el.disabled ||
+        el.getAttribute("aria-disabled")==="true" ||
+        el.classList.contains(ACTIVE_CLASS)
+      ){
+        return true;
+      }
+
+      // Do not delay native select/file controls.
+      if(
+        el.matches("input[type='file']")
+      ){
+        return true;
+      }
+
+      return false;
+    }
+
+    function showFeedback(el){
+      if(
+        !isUsableActionElement(el) ||
+        shouldSkip(el)
+      ){
+        return;
+      }
+
+      el.classList.add(
+        FLASH_CLASS
+      );
+
+      window.setTimeout(
+        ()=>el.classList.remove(
+          FLASH_CLASS
+        ),
+        140
+      );
+
+      // Native <input> pseudo-elements are inconsistent.
+      // For them, visual click flash is enough.
+      if(el.tagName==="INPUT"){
+        return;
+      }
+
+      el.classList.add(
+        ACTIVE_CLASS
+      );
+
+      el.setAttribute(
+        "aria-busy",
+        "true"
+      );
+
+      window.setTimeout(
+        ()=>{
+          el.classList.remove(
+            ACTIVE_CLASS
+          );
+
+          el.removeAttribute(
+            "aria-busy"
+          );
+        },
+        FEEDBACK_MS
+      );
+    }
+
+    document.addEventListener(
+      "click",
+      event=>{
+        showFeedback(
+          findActionElement(
+            event.target
+          )
+        );
+      },
+      true
+    );
+
+    // Keyboard form submit (Enter) also gets feedback.
+    document.addEventListener(
+      "submit",
+      event=>{
+        const form=
+          event.target;
+
+        if(!form || !form.querySelector){
+          return;
+        }
+
+        const submitter=
+          event.submitter ||
+          form.querySelector(
+            "button[type='submit'], input[type='submit']"
+          );
+
+        showFeedback(
+          submitter
+        );
+      },
+      true
+    );
+
+    // Programmatic helper for future modules.
+    window.GTYMSActionUX={
+      start:function(el){
+        showFeedback(el);
+      },
+
+      stop:function(el){
+        if(!el)return;
+
+        el.classList.remove(
+          ACTIVE_CLASS,
+          FLASH_CLASS
+        );
+
+        el.removeAttribute(
+          "aria-busy"
+        );
+      }
+    };
+  })();
+  </script>
+
 </body>
 </html>
