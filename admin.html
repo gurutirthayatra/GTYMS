@@ -269,7 +269,7 @@
 
   <div id="adminApp" class="admin-layout hidden">
     <aside id="sidebar" class="sidebar">
-      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v2.7.1 • Production</small></div>
+      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v2.8.0 • Production</small></div>
       <nav class="nav">
         <button data-view="dashboard" class="active">▦ Dashboard</button>
         <button data-view="sliders">▣ Slider Manager</button>
@@ -730,42 +730,63 @@ toast("Login सफल भयो ।");
 
 
     async function renderMemberRewardsManager(){
-      const [dashboard,data]=await Promise.all([
-        api(
-          "adminGetMemberRewardsDashboard",
-          {token:state.token}
-        ),
-        api(
-          "adminListMembers",
-          {token:state.token}
-        )
-      ]);
+      const [rewardDashboard,approvalDashboard,data]=
+        await Promise.all([
+          api(
+            "adminGetMemberRewardsDashboard",
+            {token:state.token}
+          ),
+
+          api(
+            "adminGetMemberApprovalDashboard",
+            {token:state.token}
+          ),
+
+          api(
+            "adminListMemberApplications",
+            {token:state.token}
+          )
+        ]);
 
       state.memberRows=
         data.items||[];
 
-      const c=
-        dashboard.cards||{};
+      const rewards=
+        rewardDashboard.cards||{};
+
+      const approvals=
+        approvalDashboard.cards||{};
 
       $("content").innerHTML=`
         <div class="member-admin-grid">
-          <div class="member-admin-stat"><small>Active Members</small><strong>${c.members||0}</strong></div>
-          <div class="member-admin-stat"><small>Portal Enabled</small><strong>${c.portalEnabled||0}</strong></div>
-          <div class="member-admin-stat"><small>Reward Transactions</small><strong>${c.ledgerTransactions||0}</strong></div>
-          <div class="member-admin-stat"><small>Total Reward Points</small><strong>${c.totalRewardPoints||0}</strong></div>
+          <div class="member-admin-stat"><small>Pending Approval</small><strong>${approvals.pending||0}</strong></div>
+          <div class="member-admin-stat"><small>Approved</small><strong>${approvals.approved||0}</strong></div>
+          <div class="member-admin-stat"><small>Rejected</small><strong>${approvals.rejected||0}</strong></div>
+          <div class="member-admin-stat"><small>Total Reward Points</small><strong>${rewards.totalRewardPoints||0}</strong></div>
         </div>
 
         <div class="panel">
           <div class="panel-head">
             <div>
-              <h3>Pilgrim Member & Rewards Manager</h3>
-              <small>${state.memberRows.length} members</small>
+              <h3>Member Approval, Member ID & Rewards</h3>
+              <small>${state.memberRows.length} member/application records</small>
             </div>
 
             <div class="toolbar">
-              <input id="memberAdminSearch" placeholder="Name / Membership / Mobile">
+              <input
+                id="memberAdminSearch"
+                placeholder="Name / Application / Member ID / Mobile">
 
-              <button id="memberAdminSearchBtn" class="btn btn-soft">
+              <select id="memberApprovalFilter">
+                <option value="">All Approval Status</option>
+                <option value="PENDING_APPROVAL">PENDING APPROVAL</option>
+                <option value="APPROVED">APPROVED</option>
+                <option value="REJECTED">REJECTED</option>
+              </select>
+
+              <button
+                id="memberAdminSearchBtn"
+                class="btn btn-soft">
                 Search
               </button>
             </div>
@@ -780,6 +801,9 @@ toast("Login सफल भयो ।");
       $("memberAdminSearchBtn").onclick=
         searchAdminMembers;
 
+      $("memberApprovalFilter").onchange=
+        searchAdminMembers;
+
       $("memberAdminSearch")
         .addEventListener("keydown",e=>{
           if(e.key==="Enter"){
@@ -792,20 +816,20 @@ toast("Login सफल भयो ।");
 
     function memberAdminTable(rows){
       if(!rows?.length){
-        return `<div class="empty">Member record छैन ।</div>`;
+        return `<div class="empty">Member/Application record छैन ।</div>`;
       }
 
       return `<div class="table-wrap"><table class="table">
         <thead>
           <tr>
-            <th>Member</th>
-            <th>Membership No.</th>
+            <th>Applicant / Member</th>
+            <th>Application ID</th>
+            <th>Member ID</th>
             <th>Mobile</th>
-            <th>Level</th>
-            <th>Reward</th>
-            <th>Trips</th>
+            <th>District</th>
+            <th>Approval</th>
             <th>Portal</th>
-            <th>Status</th>
+            <th>Reward</th>
             <th>Action</th>
           </tr>
         </thead>
@@ -814,37 +838,95 @@ toast("Login सफल भयो ।");
           ${rows.map(r=>{
             const portal=
               String(
-                r.MemberPortalEnabled===""?
-                "TRUE":
-                r.MemberPortalEnabled
+                r.MemberPortalEnabled||"FALSE"
               ).toUpperCase()==="TRUE";
+
+            const approval=
+              String(
+                r.MemberApprovalStatus||
+                (
+                  String(r.Status||"").toUpperCase()==="ACTIVE"
+                    ?"APPROVED"
+                    :"PENDING_APPROVAL"
+                )
+              ).toUpperCase();
+
+            const pending=
+              approval==="PENDING_APPROVAL";
+
+            const approved=
+              approval==="APPROVED";
 
             return `
               <tr>
-                <td><strong>${esc(r.FullName||"")}</strong><br><small>${esc(r.District||"")}</small></td>
-                <td>${esc(r.MembershipNo||r.PilgrimID||"")}</td>
+                <td>
+                  <strong>${esc(r.FullName||"")}</strong><br>
+                  <small>${esc(r.Email||"")}</small>
+                </td>
+
+                <td>${esc(r.ApplicationID||r.PilgrimID||"")}</td>
+
+                <td>
+                  <strong>${esc(r.MemberID||r.MembershipNo||"-")}</strong>
+                </td>
+
                 <td>${esc(r.MobilePrimary||"")}</td>
-                <td><span class="chip">${esc(r.MembershipLevel||"NEW_PILGRIM")}</span></td>
-                <td><strong>${esc(r.RewardPoints||0)}</strong></td>
-                <td>${esc(r.TotalTrips||0)}</td>
+
+                <td>
+                  ${esc(r.Province||"")}<br>
+                  <small>${esc(r.District||"")}</small>
+                </td>
+
+                <td>
+                  <span class="chip">${esc(approval)}</span>
+                  ${r.RejectionReason
+                    ? `<br><small style="color:var(--danger)">${esc(r.RejectionReason)}</small>`
+                    : ""}
+                </td>
+
                 <td>${portal?"ENABLED":"DISABLED"}</td>
-                <td><span class="chip">${esc(r.Status||"")}</span></td>
+
+                <td>
+                  ${esc(r.RewardPoints||0)}
+                  <br>
+                  <small>${esc(r.MembershipLevel||"NEW_PILGRIM")}</small>
+                </td>
 
                 <td>
                   <div class="actions">
-                    <button
-                      class="rewardAdjustBtn"
-                      data-id="${esc(r.PilgrimID||"")}"
-                      data-name="${esc(r.FullName||"")}">
-                      Reward
-                    </button>
+                    ${!approved
+                      ? `<button
+                           class="approveMemberBtn"
+                           data-id="${esc(r.PilgrimID||"")}"
+                           data-name="${esc(r.FullName||"")}">
+                           Approve
+                         </button>`
+                      : ""}
 
-                    <button
-                      class="portalToggleBtn"
-                      data-id="${esc(r.PilgrimID||"")}"
-                      data-enabled="${portal?"TRUE":"FALSE"}">
-                      ${portal?"Disable Portal":"Enable Portal"}
-                    </button>
+                    ${pending
+                      ? `<button
+                           class="rejectMemberBtn"
+                           data-id="${esc(r.PilgrimID||"")}"
+                           data-name="${esc(r.FullName||"")}">
+                           Reject
+                         </button>`
+                      : ""}
+
+                    ${approved
+                      ? `<button
+                           class="rewardAdjustBtn"
+                           data-id="${esc(r.PilgrimID||"")}"
+                           data-name="${esc(r.FullName||"")}">
+                           Reward
+                         </button>
+
+                         <button
+                           class="portalToggleBtn"
+                           data-id="${esc(r.PilgrimID||"")}"
+                           data-enabled="${portal?"TRUE":"FALSE"}">
+                           ${portal?"Disable Portal":"Enable Portal"}
+                         </button>`
+                      : ""}
                   </div>
                 </td>
               </tr>
@@ -855,6 +937,95 @@ toast("Login सफल भयो ।");
     }
 
     function wireMemberAdminActions(){
+      document.querySelectorAll(
+        ".approveMemberBtn"
+      ).forEach(button=>{
+        button.onclick=async()=>{
+          if(
+            !confirm(
+              `${button.dataset.name||"यो applicant"} लाई Member Approved गर्ने हो?`
+            )
+          ){
+            return;
+          }
+
+          const note=
+            prompt(
+              "Approval Note (optional):",
+              ""
+            );
+
+          if(note===null)return;
+
+          showLoading();
+
+          try{
+            const result=
+              await api(
+                "adminApproveMember",
+                {
+                  token:state.token,
+                  pilgrimId:
+                    button.dataset.id,
+                  note
+                },
+                "POST"
+              );
+
+            toast(
+              `Approved भयो । Member ID: ${result.memberId||""}`
+            );
+
+            await renderMemberRewardsManager();
+
+          }catch(error){
+            handleAdminApiError(error);
+          }finally{
+            hideLoading();
+          }
+        };
+      });
+
+      document.querySelectorAll(
+        ".rejectMemberBtn"
+      ).forEach(button=>{
+        button.onclick=async()=>{
+          const reason=
+            prompt(
+              `${button.dataset.name||"यो applicant"} को Application Reject गर्नुको कारण:`,
+              ""
+            );
+
+          if(!reason)return;
+
+          showLoading();
+
+          try{
+            await api(
+              "adminRejectMember",
+              {
+                token:state.token,
+                pilgrimId:
+                  button.dataset.id,
+                reason
+              },
+              "POST"
+            );
+
+            toast(
+              "Membership Application Reject भयो ।"
+            );
+
+            await renderMemberRewardsManager();
+
+          }catch(error){
+            handleAdminApiError(error);
+          }finally{
+            hideLoading();
+          }
+        };
+      });
+
       document.querySelectorAll(
         ".rewardAdjustBtn"
       ).forEach(button=>{
@@ -945,11 +1116,13 @@ toast("Login सफल भयो ।");
 
       try{
         const data=await api(
-          "adminListMembers",
+          "adminListMemberApplications",
           {
             token:state.token,
             search:
-              $("memberAdminSearch").value
+              $("memberAdminSearch").value,
+            approvalStatus:
+              $("memberApprovalFilter").value
           }
         );
 
@@ -969,6 +1142,7 @@ toast("Login सफल भयो ।");
         hideLoading();
       }
     }
+
 
     async function renderSystemLauncher(){
       const [launcherData,managerData]=await Promise.all([
