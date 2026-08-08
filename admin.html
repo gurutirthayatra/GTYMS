@@ -289,6 +289,34 @@
       }
     }
 
+
+    .identity-grid{
+      display:grid;
+      grid-template-columns:repeat(4,minmax(0,1fr));
+      gap:12px;
+      margin-bottom:16px;
+    }
+    .identity-stat{
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:14px;
+      background:#fffaf5;
+    }
+    .identity-stat small{
+      display:block;
+      color:var(--muted);
+      margin-bottom:4px;
+    }
+    .identity-stat strong{
+      font-size:1.15rem;
+    }
+    @media(max-width:900px){
+      .identity-grid{grid-template-columns:1fr 1fr}
+    }
+    @media(max-width:540px){
+      .identity-grid{grid-template-columns:1fr}
+    }
+
 </style>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
@@ -306,12 +334,13 @@
 
   <div id="adminApp" class="admin-layout hidden">
     <aside id="sidebar" class="sidebar">
-      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v2.9.0 • Production</small></div>
+      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v3.0.0 • Production</small></div>
       <nav class="nav">
         <button data-view="dashboard" class="active">▦ Dashboard</button>
         <button data-view="launcher">🔗 System Launcher</button>
         <button data-view="members">👤 Pilgrim & Rewards</button>
         <button data-view="rewardengine">🎁 Automatic Rewards</button>
+        <button data-view="identity">🔗 Traveller ↔ Member Identity</button>
         <button data-view="sliders">▣ Slider Manager</button>
         <button data-view="destinations">⌖ Destination Manager</button>
         <button data-view="trips">🚌 Trip Manager</button>
@@ -708,7 +737,7 @@ toast("Login सफल भयो ।");
       $("pageTitle").textContent=view==="dashboard"?"Dashboard":MODULES[view]?.title||view;
       showLoading();
       try{
-        if(view==="dashboard")await renderDashboard();else if(view==="launcher")await renderSystemLauncher();else if(view==="members")await renderMemberRewardsManager();else if(view==="rewardengine")await renderRewardEngineManager();else if(view==="trips")await renderTripManager();else if(view==="bookings")await renderBookingManager();else if(view==="payments")await renderPaymentManager();else if(view==="tickets")await renderTicketManager();else if(view==="fleet")await renderFleetManager();else if(view==="fieldops")await renderFieldOpsManager();else await renderModule(view);
+        if(view==="dashboard")await renderDashboard();else if(view==="launcher")await renderSystemLauncher();else if(view==="members")await renderMemberRewardsManager();else if(view==="rewardengine")await renderRewardEngineManager();else if(view==="identity")await renderIdentityManager();else if(view==="trips")await renderTripManager();else if(view==="bookings")await renderBookingManager();else if(view==="payments")await renderPaymentManager();else if(view==="tickets")await renderTicketManager();else if(view==="fleet")await renderFleetManager();else if(view==="fieldops")await renderFieldOpsManager();else await renderModule(view);
       } catch (e) {
         handleAdminApiError(e);
       } finally {
@@ -769,6 +798,233 @@ toast("Login सफल भयो ।");
     let fieldScanLocked=false;
 
 
+
+
+
+    async function renderIdentityManager(){
+      const [dashboard,data]=
+        await Promise.all([
+          api(
+            "adminGetIdentityDashboard",
+            {token:state.token}
+          ),
+          api(
+            "adminListIdentityLinks",
+            {token:state.token}
+          )
+        ]);
+
+      state.identityLinks=
+        data.items||[];
+
+      const c=
+        dashboard.cards||{};
+
+      $("content").innerHTML=`
+        <div class="identity-grid">
+          <div class="identity-stat"><small>Travellers</small><strong>${c.travellers||0}</strong></div>
+          <div class="identity-stat"><small>Linked Members</small><strong>${c.linked||0}</strong></div>
+          <div class="identity-stat"><small>Review Required</small><strong>${c.reviewRequired||0}</strong></div>
+          <div class="identity-stat"><small>Unlinked Travellers</small><strong>${c.unlinked||0}</strong></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <h3>Traveller ↔ Member Identity Links</h3>
+              <small>
+                पुरानो Booking/Trip history लाई verified Approved Member सँग सुरक्षित रूपमा जोड्ने
+              </small>
+            </div>
+
+            <div class="toolbar">
+              <select id="identityStatusFilter">
+                <option value="">All Links</option>
+                <option value="REVIEW_REQUIRED">REVIEW REQUIRED</option>
+                <option value="LINKED">LINKED</option>
+                <option value="REJECTED">REJECTED</option>
+              </select>
+
+              <button id="identityRefreshBtn" class="btn btn-soft">
+                Refresh
+              </button>
+            </div>
+          </div>
+
+          <div id="identityTable">
+            ${identityLinksTable(state.identityLinks)}
+          </div>
+        </div>
+      `;
+
+      $("identityStatusFilter").onchange=
+        loadIdentityLinks;
+
+      $("identityRefreshBtn").onclick=
+        loadIdentityLinks;
+
+      wireIdentityActions();
+    }
+
+    async function loadIdentityLinks(){
+      showLoading();
+
+      try{
+        const data=
+          await api(
+            "adminListIdentityLinks",
+            {
+              token:state.token,
+              status:
+                $("identityStatusFilter")?.value||""
+            }
+          );
+
+        state.identityLinks=
+          data.items||[];
+
+        $("identityTable").innerHTML=
+          identityLinksTable(
+            state.identityLinks
+          );
+
+        wireIdentityActions();
+
+      }catch(error){
+        handleAdminApiError(error);
+      }finally{
+        hideLoading();
+      }
+    }
+
+    function identityLinksTable(rows){
+      if(!rows?.length){
+        return `<div class="empty">Identity Link record छैन ।</div>`;
+      }
+
+      return `<div class="table-wrap"><table class="table">
+        <thead>
+          <tr>
+            <th>Traveller</th>
+            <th>Member</th>
+            <th>Match</th>
+            <th>Confidence</th>
+            <th>Status</th>
+            <th>Note</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          ${rows.map(row=>{
+            const review=
+              String(
+                row.LinkStatus||""
+              ).toUpperCase()==="REVIEW_REQUIRED";
+
+            return `
+              <tr>
+                <td>
+                  <strong>${esc(row.TravellerName||"")}</strong><br>
+                  <small>${esc(row.TravellerMobile||"")}</small>
+                </td>
+                <td>
+                  <strong>${esc(row.MemberName||"")}</strong><br>
+                  <small>${esc(row.MemberID||"")}</small>
+                </td>
+                <td>${esc(row.MatchType||"")}</td>
+                <td>${esc(row.MatchConfidence||"")}</td>
+                <td><span class="chip">${esc(row.LinkStatus||"")}</span></td>
+                <td>${esc(row.ReviewNote||"")}</td>
+                <td>
+                  ${review
+                    ? `<div class="actions">
+                         <button class="confirmIdentityBtn" data-id="${esc(row.LinkID||"")}">Confirm Link</button>
+                         <button class="rejectIdentityBtn" data-id="${esc(row.LinkID||"")}">Reject</button>
+                       </div>`
+                    : "-"}
+                </td>
+              </tr>
+            `;
+          }).join("")}
+        </tbody>
+      </table></div>`;
+    }
+
+    function wireIdentityActions(){
+      document.querySelectorAll(
+        ".confirmIdentityBtn"
+      ).forEach(button=>{
+        button.onclick=async()=>{
+          if(!confirm("यो Traveller history लाई Member सँग link गर्ने हो?")){
+            return;
+          }
+
+          showLoading();
+
+          try{
+            await api(
+              "adminConfirmIdentityLink",
+              {
+                token:state.token,
+                linkId:button.dataset.id
+              },
+              "POST"
+            );
+
+            toast(
+              "Traveller history Member सँग link भयो ।"
+            );
+
+            await renderIdentityManager();
+
+          }catch(error){
+            handleAdminApiError(error);
+          }finally{
+            hideLoading();
+          }
+        };
+      });
+
+      document.querySelectorAll(
+        ".rejectIdentityBtn"
+      ).forEach(button=>{
+        button.onclick=async()=>{
+          const note=
+            prompt(
+              "Reject कारण:",
+              "Identity mismatch"
+            );
+
+          if(!note)return;
+
+          showLoading();
+
+          try{
+            await api(
+              "adminRejectIdentityLink",
+              {
+                token:state.token,
+                linkId:button.dataset.id,
+                note
+              },
+              "POST"
+            );
+
+            toast(
+              "Identity candidate Reject भयो ।"
+            );
+
+            await renderIdentityManager();
+
+          }catch(error){
+            handleAdminApiError(error);
+          }finally{
+            hideLoading();
+          }
+        };
+      });
+    }
 
 
     async function renderRewardEngineManager(){
