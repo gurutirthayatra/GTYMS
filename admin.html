@@ -497,7 +497,7 @@
 
   <div id="adminApp" class="admin-layout hidden">
     <aside id="sidebar" class="sidebar">
-      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v3.0.6 • Production</small></div>
+      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v3.0.7 • Production</small></div>
       <nav class="nav">
         <button data-view="dashboard" class="active">▦ Dashboard</button>
         <button data-view="launcher">🔗 System Launcher</button>
@@ -595,6 +595,7 @@
       <div class="modal-actions">
         <button id="bookingWaitlistBtn" type="button" class="btn btn-soft">Waitlist</button>
         <button id="bookingCancelBtn" type="button" class="btn btn-danger">Cancel</button>
+        <button id="bookingDeleteBtn" type="button" class="btn btn-danger safe-delete-btn">Delete Fake/Test</button>
         <button id="issueBookingTicketBtn" type="button" class="btn btn-soft">Issue E-Ticket</button>
         <button id="bookingApproveBtn" type="button" class="btn btn-primary">Approve Booking</button>
       </div>
@@ -4386,7 +4387,16 @@ toast("Login सफल भयो ।");
               <td>रु. ${money(r.NetAmount||0)}</td>
               <td><span class="chip">${esc(r.PaymentStatus||"UNPAID")}</span></td>
               <td><span class="chip">${esc(r.BookingStatus||"PENDING")}</span></td>
-              <td><button class="viewBooking" data-id="${esc(r.BookingID||"")}">View</button></td>
+              <td>
+                <div class="actions">
+                  <button class="viewBooking" data-id="${esc(r.BookingID||"")}">View</button>
+                  <button class="deleteBooking safe-delete-btn"
+                    data-id="${esc(r.BookingID||"")}"
+                    data-code="${esc(r.BookingCode||"")}">
+                    Delete
+                  </button>
+                </div>
+              </td>
             </tr>
           `).join("")}
         </tbody>
@@ -4396,6 +4406,14 @@ toast("Login सफल भयो ।");
     function wireBookingAdminActions(){
       document.querySelectorAll(".viewBooking").forEach(button=>{
         button.onclick=()=>openBookingDetails(button.dataset.id);
+      });
+
+      document.querySelectorAll(".deleteBooking").forEach(button=>{
+        button.onclick=()=>deleteBookingSafely(
+          button.dataset.id,
+          button.dataset.code || button.dataset.id,
+          button
+        );
       });
     }
 
@@ -4490,6 +4508,88 @@ toast("Login सफल भयो ।");
 
     $("closeBookingDetail").onclick=closeBookingDetails;
 
+    async function deleteBookingSafely(
+      bookingId,
+      bookingCode,
+      button=null
+    ){
+      if(!bookingId)return;
+
+      const reason=prompt(
+        "Delete / Cancel कारण लेख्नुहोस्:",
+        "Fake / Test Booking"
+      );
+
+      if(reason===null)return;
+
+      if(!String(reason||"").trim()){
+        toast("Delete कारण अनिवार्य छ ।","error");
+        return;
+      }
+
+      const confirmation=
+        await askUniversalConfirm({
+          title:"Delete Fake / Test Booking",
+          message:
+            `"${bookingCode||bookingId}" booking हटाउने हो?`,
+          dangerText:
+            "UNPAID र transaction/history नभएको booking मात्र स्थायी Delete हुन्छ । Payment, Ticket वा transaction history भएको booking Hard Delete हुँदैन; system ले CANCELLED/VOID बनाएर history सुरक्षित राख्छ ।",
+          requireDeleteText:true,
+          confirmLabel:"Delete Booking"
+        });
+
+      if(!confirmation)return;
+
+      setButtonBusy(
+        button,
+        true,
+        "Deleting..."
+      );
+
+      showLoading();
+
+      try{
+        const result=await api(
+          "adminDeleteBookingSafe",
+          {
+            token:state.token,
+            bookingId,
+            reason:String(reason).trim(),
+            confirmText:confirmation.confirmText
+          },
+          "POST"
+        );
+
+        toast(
+          result.message ||
+          (
+            result.mode==="HARD_DELETED"
+              ?"Fake/Test booking स्थायी रूपमा Delete भयो ।"
+              :"Booking सुरक्षित रूपमा Cancel/Void भयो ।"
+          )
+        );
+
+        if(
+          state.currentBookingId &&
+          String(state.currentBookingId)===String(bookingId)
+        ){
+          closeBookingDetails();
+        }
+
+        await renderBookingManager();
+
+      }catch(error){
+        handleAdminApiError(error);
+      }finally{
+        hideLoading();
+        setButtonBusy(
+          button,
+          false
+        );
+      }
+    }
+
+
     async function changeBookingStatus(status){
       if(!state.currentBookingId)return;
 
@@ -4530,6 +4630,21 @@ toast("Login सफल भयो ।");
     $("bookingApproveBtn").onclick=()=>changeBookingStatus("APPROVED");
     $("bookingCancelBtn").onclick=()=>changeBookingStatus("CANCELLED");
     $("bookingWaitlistBtn").onclick=()=>changeBookingStatus("WAITLIST");
+
+    $("bookingDeleteBtn").onclick=()=>{
+      if(!state.currentBookingId)return;
+
+      const row=
+        (state.records||[]).find(
+          item=>String(item.BookingID||"")===String(state.currentBookingId)
+        )||{};
+
+      deleteBookingSafely(
+        state.currentBookingId,
+        row.BookingCode||state.currentBookingId,
+        $("bookingDeleteBtn")
+      );
+    };
 
     $("issueBookingTicketBtn").onclick=async()=>{
       if(!state.currentBookingId)return;
@@ -5023,8 +5138,8 @@ toast("Login सफल भयो ।");
 
           dangerText:
             hardDelete
-              ?"Linked record भए system ले hard delete नगरी सुरक्षित Archive गर्नेछ। Unlinked record मात्र स्थायी Delete हुन्छ।"
-              :"यो relational/history record स्थायी Delete हुँदैन; Archive मात्र हुन्छ।",
+              ?"Linked record भए system ले hard delete नगरी सुरक्षित Archive गर्नेछ । Unlinked record मात्र स्थायी Delete हुन्छ ।"
+              :"यो relational/history record स्थायी Delete हुँदैन; Archive मात्र हुन्छ ।",
 
           requireDeleteText:hardDelete,
 
