@@ -665,6 +665,93 @@
       }
     }
 
+
+    /* =========================================================
+       GTYMS v3.2.0 - Trip Day Operations Dashboard ONLY
+       Additive layer. Existing Field Ops / QR / Manifest /
+       Seat Occupancy / Booking / Payment logic unchanged.
+       ========================================================= */
+
+    .trip-day-grid{
+      display:grid;
+      grid-template-columns:repeat(4,minmax(0,1fr));
+      gap:12px;
+      padding:16px;
+    }
+
+    .trip-day-stat{
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:14px;
+      background:#fcfaf7;
+    }
+
+    .trip-day-stat small{
+      display:block;
+      color:var(--muted);
+      margin-bottom:4px;
+    }
+
+    .trip-day-stat strong{
+      display:block;
+      font-size:1.18rem;
+    }
+
+    .trip-day-progress{
+      height:10px;
+      border-radius:999px;
+      overflow:hidden;
+      background:#eee6df;
+      margin-top:8px;
+    }
+
+    .trip-day-progress > span{
+      display:block;
+      height:100%;
+      background:var(--success);
+      border-radius:999px;
+    }
+
+    .trip-day-bus-table{
+      padding:0 16px 16px;
+    }
+
+    .trip-day-alert{
+      margin:0 16px 16px;
+      padding:12px 14px;
+      border-radius:12px;
+      border:1px solid #ead6b2;
+      background:#fff8e8;
+      line-height:1.55;
+    }
+
+    .trip-day-good{
+      color:var(--success);
+      font-weight:800;
+    }
+
+    .trip-day-warn{
+      color:#9a6700;
+      font-weight:800;
+    }
+
+    .trip-day-bad{
+      color:var(--danger);
+      font-weight:800;
+    }
+
+    @media(max-width:1000px){
+      .trip-day-grid{
+        grid-template-columns:repeat(2,minmax(0,1fr));
+      }
+    }
+
+    @media(max-width:540px){
+      .trip-day-grid{
+        grid-template-columns:1fr;
+      }
+    }
+
 </style>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
@@ -682,7 +769,7 @@
 
   <div id="adminApp" class="admin-layout hidden">
     <aside id="sidebar" class="sidebar">
-      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v3.0.7 • Production</small></div>
+      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v3.2.0 • Production</small></div>
       <nav class="nav">
         <button data-view="dashboard" class="active">▦ Dashboard</button>
         <button data-view="launcher">🔗 System Launcher</button>
@@ -3230,6 +3317,34 @@ toast("Login सफल भयो ।");
         <div class="panel" style="margin-bottom:16px">
           <div class="panel-head">
             <div>
+              <h3>Trip Day Operations Dashboard</h3>
+              <small>
+                Check-In, missing passengers, bus load, seat assignment,
+                payment र emergency status एउटै ठाउँमा हेर्नुहोस् ।
+              </small>
+            </div>
+
+            <div class="toolbar">
+              <button id="refreshTripDayOpsBtn" class="btn btn-soft">
+                Refresh Operations
+              </button>
+
+              <button id="printTripDayOpsBtn" class="btn btn-primary">
+                Print Operations Summary
+              </button>
+            </div>
+          </div>
+
+          <div id="tripDayOperationsBox">
+            <div class="empty">
+              Trip छानेपछि Operations Summary यहाँ देखिन्छ ।
+            </div>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-bottom:16px">
+          <div class="panel-head">
+            <div>
               <h3>Bus-wise Seat Occupancy</h3>
               <small>
                 Trip अनुसार खाली, occupied, checked-in र duplicate seat हेर्नुहोस् ।
@@ -3321,6 +3436,8 @@ toast("Login सफल भयो ।");
       $("fieldSearchBtn").onclick=loadFieldManifest;
       $("fieldPrintManifestBtn").onclick=printFieldManifest;
       $("refreshSeatOccupancyBtn").onclick=loadBusSeatOccupancy;
+      $("refreshTripDayOpsBtn").onclick=loadBusSeatOccupancy;
+      $("printTripDayOpsBtn").onclick=printTripDayOperations;
       $("fieldTripSelect").onchange=loadFieldManifest;
       $("fieldStartCameraBtn").onclick=startFieldScanner;
       $("fieldStopCameraBtn").onclick=stopFieldScanner;
@@ -3480,6 +3597,7 @@ toast("Login सफल भयो ।");
             );
 
         state.busSeatOccupancyRows=rows;
+        state.tripDayOperationsRows=rows;
 
         box.innerHTML=
           busSeatOccupancyHtml(
@@ -3488,6 +3606,12 @@ toast("Login सफल भयो ।");
             vehicles,
             assignments
           );
+
+        renderTripDayOperations(
+          rows,
+          vehicles,
+          assignments
+        );
 
       }catch(error){
         box.innerHTML=
@@ -3881,6 +4005,638 @@ toast("Login सफल भयो ।");
             :""}
         </div>
       `;
+    }
+
+
+    function renderTripDayOperations(
+      rows,
+      vehicles=[],
+      assignments=[]
+    ){
+      const box=
+        $("tripDayOperationsBox");
+
+      if(!box)return;
+
+      rows=
+        Array.isArray(rows)
+          ? rows
+          : [];
+
+      if(!rows.length){
+        box.innerHTML=
+          `<div class="empty">Operations Summary का लागि manifest record छैन ।</div>`;
+        return;
+      }
+
+      const total=
+        rows.length;
+
+      const checkedIn=
+        rows.filter(r=>
+          String(r.CheckInStatus||"")
+            .toUpperCase()==="CHECKED_IN"
+        ).length;
+
+      const missing=
+        Math.max(
+          0,
+          total-checkedIn
+        );
+
+      const issuedTickets=
+        rows.filter(r=>
+          String(r.TicketCode||"").trim()
+        ).length;
+
+      const busAssigned=
+        rows.filter(r=>
+          String(r.BusID||"").trim()
+        ).length;
+
+      const seatAssigned=
+        rows.filter(r=>
+          String(r.SeatID||"").trim()
+        ).length;
+
+      const seatUnassigned=
+        Math.max(
+          0,
+          total-seatAssigned
+        );
+
+      const unpaid=
+        rows.filter(r=>{
+          const s=
+            String(r.PaymentStatus||"")
+              .toUpperCase();
+
+          return ![
+            "PAID",
+            "VERIFIED",
+            "FULLY_PAID"
+          ].includes(s);
+        }).length;
+
+      const emergencyFlag=
+        rows.filter(r=>
+          String(r.HealthNote||"").trim() ||
+          String(r.SpecialAssistance||"").trim()
+        ).length;
+
+      const checkInPercent=
+        total
+          ? Math.round(
+              (checkedIn/total)*100
+            )
+          : 0;
+
+
+      const busMap=new Map();
+
+      rows.forEach(row=>{
+        const busId=
+          String(row.BusID||"")
+            .trim() ||
+          "UNASSIGNED";
+
+        if(!busMap.has(busId)){
+          busMap.set(
+            busId,
+            {
+              busId,
+              passengers:0,
+              checkedIn:0,
+              seatsAssigned:0,
+              unpaid:0
+            }
+          );
+        }
+
+        const b=
+          busMap.get(busId);
+
+        b.passengers++;
+
+        if(
+          String(row.CheckInStatus||"")
+            .toUpperCase()==="CHECKED_IN"
+        ){
+          b.checkedIn++;
+        }
+
+        if(
+          String(row.SeatID||"").trim()
+        ){
+          b.seatsAssigned++;
+        }
+
+        const payment=
+          String(row.PaymentStatus||"")
+            .toUpperCase();
+
+        if(
+          ![
+            "PAID",
+            "VERIFIED",
+            "FULLY_PAID"
+          ].includes(payment)
+        ){
+          b.unpaid++;
+        }
+      });
+
+
+      const busRows=
+        Array.from(
+          busMap.values()
+        )
+        .sort((a,b)=>{
+          if(
+            a.busId==="UNASSIGNED"
+          )return 1;
+
+          if(
+            b.busId==="UNASSIGNED"
+          )return -1;
+
+          return a.busId.localeCompare(
+            b.busId,
+            undefined,
+            {
+              numeric:true,
+              sensitivity:"base"
+            }
+          );
+        });
+
+
+      const alerts=[];
+
+      if(missing>0){
+        alerts.push(
+          `<span class="trip-day-warn">
+            ${missing} यात्रु अझै Check-In भएका छैनन् ।
+          </span>`
+        );
+      }
+
+      if(seatUnassigned>0){
+        alerts.push(
+          `<span class="trip-day-warn">
+            ${seatUnassigned} यात्रुको Seat assignment बाँकी छ ।
+          </span>`
+        );
+      }
+
+      if(unpaid>0){
+        alerts.push(
+          `<span class="trip-day-bad">
+            ${unpaid} यात्रुको Payment status complete छैन ।
+          </span>`
+        );
+      }
+
+      if(emergencyFlag>0){
+        alerts.push(
+          `<span class="trip-day-bad">
+            ${emergencyFlag} यात्रुमा Health / Assistance note छ ।
+          </span>`
+        );
+      }
+
+      if(!alerts.length){
+        alerts.push(
+          `<span class="trip-day-good">
+            Trip day operational status राम्रो देखिन्छ ।
+          </span>`
+        );
+      }
+
+
+      box.innerHTML=`
+        <div class="trip-day-grid">
+          <div class="trip-day-stat">
+            <small>Total Passengers</small>
+            <strong>${total}</strong>
+          </div>
+
+          <div class="trip-day-stat">
+            <small>Checked-In</small>
+            <strong>${checkedIn}</strong>
+            <div class="trip-day-progress">
+              <span style="width:${Math.min(100,checkInPercent)}%"></span>
+            </div>
+            <small>${checkInPercent}% completed</small>
+          </div>
+
+          <div class="trip-day-stat">
+            <small>Missing / Not Checked-In</small>
+            <strong>${missing}</strong>
+          </div>
+
+          <div class="trip-day-stat">
+            <small>Issued Tickets</small>
+            <strong>${issuedTickets}</strong>
+          </div>
+
+          <div class="trip-day-stat">
+            <small>Bus Assigned</small>
+            <strong>${busAssigned}</strong>
+          </div>
+
+          <div class="trip-day-stat">
+            <small>Seat Assigned</small>
+            <strong>${seatAssigned}</strong>
+          </div>
+
+          <div class="trip-day-stat">
+            <small>Seat Assignment बाँकी</small>
+            <strong>${seatUnassigned}</strong>
+          </div>
+
+          <div class="trip-day-stat">
+            <small>Payment Attention</small>
+            <strong>${unpaid}</strong>
+          </div>
+
+          <div class="trip-day-stat">
+            <small>Health / Assistance Alert</small>
+            <strong>${emergencyFlag}</strong>
+          </div>
+        </div>
+
+        <div class="trip-day-alert">
+          ${alerts.join("<br>")}
+        </div>
+
+        <div class="trip-day-bus-table">
+          <h4 style="margin:0 0 10px">
+            Bus-wise Operational Count
+          </h4>
+
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Bus</th>
+                  <th>Passengers</th>
+                  <th>Checked-In</th>
+                  <th>Not Checked-In</th>
+                  <th>Seat Assigned</th>
+                  <th>Payment Attention</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                ${busRows.map(b=>`
+                  <tr>
+                    <td>
+                      <strong>
+                        ${esc(
+                          b.busId==="UNASSIGNED"
+                            ?"Bus Not Assigned"
+                            :b.busId
+                        )}
+                      </strong>
+                    </td>
+                    <td>${b.passengers}</td>
+                    <td>${b.checkedIn}</td>
+                    <td>${Math.max(0,b.passengers-b.checkedIn)}</td>
+                    <td>${b.seatsAssigned}</td>
+                    <td>${b.unpaid}</td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+
+    function printTripDayOperations(){
+      const rows=
+        Array.isArray(
+          state.tripDayOperationsRows
+        )
+          ? state.tripDayOperationsRows
+          : [];
+
+      if(!rows.length){
+        toast(
+          "Print गर्न Operations data छैन । पहिले Trip छानेर Manifest Load गर्नुहोस् ।",
+          "error"
+        );
+        return;
+      }
+
+      const tripSelect=
+        $("fieldTripSelect");
+
+      const tripTitle=
+        tripSelect?.selectedOptions?.[0]
+          ?.textContent?.trim() ||
+        "Trip";
+
+      const total=
+        rows.length;
+
+      const checked=
+        rows.filter(r=>
+          String(r.CheckInStatus||"")
+            .toUpperCase()==="CHECKED_IN"
+        ).length;
+
+      const missing=
+        total-checked;
+
+      const seatPending=
+        rows.filter(r=>
+          !String(r.SeatID||"").trim()
+        ).length;
+
+      const paymentAttention=
+        rows.filter(r=>{
+          const s=
+            String(r.PaymentStatus||"")
+              .toUpperCase();
+
+          return ![
+            "PAID",
+            "VERIFIED",
+            "FULLY_PAID"
+          ].includes(s);
+        }).length;
+
+      const healthAlerts=
+        rows.filter(r=>
+          String(r.HealthNote||"").trim() ||
+          String(r.SpecialAssistance||"").trim()
+        );
+
+      const busMap={};
+
+      rows.forEach(r=>{
+        const bus=
+          String(r.BusID||"").trim() ||
+          "Bus Not Assigned";
+
+        if(!busMap[bus]){
+          busMap[bus]={
+            total:0,
+            checked:0,
+            seats:0
+          };
+        }
+
+        busMap[bus].total++;
+
+        if(
+          String(r.CheckInStatus||"")
+            .toUpperCase()==="CHECKED_IN"
+        ){
+          busMap[bus].checked++;
+        }
+
+        if(
+          String(r.SeatID||"").trim()
+        ){
+          busMap[bus].seats++;
+        }
+      });
+
+
+      const w=
+        window.open(
+          "",
+          "_blank",
+          "width=1100,height=800"
+        );
+
+      if(!w){
+        toast(
+          "Print window खुल्न सकेन । Browser popup अनुमति दिनुहोस् ।",
+          "error"
+        );
+        return;
+      }
+
+
+      w.document.open();
+
+      w.document.write(`
+        <!DOCTYPE html>
+        <html lang="ne">
+        <head>
+          <meta charset="UTF-8">
+
+          <title>
+            ${esc(tripTitle)} - Operations Summary
+          </title>
+
+          <style>
+            @page{
+              size:A4;
+              margin:12mm;
+            }
+
+            body{
+              font-family:
+                "Noto Sans Devanagari",
+                Arial,
+                sans-serif;
+              color:#222;
+              font-size:12px;
+            }
+
+            h1,h2,h3{
+              margin:0 0 6px;
+              text-align:center;
+            }
+
+            .summary{
+              display:grid;
+              grid-template-columns:repeat(3,1fr);
+              gap:8px;
+              margin:16px 0;
+            }
+
+            .card{
+              border:1px solid #bbb;
+              border-radius:8px;
+              padding:10px;
+            }
+
+            .card small{
+              display:block;
+              color:#555;
+            }
+
+            .card strong{
+              font-size:18px;
+            }
+
+            table{
+              width:100%;
+              border-collapse:collapse;
+              margin-top:12px;
+            }
+
+            th,td{
+              border:1px solid #bbb;
+              padding:6px;
+              text-align:left;
+            }
+
+            th{
+              background:#f1f1f1;
+            }
+
+            .alert{
+              margin-top:14px;
+              padding:10px;
+              border:1px solid #d7bd86;
+              background:#fff8e8;
+            }
+
+            .footer{
+              margin-top:28px;
+              display:flex;
+              justify-content:space-between;
+              align-items:flex-end;
+            }
+
+            .sign{
+              width:180px;
+              border-top:1px solid #444;
+              text-align:center;
+              padding-top:4px;
+            }
+          </style>
+        </head>
+
+        <body>
+          <h1>Guru Tirtha Yatra Sewa</h1>
+          <h2>${esc(tripTitle)}</h2>
+          <h3>Trip Day Operations Summary</h3>
+
+          <div class="summary">
+            <div class="card">
+              <small>Total Passengers</small>
+              <strong>${total}</strong>
+            </div>
+
+            <div class="card">
+              <small>Checked-In</small>
+              <strong>${checked}</strong>
+            </div>
+
+            <div class="card">
+              <small>Not Checked-In</small>
+              <strong>${missing}</strong>
+            </div>
+
+            <div class="card">
+              <small>Seat Assignment बाँकी</small>
+              <strong>${seatPending}</strong>
+            </div>
+
+            <div class="card">
+              <small>Payment Attention</small>
+              <strong>${paymentAttention}</strong>
+            </div>
+
+            <div class="card">
+              <small>Health / Assistance Alert</small>
+              <strong>${healthAlerts.length}</strong>
+            </div>
+          </div>
+
+          <h3 style="text-align:left">
+            Bus-wise Summary
+          </h3>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Bus</th>
+                <th>Passengers</th>
+                <th>Checked-In</th>
+                <th>Not Checked-In</th>
+                <th>Seat Assigned</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              ${Object.entries(busMap)
+                .map(([bus,v])=>`
+                  <tr>
+                    <td>${esc(bus)}</td>
+                    <td>${v.total}</td>
+                    <td>${v.checked}</td>
+                    <td>${v.total-v.checked}</td>
+                    <td>${v.seats}</td>
+                  </tr>
+                `)
+                .join("")}
+            </tbody>
+          </table>
+
+          ${healthAlerts.length
+            ?`
+              <div class="alert">
+                <strong>
+                  Health / Assistance Attention:
+                </strong>
+
+                <ul>
+                  ${healthAlerts.map(r=>`
+                    <li>
+                      ${esc(r.PassengerName||"Passenger")}
+                      ${r.BusID
+                        ? ` — Bus ${esc(r.BusID)}`
+                        : ""}
+                      ${r.SeatID
+                        ? ` — Seat ${esc(r.SeatID)}`
+                        : ""}
+                      ${
+                        r.HealthNote ||
+                        r.SpecialAssistance
+                          ? ` — ${esc(
+                              r.HealthNote ||
+                              r.SpecialAssistance
+                            )}`
+                          : ""
+                      }
+                    </li>
+                  `).join("")}
+                </ul>
+              </div>
+            `
+            :""}
+
+          <div class="footer">
+            <div>
+              Designed & Developed by Nirajan Aryal | 9851113811
+            </div>
+
+            <div class="sign">
+              Authorized Signature
+            </div>
+          </div>
+
+          <script>
+            window.onload=function(){
+              window.focus();
+              window.print();
+            };
+          <\/script>
+        </body>
+        </html>
+      `);
+
+      w.document.close();
     }
 
 
