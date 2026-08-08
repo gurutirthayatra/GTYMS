@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- GTYMS Public Website v2.1.0 | Production Trip Management -->
+<!-- GTYMS Public Website v2.2.0 | Production Trip Management -->
 <html lang="ne">
 <head>
   <meta charset="UTF-8" />
@@ -956,6 +956,77 @@ button {
   .booking-dialog{border-radius:16px}
 }
 
+
+/* GTYMS Payment & Voucher Production v2.2.0 */
+.payment-lookup-card{
+  width:min(760px,100%);
+  margin:0 auto;
+  padding:26px;
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  background:#fff;
+  box-shadow:var(--shadow);
+}
+.payment-summary-grid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:12px;
+  margin:18px 0;
+}
+.payment-stat{
+  padding:14px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:#fcfaf7;
+}
+.payment-stat small{
+  display:block;
+  color:var(--muted);
+  margin-bottom:4px;
+}
+.payment-stat strong{font-size:1.08rem}
+.payment-upload-box{
+  padding:18px;
+  border:1px dashed #d9c8b8;
+  border-radius:14px;
+  background:#fffdf9;
+}
+.payment-history{
+  display:grid;
+  gap:10px;
+  margin-top:18px;
+}
+.payment-history-item{
+  padding:13px;
+  border:1px solid var(--border);
+  border-radius:12px;
+  background:#fff;
+}
+.payment-status-pending{color:#9a6700}
+.payment-status-verified{color:var(--success)}
+.payment-status-rejected{color:var(--danger)}
+.receipt-print{
+  display:none;
+}
+@media(max-width:720px){
+  .payment-summary-grid{grid-template-columns:1fr 1fr}
+}
+@media(max-width:480px){
+  .payment-summary-grid{grid-template-columns:1fr}
+}
+@media print{
+  body *{visibility:hidden!important}
+  .receipt-print,.receipt-print *{visibility:visible!important}
+  .receipt-print{
+    display:block!important;
+    position:absolute;
+    inset:0;
+    padding:32px;
+    background:#fff;
+    color:#111;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -994,6 +1065,7 @@ button {
         <a href="#destinations">गन्तव्यहरू</a>
         <a href="#services">हाम्रा सेवाहरू</a>
         <a href="#library">डिजिटल लाइब्रेरी</a>
+        <a href="#payment-submit">भुक्तानी</a>
         <a href="#contact">सम्पर्क</a>
         <a href="#" id="bookingStatusNav">Booking Status</a>
       </nav>
@@ -1197,6 +1269,102 @@ button {
       </div>
     </section>
 
+
+    <section id="payment-submit" class="section section-soft">
+      <div class="container">
+        <div class="section-heading centered">
+          <div>
+            <span class="eyebrow">Secure Payment Reporting</span>
+            <h2>भुक्तानी तथा Voucher पठाउनुहोस्</h2>
+          </div>
+        </div>
+
+        <div class="payment-lookup-card">
+          <form id="paymentLookupForm" class="form-grid">
+            <div class="field">
+              <label>Booking Code *</label>
+              <input name="bookingCode" required placeholder="GTY-B-...">
+            </div>
+
+            <div class="field">
+              <label>Booking Mobile *</label>
+              <input name="mobile" required inputmode="tel">
+            </div>
+
+            <button class="btn btn-primary full-button" type="submit">
+              Booking / Payment विवरण हेर्नुहोस्
+            </button>
+          </form>
+
+          <div id="paymentBookingBox" class="hidden">
+            <div id="paymentBookingSummary"></div>
+
+            <div class="payment-upload-box">
+              <h3>नयाँ Payment Report</h3>
+
+              <form id="paymentVoucherForm" class="form-grid">
+                <input type="hidden" name="bookingCode" id="payBookingCode">
+                <input type="hidden" name="mobile" id="payBookingMobile">
+
+                <div class="field">
+                  <label>भुक्तानी रकम *</label>
+                  <input
+                    id="paymentAmount"
+                    name="amount"
+                    type="number"
+                    min="1"
+                    step="1"
+                    required
+                  >
+                </div>
+
+                <div class="field">
+                  <label>Payment Method *</label>
+                  <select name="paymentMethod" required>
+                    <option value="QR">QR / Mobile Banking</option>
+                    <option value="BANK_TRANSFER">Bank Transfer</option>
+                    <option value="CASH_DEPOSIT">Cash Deposit</option>
+                    <option value="CASH">Cash</option>
+                  </select>
+                </div>
+
+                <div class="field">
+                  <label>Transaction / Reference No.</label>
+                  <input name="transactionId">
+                </div>
+
+                <div class="field">
+                  <label>Payment Date</label>
+                  <input name="paymentDate" type="date">
+                </div>
+
+                <div class="field full">
+                  <label>Voucher (JPG, PNG, PDF — Max 5 MB) *</label>
+                  <input
+                    id="paymentVoucherFile"
+                    type="file"
+                    accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
+                    required
+                  >
+                </div>
+
+                <div class="field full">
+                  <label>Remarks</label>
+                  <textarea name="remarks" rows="2"></textarea>
+                </div>
+
+                <button class="btn btn-primary full-button" type="submit">
+                  Payment Voucher पठाउनुहोस्
+                </button>
+              </form>
+            </div>
+
+            <div id="paymentHistory" class="payment-history"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section id="payment" class="section">
       <div class="container payment-card">
         <div>
@@ -1388,6 +1556,9 @@ button {
       </div>
     </div>
   </div>
+
+
+  <div id="receiptPrintArea" class="receipt-print"></div>
 
   <div id="toast" class="toast hidden" role="status"></div>
   <script>
@@ -2170,6 +2341,335 @@ window.GTYMS_UI = (() => {
       }
     }
   );
+
+
+  let currentPaymentSummary = null;
+
+  document.getElementById("paymentLookupForm")
+    ?.addEventListener("submit", async event => {
+      event.preventDefault();
+
+      const payload =
+        UI.formToObject(event.currentTarget);
+
+      try {
+        UI.showLoading("Payment विवरण लोड हुँदैछ...");
+
+        const result = await API.get(
+          "getPaymentBookingSummary",
+          payload
+        );
+
+        currentPaymentSummary = result;
+        renderPaymentBookingSummary(
+          result,
+          payload.bookingCode,
+          payload.mobile
+        );
+
+      } catch (error) {
+        UI.showToast(
+          error.message || "Booking विवरण भेटिएन ।",
+          "error"
+        );
+      } finally {
+        UI.hideLoading();
+      }
+    });
+
+  function renderPaymentBookingSummary(
+    data,
+    bookingCode,
+    mobile
+  ) {
+    document.getElementById("payBookingCode").value =
+      bookingCode || data.bookingCode || "";
+
+    document.getElementById("payBookingMobile").value =
+      mobile || "";
+
+    const qr = data.paymentQrUrl
+      ? `<img src="${UI.escapeHtml(data.paymentQrUrl)}"
+           alt="Payment QR"
+           style="width:190px;max-height:190px;object-fit:contain;margin:12px auto">`
+      : `<div class="empty-card" style="padding:18px">
+           Payment QR Admin Settings बाट राख्नुहोस् ।
+         </div>`;
+
+    document.getElementById("paymentBookingSummary").innerHTML = `
+      <div style="text-align:center">
+        <span class="eyebrow">Booking Payment</span>
+        <h3 style="margin:6px 0">${UI.escapeHtml(data.tripTitle || "")}</h3>
+        <small>${UI.escapeHtml(data.bookingCode || "")}</small>
+      </div>
+
+      <div class="payment-summary-grid">
+        <div class="payment-stat">
+          <small>Total</small>
+          <strong>रु. ${formatMoney(data.netAmount || 0)}</strong>
+        </div>
+
+        <div class="payment-stat">
+          <small>Paid</small>
+          <strong>रु. ${formatMoney(data.paidAmount || 0)}</strong>
+        </div>
+
+        <div class="payment-stat">
+          <small>Due</small>
+          <strong>रु. ${formatMoney(data.dueAmount || 0)}</strong>
+        </div>
+
+        <div class="payment-stat">
+          <small>Status</small>
+          <strong>${UI.escapeHtml(data.paymentStatus || "UNPAID")}</strong>
+        </div>
+      </div>
+
+      <div style="text-align:center">
+        ${qr}
+        ${data.advanceAmount
+          ? `<small>Suggested Advance: रु. ${formatMoney(data.advanceAmount)}</small>`
+          : ""}
+      </div>
+    `;
+
+    const amount =
+      document.getElementById("paymentAmount");
+
+    if (amount) {
+      amount.max =
+        String(data.dueAmount || "");
+      amount.value =
+        data.advanceAmount > 0 &&
+        data.advanceAmount <= data.dueAmount
+          ? data.advanceAmount
+          : data.dueAmount || "";
+    }
+
+    renderPaymentHistory(data.payments || []);
+    document.getElementById("paymentBookingBox")
+      .classList.remove("hidden");
+  }
+
+  function renderPaymentHistory(payments) {
+    const box =
+      document.getElementById("paymentHistory");
+
+    if (!payments.length) {
+      box.innerHTML =
+        `<div class="empty-card" style="padding:18px">
+           अहिलेसम्म Payment Report छैन ।
+         </div>`;
+      return;
+    }
+
+    box.innerHTML =
+      `<h3>Payment History</h3>` +
+      payments.map(payment => {
+        const status =
+          String(
+            payment.VerificationStatus || "PENDING"
+          ).toUpperCase();
+
+        const cls =
+          status === "VERIFIED"
+            ? "payment-status-verified"
+            : status === "REJECTED"
+              ? "payment-status-rejected"
+              : "payment-status-pending";
+
+        return `
+          <div class="payment-history-item">
+            <strong>${UI.escapeHtml(payment.PaymentCode || "")}</strong>
+            — रु. ${formatMoney(payment.Amount || 0)}
+            <br>
+            <span class="${cls}">
+              ${UI.escapeHtml(status)}
+            </span>
+            ${payment.TransactionID
+              ? `<br><small>Ref: ${UI.escapeHtml(payment.TransactionID)}</small>`
+              : ""}
+            ${payment.ReceiptNumber
+              ? `<br>
+                 <button
+                   type="button"
+                   class="text-button print-receipt-btn"
+                   data-receipt="${UI.escapeHtml(payment.ReceiptNumber)}"
+                   data-amount="${UI.escapeHtml(payment.VerifiedAmount || payment.Amount || 0)}">
+                   Receipt Print
+                 </button>`
+              : ""}
+            ${payment.RejectionReason
+              ? `<br><small style="color:var(--danger)">
+                   ${UI.escapeHtml(payment.RejectionReason)}
+                 </small>`
+              : ""}
+          </div>
+        `;
+      }).join("");
+
+    box.querySelectorAll(".print-receipt-btn")
+      .forEach(button => {
+        button.addEventListener("click", () => {
+          printPaymentReceipt(
+            button.dataset.receipt,
+            button.dataset.amount
+          );
+        });
+      });
+  }
+
+  document.getElementById("paymentVoucherForm")
+    ?.addEventListener("submit", async event => {
+      event.preventDefault();
+
+      const form = event.currentTarget;
+      const payload =
+        UI.formToObject(form);
+
+      const file =
+        document.getElementById(
+          "paymentVoucherFile"
+        ).files[0];
+
+      if (!file) {
+        UI.showToast(
+          "Voucher file छान्नुहोस् ।",
+          "error"
+        );
+        return;
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        UI.showToast(
+          "Voucher अधिकतम 5 MB सम्म हुनुपर्छ ।",
+          "error"
+        );
+        return;
+      }
+
+      try {
+        UI.showLoading("Voucher Upload हुँदैछ...");
+
+        const base64 =
+          await fileToBase64Payload(file);
+
+        payload.voucher = {
+          name: file.name,
+          mimeType: file.type,
+          base64: base64
+        };
+
+        const result =
+          await API.post(
+            "submitPaymentVoucher",
+            payload
+          );
+
+        UI.showToast(
+          result.message ||
+          "Payment Voucher पठाइयो ।"
+        );
+
+        form.reset();
+
+        // Reload summary/history.
+        const refreshed =
+          await API.get(
+            "getPaymentBookingSummary",
+            {
+              bookingCode:
+                document.getElementById(
+                  "payBookingCode"
+                ).value,
+              mobile:
+                document.getElementById(
+                  "payBookingMobile"
+                ).value
+            }
+          );
+
+        currentPaymentSummary = refreshed;
+
+        renderPaymentBookingSummary(
+          refreshed,
+          refreshed.bookingCode,
+          document.getElementById(
+            "payBookingMobile"
+          ).value
+        );
+
+      } catch (error) {
+        UI.showToast(
+          error.message ||
+          "Payment Voucher पठाउन सकिएन ।",
+          "error"
+        );
+      } finally {
+        UI.hideLoading();
+      }
+    });
+
+  function fileToBase64Payload(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onload = () => {
+        const result =
+          String(reader.result || "");
+
+        resolve(
+          result.includes(",")
+            ? result.split(",")[1]
+            : result
+        );
+      };
+
+      reader.onerror = () =>
+        reject(
+          new Error(
+            "Voucher file पढ्न सकिएन ।"
+          )
+        );
+
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function printPaymentReceipt(
+    receiptNumber,
+    amount
+  ) {
+    if (!currentPaymentSummary) return;
+
+    const area =
+      document.getElementById(
+        "receiptPrintArea"
+      );
+
+    area.innerHTML = `
+      <div style="max-width:720px;margin:0 auto;border:1px solid #bbb;padding:30px">
+        <div style="text-align:center">
+          <h2>Guru Tirtha Yatra Sewa</h2>
+          <h3>PAYMENT RECEIPT</h3>
+        </div>
+        <hr>
+        <p><strong>Receipt No:</strong> ${UI.escapeHtml(receiptNumber || "")}</p>
+        <p><strong>Booking Code:</strong> ${UI.escapeHtml(currentPaymentSummary.bookingCode || "")}</p>
+        <p><strong>Trip:</strong> ${UI.escapeHtml(currentPaymentSummary.tripTitle || "")}</p>
+        <p><strong>Received Amount:</strong> रु. ${formatMoney(amount || 0)}</p>
+        <p><strong>Payment Status:</strong> ${UI.escapeHtml(currentPaymentSummary.paymentStatus || "")}</p>
+        <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
+        <hr>
+        <p style="text-align:center">धन्यवाद ।</p>
+        <p style="text-align:center;font-size:12px">
+          Designed & Developed by Nirajan Aryal | 9851113811
+        </p>
+      </div>
+    `;
+
+    window.print();
+  }
 
   function renderDestinations(destinations) {
     const grid = document.getElementById("destinationGrid");
