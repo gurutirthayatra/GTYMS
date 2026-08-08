@@ -517,6 +517,41 @@
         <div id="loginMessage"></div>
       </div>
 
+      <div id="portalEmailVerificationPanel" class="hidden">
+        <div class="message" style="background:#fff7e8;color:#6f3b00;margin-bottom:14px">
+          <strong>🔐 Email Verification Required</strong><br>
+          Admin Approval पछि पहिलो Member Portal Login मा Registered Email ownership verify गर्नु अनिवार्य छ।
+        </div>
+
+        <div class="card" style="padding:16px;box-shadow:none">
+          <div style="font-weight:800;margin-bottom:6px">Registered Email</div>
+          <div id="portalVerificationEmail" style="margin-bottom:14px;color:#6d5a4d"></div>
+
+          <button id="sendPortalEmailOtpBtn" type="button" class="primary" style="width:100%">
+            Email OTP पठाउनुहोस्
+          </button>
+
+          <div id="portalOtpEntryBox" class="hidden" style="margin-top:14px">
+            <label>6-digit Email OTP *</label>
+            <input id="portalEmailOtpInput" inputmode="numeric" maxlength="6" placeholder="______">
+
+            <button id="verifyPortalEmailOtpBtn" type="button" class="primary" style="width:100%;margin-top:12px">
+              Verify & Enter Member Portal
+            </button>
+
+            <button id="resendPortalEmailOtpBtn" type="button" class="secondary" style="width:100%;margin-top:8px">
+              OTP पुनः पठाउनुहोस्
+            </button>
+          </div>
+
+          <div id="portalEmailVerificationMessage"></div>
+
+          <button id="cancelPortalEmailVerificationBtn" type="button" class="secondary" style="width:100%;margin-top:12px">
+            ← Login मा फर्कनुहोस्
+          </button>
+        </div>
+      </div>
+
       <div id="registerPanel" class="hidden">
         <form id="memberRegistrationForm">
           <div class="register-grid">
@@ -745,6 +780,8 @@
   <script>
     const API_URL =
       "https://script.google.com/macros/s/AKfycbzrKZBb_lg8TiI_HHp390Cscr31XWgcnsG0Jp5qFkkpUYaCoin3TLnJ6TY1RDFyRuI2/exec";
+
+    let portalEmailVerificationId="";
 
     const state = {
       token:
@@ -1620,6 +1657,29 @@
                 "POST"
               );
 
+            if(
+              result.emailVerificationRequired
+            ){
+              portalEmailVerificationId=
+                result.verificationId||"";
+
+              $("portalVerificationEmail").textContent=
+                result.emailMasked||
+                "Registered Email";
+
+              $("loginPanel").classList.add("hidden");
+              $("registerPanel").classList.add("hidden");
+              $("portalEmailVerificationPanel").classList.remove("hidden");
+
+              $("portalEmailVerificationMessage").innerHTML=
+                `<div class="message" style="background:#fff7e8;color:#6f3b00">
+                  ${esc(result.message||"Email Verification आवश्यक छ।")}
+                </div>`;
+
+              $("loginMessage").textContent="";
+              return;
+            }
+
             state.token=
               result.token;
 
@@ -1643,6 +1703,137 @@
                 ${esc(error.message)}
               </div>`;
           }
+        }
+      );
+
+    $("sendPortalEmailOtpBtn")
+      .addEventListener(
+        "click",
+        async()=>{
+          const button=
+            $("sendPortalEmailOtpBtn");
+
+          button.disabled=true;
+          button.textContent="OTP पठाउँदै...";
+
+          try{
+            const result=
+              await api(
+                "memberPortalSendEmailOtp",
+                {
+                  verificationId:
+                    portalEmailVerificationId
+                },
+                "POST"
+              );
+
+            $("portalVerificationEmail").textContent=
+              result.emailMasked||
+              $("portalVerificationEmail").textContent;
+
+            $("portalOtpEntryBox").classList.remove("hidden");
+
+            $("portalEmailVerificationMessage").innerHTML=
+              `<div class="message" style="background:#e8f7ee;color:#146b3a">
+                ${esc(result.message||"OTP पठाइयो।")}
+              </div>`;
+
+            $("portalEmailOtpInput").focus();
+
+          }catch(error){
+            $("portalEmailVerificationMessage").innerHTML=
+              `<div class="message" style="background:#fde7e3;color:#8a1c12">
+                ${esc(error.message)}
+              </div>`;
+          }finally{
+            button.disabled=false;
+            button.textContent="Email OTP पठाउनुहोस्";
+          }
+        }
+      );
+
+    $("resendPortalEmailOtpBtn")
+      .addEventListener(
+        "click",
+        ()=>$("sendPortalEmailOtpBtn").click()
+      );
+
+    $("verifyPortalEmailOtpBtn")
+      .addEventListener(
+        "click",
+        async()=>{
+          const otp=
+            $("portalEmailOtpInput").value
+              .replace(/\D/g,"")
+              .slice(0,6);
+
+          if(otp.length!==6){
+            $("portalEmailVerificationMessage").innerHTML=
+              `<div class="message" style="background:#fde7e3;color:#8a1c12">
+                6 अंकको OTP राख्नुहोस् ।
+              </div>`;
+            return;
+          }
+
+          const button=
+            $("verifyPortalEmailOtpBtn");
+
+          button.disabled=true;
+          button.textContent="Verify हुँदैछ...";
+
+          try{
+            const result=
+              await api(
+                "memberPortalVerifyEmailOtp",
+                {
+                  verificationId:
+                    portalEmailVerificationId,
+                  otp
+                },
+                "POST"
+              );
+
+            state.token=
+              result.token;
+
+            localStorage.setItem(
+              "gtymsMemberToken",
+              state.token
+            );
+
+            state.profile=
+              result.member;
+
+            portalEmailVerificationId="";
+
+            await loadDashboard();
+
+            $("portalEmailVerificationPanel").classList.add("hidden");
+            showPortal();
+            renderMemberCard();
+
+          }catch(error){
+            $("portalEmailVerificationMessage").innerHTML=
+              `<div class="message" style="background:#fde7e3;color:#8a1c12">
+                ${esc(error.message)}
+              </div>`;
+          }finally{
+            button.disabled=false;
+            button.textContent="Verify & Enter Member Portal";
+          }
+        }
+      );
+
+    $("cancelPortalEmailVerificationBtn")
+      .addEventListener(
+        "click",
+        ()=>{
+          portalEmailVerificationId="";
+          $("portalEmailVerificationPanel").classList.add("hidden");
+          $("loginPanel").classList.remove("hidden");
+          $("portalOtpEntryBox").classList.add("hidden");
+          $("portalEmailOtpInput").value="";
+          $("portalEmailVerificationMessage").innerHTML="";
         }
       );
 
