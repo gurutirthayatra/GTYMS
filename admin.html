@@ -3120,6 +3120,10 @@ toast("Login सफल भयो ।");
               <button id="fieldSearchBtn" class="btn btn-soft">
                 Search
               </button>
+
+              <button id="fieldPrintManifestBtn" class="btn btn-primary">
+                Print Manifest
+              </button>
             </div>
           </div>
 
@@ -3131,6 +3135,7 @@ toast("Login सफल भयो ।");
 
       $("fieldLoadBtn").onclick=loadFieldManifest;
       $("fieldSearchBtn").onclick=loadFieldManifest;
+      $("fieldPrintManifestBtn").onclick=printFieldManifest;
       $("fieldTripSelect").onchange=loadFieldManifest;
       $("fieldStartCameraBtn").onclick=startFieldScanner;
       $("fieldStopCameraBtn").onclick=stopFieldScanner;
@@ -3190,6 +3195,11 @@ toast("Login सफल भयो ।");
 
         const rows=data.items||[];
 
+        // GTYMS v3.0.11 additive only:
+        // current filtered manifest is kept only for Print Manifest.
+        state.fieldManifestRows=rows;
+        state.fieldManifestTotal=data.total||rows.length;
+
         $("manifestCount").textContent=
           `${data.total||0} records`;
 
@@ -3224,6 +3234,290 @@ toast("Login सफल भयो ।");
         hideLoading();
       }
     }
+
+    function printFieldManifest(){
+      const rows=
+        Array.isArray(state.fieldManifestRows)
+          ? state.fieldManifestRows
+          : [];
+
+      if(!rows.length){
+        toast(
+          "Print गर्न Manifest record छैन । पहिले Trip छानेर Manifest Load गर्नुहोस् ।",
+          "error"
+        );
+        return;
+      }
+
+      const tripSelect=
+        $("fieldTripSelect");
+
+      const tripTitle=
+        tripSelect?.selectedOptions?.[0]?.textContent?.trim() ||
+        "Trip Passenger Manifest";
+
+      const busFilter=
+        $("fieldBusFilter")?.value||"";
+
+      const checkInFilter=
+        $("fieldCheckInFilter")?.value||"";
+
+      const searchText=
+        $("fieldManifestSearch")?.value?.trim()||"";
+
+      const printedAt=
+        new Date().toLocaleString(
+          "en-GB",
+          {
+            timeZone:"Asia/Kathmandu",
+            year:"numeric",
+            month:"2-digit",
+            day:"2-digit",
+            hour:"2-digit",
+            minute:"2-digit"
+          }
+        );
+
+      const printWindow=
+        window.open(
+          "",
+          "_blank",
+          "width=1200,height=800"
+        );
+
+      if(!printWindow){
+        toast(
+          "Print window खुल्न सकेन । Browser popup अनुमति दिनुहोस् ।",
+          "error"
+        );
+        return;
+      }
+
+      const tableRows=
+        rows.map((r,index)=>{
+          const checked=
+            String(r.CheckInStatus||"")
+              .toUpperCase()==="CHECKED_IN";
+
+          return `
+            <tr>
+              <td>${index+1}</td>
+              <td>
+                <strong>${esc(r.PassengerName||"")}</strong>
+                ${r.Mobile
+                  ? `<br><small>${esc(r.Mobile)}</small>`
+                  : ""}
+              </td>
+              <td>${esc(r.BookingCode||"")}</td>
+              <td>${esc(r.TicketCode||"-")}</td>
+              <td>${esc(r.BusID||"-")}</td>
+              <td>${esc(r.SeatID||"-")}</td>
+              <td>${esc(r.PaymentStatus||"-")}</td>
+              <td>
+                ${esc(r.CheckInStatus||"NOT_CHECKED_IN")}
+                ${r.CheckInAt
+                  ? `<br><small>${esc(r.CheckInAt)}</small>`
+                  : ""}
+              </td>
+              <td>
+                ${esc(r.EmergencyContactName||"-")}
+                ${r.EmergencyContactMobile
+                  ? `<br>${esc(r.EmergencyContactMobile)}`
+                  : ""}
+                ${r.HealthNote
+                  ? `<br><small><strong>Health:</strong> ${esc(r.HealthNote)}</small>`
+                  : ""}
+              </td>
+            </tr>
+          `;
+        }).join("");
+
+      const filterNote=[
+        busFilter ? `Bus: ${esc(busFilter)}` : "",
+        checkInFilter ? `Check-In: ${esc(checkInFilter)}` : "",
+        searchText ? `Search: ${esc(searchText)}` : ""
+      ].filter(Boolean).join(" | ");
+
+      printWindow.document.open();
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html lang="ne">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width,initial-scale=1.0">
+          <title>${esc(tripTitle)} - Passenger Manifest</title>
+
+          <style>
+            @page{
+              size:A4 landscape;
+              margin:10mm;
+            }
+
+            *{
+              box-sizing:border-box;
+            }
+
+            body{
+              margin:0;
+              color:#222;
+              font-family:
+                "Noto Sans Devanagari",
+                Arial,
+                sans-serif;
+              font-size:11px;
+            }
+
+            .print-head{
+              text-align:center;
+              margin-bottom:12px;
+            }
+
+            .print-head h1{
+              margin:0 0 4px;
+              font-size:20px;
+            }
+
+            .print-head h2{
+              margin:0 0 4px;
+              font-size:16px;
+            }
+
+            .meta{
+              display:flex;
+              justify-content:space-between;
+              gap:12px;
+              margin:8px 0 10px;
+              font-size:10px;
+            }
+
+            table{
+              width:100%;
+              border-collapse:collapse;
+              table-layout:auto;
+            }
+
+            th,
+            td{
+              border:1px solid #bbb;
+              padding:6px 5px;
+              text-align:left;
+              vertical-align:top;
+              line-height:1.35;
+            }
+
+            th{
+              background:#f2f2f2;
+              font-weight:700;
+              white-space:nowrap;
+            }
+
+            td:nth-child(1),
+            td:nth-child(5),
+            td:nth-child(6){
+              text-align:center;
+            }
+
+            small{
+              font-size:9px;
+            }
+
+            .footer{
+              margin-top:12px;
+              display:flex;
+              justify-content:space-between;
+              gap:20px;
+              font-size:10px;
+            }
+
+            .sign{
+              margin-top:30px;
+              min-width:180px;
+              border-top:1px solid #444;
+              padding-top:4px;
+              text-align:center;
+            }
+
+            @media print{
+              button{
+                display:none!important;
+              }
+
+              thead{
+                display:table-header-group;
+              }
+
+              tr{
+                break-inside:avoid;
+              }
+            }
+          </style>
+        </head>
+
+        <body>
+          <div class="print-head">
+            <h1>Guru Tirtha Yatra Sewa</h1>
+            <h2>${esc(tripTitle)}</h2>
+            <strong>Trip Passenger Manifest</strong>
+          </div>
+
+          <div class="meta">
+            <div>
+              Total Records:
+              <strong>${rows.length}</strong>
+              ${filterNote
+                ? `<br>${filterNote}`
+                : ""}
+            </div>
+
+            <div>
+              Printed:
+              <strong>${esc(printedAt)}</strong>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>S.N.</th>
+                <th>Passenger</th>
+                <th>Booking</th>
+                <th>Ticket</th>
+                <th>Bus</th>
+                <th>Seat</th>
+                <th>Payment</th>
+                <th>Check-In</th>
+                <th>Emergency / Health</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              ${tableRows}
+            </tbody>
+          </table>
+
+          <div class="footer">
+            <div>
+              Designed & Developed by Nirajan Aryal | 9851113811
+            </div>
+
+            <div class="sign">
+              Authorized Signature
+            </div>
+          </div>
+
+          <script>
+            window.onload=function(){
+              window.focus();
+              window.print();
+            };
+          <\/script>
+        </body>
+        </html>
+      `);
+
+      printWindow.document.close();
+    }
+
 
     function fieldManifestTable(rows){
       if(!rows?.length){
