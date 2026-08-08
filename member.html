@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <title>Pilgrim Member Portal | Guru Tirtha Yatra Sewa</title>
+  <title>Pilgrim Member Portal v2.7.1 | Guru Tirtha Yatra Sewa</title>
 
   <style>
     :root{
@@ -233,7 +233,62 @@
         flex-direction:column;
       }
     }
-  </style>
+  
+    .auth-switch{
+      display:flex;
+      gap:8px;
+      margin:18px 0 8px;
+    }
+
+    .auth-switch button{
+      flex:1;
+      background:#fff;
+      color:var(--primary);
+      border:1px solid var(--border);
+    }
+
+    .auth-switch button.active{
+      background:var(--primary);
+      color:#fff;
+    }
+
+    .register-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:12px;
+    }
+
+    .register-grid .full{
+      grid-column:1/-1;
+    }
+
+    .otp-box{
+      margin-top:16px;
+      padding:16px;
+      border:1px solid var(--border);
+      border-radius:14px;
+      background:#fffaf3;
+    }
+
+    .registration-success{
+      padding:18px;
+      border-radius:14px;
+      background:#edf8f2;
+      color:#155f3b;
+      margin-top:16px;
+    }
+
+    @media(max-width:560px){
+      .register-grid{
+        grid-template-columns:1fr;
+      }
+
+      .register-grid .full{
+        grid-column:auto;
+      }
+    }
+
+</style>
 </head>
 
 <body>
@@ -244,22 +299,167 @@
         <small>Pilgrim / Member Portal</small>
       </div>
 
-      <form id="memberLoginForm">
-        <label>Membership No *</label>
-        <input name="membershipNo" required>
-
-        <label>Registered Mobile *</label>
-        <input name="mobile" inputmode="tel" required>
-
-        <label>Member PIN</label>
-        <input name="pin" type="password" inputmode="numeric" placeholder="यदि PIN सेट गरिएको छ भने">
-
-        <button class="primary" type="submit" style="width:100%;margin-top:16px">
+      <div class="auth-switch">
+        <button id="showLoginBtn" type="button" class="active">
           Member Login
         </button>
-      </form>
 
-      <div id="loginMessage"></div>
+        <button id="showRegisterBtn" type="button">
+          नयाँ Member Registration
+        </button>
+      </div>
+
+      <div id="loginPanel">
+        <form id="memberLoginForm">
+          <label>Membership No *</label>
+          <input name="membershipNo" required>
+
+          <label>Registered Mobile *</label>
+          <input name="mobile" inputmode="tel" required>
+
+          <label>Member PIN</label>
+          <input name="pin" type="password" inputmode="numeric" placeholder="यदि PIN सेट गरिएको छ भने">
+
+          <button class="primary" type="submit" style="width:100%;margin-top:16px">
+            Member Login
+          </button>
+        </form>
+
+        <div id="loginMessage"></div>
+      </div>
+
+      <div id="registerPanel" class="hidden">
+        <form id="memberRegistrationForm">
+          <div class="register-grid">
+            <div class="full">
+              <label>Full Name *</label>
+              <input name="fullName" required>
+            </div>
+
+            <div>
+              <label>Mobile *</label>
+              <input name="mobile" inputmode="tel" required placeholder="98XXXXXXXX">
+            </div>
+
+            <div>
+              <label>Email *</label>
+              <input name="email" type="email" required>
+            </div>
+
+            <div>
+              <label>Gender</label>
+              <select name="gender">
+                <option value="">छान्नुहोस्</option>
+                <option value="MALE">पुरुष</option>
+                <option value="FEMALE">महिला</option>
+                <option value="OTHER">अन्य</option>
+              </select>
+            </div>
+
+            <div>
+              <label>Province</label>
+              <input name="province">
+            </div>
+
+            <div>
+              <label>District</label>
+              <input name="district">
+            </div>
+
+            <div>
+              <label>Municipality</label>
+              <input name="municipality">
+            </div>
+
+            <div>
+              <label>Ward No.</label>
+              <input name="wardNo">
+            </div>
+
+            <div class="full">
+              <label>Address</label>
+              <input name="address">
+            </div>
+
+            <div>
+              <label>Emergency Contact Name</label>
+              <input name="emergencyContactName">
+            </div>
+
+            <div>
+              <label>Relation</label>
+              <input name="emergencyContactRelation">
+            </div>
+
+            <div>
+              <label>Emergency Contact Mobile</label>
+              <input name="emergencyContactMobile" inputmode="tel">
+            </div>
+
+            <div>
+              <label>Preferred Food</label>
+              <select name="preferredFood">
+                <option value="VEGETARIAN">VEGETARIAN</option>
+                <option value="JAIN">JAIN</option>
+                <option value="OTHER">OTHER</option>
+              </select>
+            </div>
+
+            <label class="full">
+              <input type="checkbox" name="whatsAppConsent" style="width:auto">
+              WhatsApp सूचना प्राप्त गर्न सहमत छु ।
+            </label>
+
+            <label class="full">
+              <input type="checkbox" name="emailConsent" checked style="width:auto">
+              Email सूचना प्राप्त गर्न सहमत छु ।
+            </label>
+
+            <label class="full">
+              <input type="checkbox" name="termsAccepted" required style="width:auto">
+              Member Registration का नियम तथा सर्त स्वीकार गर्दछु । *
+            </label>
+          </div>
+
+          <button
+            id="sendRegistrationOtpBtn"
+            class="primary"
+            type="submit"
+            style="width:100%;margin-top:16px">
+            Email OTP पठाउनुहोस्
+          </button>
+        </form>
+
+        <div id="registrationMessage"></div>
+
+        <div id="registrationOtpBox" class="otp-box hidden">
+          <strong>Email OTP Verification</strong>
+          <p id="otpSentMessage"></p>
+
+          <form id="registrationOtpForm">
+            <label>6-digit OTP *</label>
+            <input
+              name="otp"
+              inputmode="numeric"
+              maxlength="6"
+              pattern="[0-9]{6}"
+              required
+            >
+
+            <button
+              class="primary"
+              type="submit"
+              style="width:100%;margin-top:12px">
+              OTP Verify & Registration Complete
+            </button>
+          </form>
+        </div>
+
+        <div
+          id="registrationSuccess"
+          class="registration-success hidden">
+        </div>
+      </div>
     </section>
 
     <section id="portalView" class="hidden">
@@ -423,6 +623,168 @@
         showLogin();
       }
     }
+
+
+    let pendingRegistrationId="";
+
+    $("showLoginBtn")
+      .addEventListener(
+        "click",
+        ()=>{
+          $("showLoginBtn")
+            .classList.add("active");
+
+          $("showRegisterBtn")
+            .classList.remove("active");
+
+          $("loginPanel")
+            .classList.remove("hidden");
+
+          $("registerPanel")
+            .classList.add("hidden");
+        }
+      );
+
+    $("showRegisterBtn")
+      .addEventListener(
+        "click",
+        ()=>{
+          $("showRegisterBtn")
+            .classList.add("active");
+
+          $("showLoginBtn")
+            .classList.remove("active");
+
+          $("registerPanel")
+            .classList.remove("hidden");
+
+          $("loginPanel")
+            .classList.add("hidden");
+        }
+      );
+
+    $("memberRegistrationForm")
+      .addEventListener(
+        "submit",
+        async event=>{
+          event.preventDefault();
+
+          const form=event.currentTarget;
+
+          const payload=
+            Object.fromEntries(
+              new FormData(
+                form
+              ).entries()
+            );
+
+          payload.whatsAppConsent=
+            form.elements.whatsAppConsent.checked;
+
+          payload.emailConsent=
+            form.elements.emailConsent.checked;
+
+          payload.termsAccepted=
+            form.elements.termsAccepted.checked;
+
+          $("registrationMessage")
+            .innerHTML=
+            `<div class="message">OTP पठाइँदैछ...</div>`;
+
+          try{
+            const result=
+              await api(
+                "memberRegisterSendOtp",
+                payload,
+                "POST"
+              );
+
+            pendingRegistrationId=
+              result.registrationId;
+
+            $("registrationMessage")
+              .innerHTML="";
+
+            $("otpSentMessage")
+              .textContent=
+              `OTP ${result.emailMasked} मा पठाइएको छ । OTP ${result.expiresInMinutes} मिनेटसम्म मान्य हुनेछ ।`;
+
+            $("registrationOtpBox")
+              .classList.remove("hidden");
+
+            $("registrationSuccess")
+              .classList.add("hidden");
+
+          }catch(error){
+            $("registrationMessage")
+              .innerHTML=
+              `<div class="message" style="background:#fde7e3;color:#8a1c12">
+                ${esc(error.message)}
+              </div>`;
+          }
+        }
+      );
+
+    $("registrationOtpForm")
+      .addEventListener(
+        "submit",
+        async event=>{
+          event.preventDefault();
+
+          if(!pendingRegistrationId){
+            alert("पहिले OTP पठाउनुहोस् ।");
+            return;
+          }
+
+          const form=event.currentTarget;
+
+          const payload=
+            Object.fromEntries(
+              new FormData(
+                form
+              ).entries()
+            );
+
+          payload.registrationId=
+            pendingRegistrationId;
+
+          try{
+            const result=
+              await api(
+                "memberRegisterVerifyOtp",
+                payload,
+                "POST"
+              );
+
+            $("registrationSuccess")
+              .innerHTML=
+              `<strong>${esc(result.message||"Registration सफल भयो ।")}</strong><br><br>
+               Membership No: <strong>${esc(result.membershipNo||"")}</strong><br>
+               Mobile: ${esc(result.mobile||"")}<br><br>
+               अब Member Login tab बाट Login गर्नुहोस् ।`;
+
+            $("registrationSuccess")
+              .classList.remove("hidden");
+
+            $("registrationOtpBox")
+              .classList.add("hidden");
+
+            $("memberRegistrationForm")
+              .reset();
+
+            $("registrationOtpForm")
+              .reset();
+
+            pendingRegistrationId="";
+
+          }catch(error){
+            alert(
+              error.message ||
+              "OTP Verify हुन सकेन ।"
+            );
+          }
+        }
+      );
 
     $("memberLoginForm")
       .addEventListener(
