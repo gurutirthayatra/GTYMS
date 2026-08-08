@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <title>Pilgrim Member Portal v2.8.1 | Guru Tirtha Yatra Sewa</title>
+  <title>Pilgrim Member Portal v2.8.2 | Guru Tirtha Yatra Sewa</title>
 
   <style>
     :root{
@@ -386,6 +386,83 @@
       }
     }
 
+
+    /* GTYMS v2.8.2 – Digital Membership Card UX Final */
+    .card-hero{
+      display:flex;
+      justify-content:space-between;
+      gap:14px;
+      align-items:center;
+      padding:14px 16px;
+      margin-bottom:16px;
+      border:1px solid var(--border);
+      border-radius:14px;
+      background:#fffdf7;
+    }
+
+    .card-hero strong{
+      color:var(--primary);
+    }
+
+    .verified-chip{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:7px 11px;
+      border-radius:999px;
+      background:#edf8f2;
+      color:var(--success);
+      font-weight:900;
+      font-size:.86rem;
+    }
+
+    .member-id-large{
+      font-size:1.2rem;
+      font-weight:950;
+      color:var(--primary);
+      letter-spacing:.4px;
+    }
+
+    .card-actions-final{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-top:16px;
+    }
+
+    .card-actions-final button,
+    .card-actions-final a{
+      min-height:42px;
+    }
+
+    .qr-status{
+      margin-top:9px;
+      font-size:.82rem;
+      color:var(--muted);
+    }
+
+    .qr-status.ok{
+      color:var(--success);
+      font-weight:800;
+    }
+
+    @media(max-width:620px){
+      .card-hero{
+        align-items:flex-start;
+        flex-direction:column;
+      }
+
+      .card-actions-final{
+        display:grid;
+        grid-template-columns:1fr 1fr;
+      }
+
+      .card-actions-final button,
+      .card-actions-final a{
+        width:100%;
+      }
+    }
+
 </style>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
 </head>
@@ -638,7 +715,7 @@
 
       <div class="layout">
         <aside class="menu card">
-          <button data-view="card" class="active">🪪 Membership Card</button>
+          <button data-view="card" class="active">🪪 Digital Membership Card</button>
           <button data-view="profile">👤 Profile</button>
           <button data-view="bookings">📋 Bookings</button>
           <button data-view="payments">💳 Payments</button>
@@ -1650,18 +1727,29 @@
         state.profile||{};
 
       $("memberContent").innerHTML=`
-        <h2 class="section-title">Digital Membership Card</h2>
+        <div class="card-hero">
+          <div>
+            <strong>Digital Membership Card</strong><br>
+            <small>
+              Approved GTYMS Member को official digital card तथा QR verification ।
+            </small>
+          </div>
 
-        <div class="digital-card">
+          <span class="verified-chip">
+            ✓ MEMBER CARD
+          </span>
+        </div>
+
+        <div class="digital-card" id="printableMemberCard">
           <div class="digital-card-grid">
             <div>
               <small>Guru Tirtha Yatra Sewa</small>
 
-              <h2 style="margin:6px 0 2px">
+              <h2 style="margin:6px 0 3px">
                 ${esc(p.FullName||"")}
               </h2>
 
-              <div style="font-size:1.05rem;font-weight:900;color:var(--primary)">
+              <div class="member-id-large">
                 ${esc(p.MemberID||p.MembershipNo||"")}
               </div>
 
@@ -1669,9 +1757,12 @@
                 ${esc(p.MembershipLevel||"NEW_PILGRIM")}
               </span>
 
-              <div style="margin-top:16px;line-height:1.7">
+              <div style="margin-top:17px;line-height:1.75">
                 <strong>District:</strong>
                 ${esc(p.District||"-")}<br>
+
+                <strong>Municipality:</strong>
+                ${esc(p.Municipality||"-")}<br>
 
                 <strong>Total Trips:</strong>
                 ${esc(p.TotalTrips||0)}<br>
@@ -1679,59 +1770,75 @@
                 <strong>Reward Points:</strong>
                 ${esc(p.RewardPoints||0)}<br>
 
-                <strong>Status:</strong>
+                <strong>Member Status:</strong>
                 ${esc(p.Status||"")}
               </div>
             </div>
 
             <div class="qr-box">
               <canvas id="memberQrCanvas"></canvas>
-              <div style="margin-top:8px;font-weight:800">
-                Scan to Verify
+
+              <div style="margin-top:8px;font-weight:900">
+                Scan to Verify Member
               </div>
-              <div id="memberVerifyLink" class="verification-link"></div>
+
+              <div
+                id="memberQrStatus"
+                class="qr-status">
+                QR तयार हुँदैछ...
+              </div>
+
+              <div
+                id="memberVerifyLink"
+                class="verification-link">
+              </div>
             </div>
           </div>
         </div>
 
-        <div class="toolbar" style="margin-top:16px">
+        <div class="card-actions-final">
           <button
-            class="soft"
-            id="printMemberCardBtn">
-            Print / Save Card
+            class="primary"
+            id="openVerifyPageBtn"
+            type="button">
+            ✓ Verify Card
           </button>
 
           <button
             class="soft"
-            id="copyMemberIdBtn">
+            id="printMemberCardBtn"
+            type="button">
+            Print / Save PDF
+          </button>
+
+          <button
+            class="soft"
+            id="copyMemberIdBtn"
+            type="button">
             Copy Member ID
+          </button>
+
+          <button
+            class="soft"
+            id="refreshMemberQrBtn"
+            type="button">
+            Refresh QR
           </button>
         </div>
       `;
 
-      $("printMemberCardBtn")
-        .onclick=()=>{
-          window.print();
-        };
+      let verifyUrlText="";
 
-      $("copyMemberIdBtn")
-        .onclick=async()=>{
-          const memberId=
-            p.MemberID||
-            p.MembershipNo||
-            "";
+      async function loadCardQr(){
+        const qrStatus=
+          $("memberQrStatus");
 
-          try{
-            await navigator.clipboard.writeText(
-              memberId
-            );
-            alert("Member ID copy भयो ।");
-          }catch(error){
-            alert(memberId);
-          }
-        };
+        if(qrStatus){
+          qrStatus.textContent=
+            "QR तयार हुँदैछ...";
+          qrStatus.classList.remove("ok");
+        }
 
-      try{
         const data=
           await api(
             "memberGetDigitalCard",
@@ -1759,28 +1866,97 @@
           card.verifyToken||""
         );
 
-        $("memberVerifyLink").textContent=
+        verifyUrlText=
           verifyUrl.toString();
 
-        if(window.QRCode){
+        $("memberVerifyLink").textContent=
+          verifyUrlText;
+
+        const canvas=
+          $("memberQrCanvas");
+
+        if(
+          canvas &&
+          window.QRCode
+        ){
           await QRCode.toCanvas(
-            $("memberQrCanvas"),
-            verifyUrl.toString(),
+            canvas,
+            verifyUrlText,
             {
-              width:170,
-              margin:1
+              width:180,
+              margin:1,
+              errorCorrectionLevel:"M"
             }
           );
-        }else{
-          $("memberVerifyLink").textContent=
-            "QR library load भएन । " +
-            verifyUrl.toString();
+
+          if(qrStatus){
+            qrStatus.textContent=
+              "✓ QR Verification Ready";
+            qrStatus.classList.add("ok");
+          }
+
+        }else if(qrStatus){
+          qrStatus.textContent=
+            "QR library load हुन सकेन ।";
+        }
+      }
+
+      $("printMemberCardBtn").onclick=()=>{
+        window.print();
+      };
+
+      $("copyMemberIdBtn").onclick=async()=>{
+        const memberId=
+          p.MemberID||
+          p.MembershipNo||
+          "";
+
+        try{
+          await navigator.clipboard.writeText(
+            memberId
+          );
+
+          alert(
+            "Member ID copy भयो ।"
+          );
+
+        }catch(error){
+          alert(memberId);
+        }
+      };
+
+      $("openVerifyPageBtn").onclick=()=>{
+        if(!verifyUrlText){
+          alert(
+            "QR Verification Link तयार हुँदैछ ।"
+          );
+          return;
         }
 
+        window.open(
+          verifyUrlText,
+          "_blank",
+          "noopener"
+        );
+      };
+
+      $("refreshMemberQrBtn").onclick=async()=>{
+        try{
+          await loadCardQr();
+        }catch(error){
+          alert(
+            error.message||
+            "QR refresh हुन सकेन ।"
+          );
+        }
+      };
+
+      try{
+        await loadCardQr();
       }catch(error){
-        $("memberVerifyLink").textContent=
+        $("memberQrStatus").textContent=
           error.message||
-          "QR तयार हुन सकेन ।";
+          "Digital Membership Card तयार हुन सकेन ।";
       }
     }
 
