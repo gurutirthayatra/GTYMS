@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- GTYMS Public Website v2.5.0 | Production Trip Management -->
+<!-- GTYMS Public Website v2.6.0 | Production Trip Management -->
 <html lang="ne">
 <head>
   <meta charset="UTF-8" />
@@ -1173,6 +1173,34 @@ button {
   }
 }
 
+
+/* GTYMS v2.6 Public Dynamic System Links */
+.public-systems-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:14px;
+}
+.public-system-card{
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:18px;
+  box-shadow:var(--shadow-soft);
+}
+.public-system-card .system-icon{
+  font-size:1.8rem;
+}
+@media(max-width:850px){
+  .public-systems-grid{
+    grid-template-columns:1fr 1fr;
+  }
+}
+@media(max-width:560px){
+  .public-systems-grid{
+    grid-template-columns:1fr;
+  }
+}
+
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
@@ -1637,6 +1665,23 @@ button {
       </div>
     </section>
   </main>
+
+  
+    <section id="public-systems" class="section">
+      <div class="container">
+        <div class="section-heading centered">
+          <div>
+            <span class="eyebrow">Quick Access</span>
+            <h2>Digital Systems</h2>
+          </div>
+        </div>
+
+        <div
+          id="publicSystemsGrid"
+          class="public-systems-grid">
+        </div>
+      </div>
+    </section>
 
   <footer class="site-footer">
     <div class="container footer-inner">
@@ -3185,6 +3230,67 @@ window.GTYMS_UI = (() => {
       </div>
     `;
   }
+
+
+  async function loadPublicSystemLinks(){
+    const grid=
+      document.getElementById(
+        "publicSystemsGrid"
+      );
+
+    if(!grid)return;
+
+    try{
+      const data=
+        await API.get(
+          "getPublicSystemLinks"
+        );
+
+      const items=
+        data.items||[];
+
+      if(!items.length){
+        document.getElementById(
+          "public-systems"
+        )?.classList.add("hidden");
+        return;
+      }
+
+      grid.innerHTML=
+        items.map(link=>`
+          <article class="public-system-card">
+            <span class="system-icon">
+              ${UI.escapeHtml(link.Icon||"🔗")}
+            </span>
+
+            <h3>
+              ${UI.escapeHtml(link.ModuleName||"")}
+            </h3>
+
+            <p>
+              ${UI.escapeHtml(link.Description||"")}
+            </p>
+
+            <a
+              class="btn btn-secondary"
+              href="${UI.escapeHtml(link.URL||"#")}"
+              ${String(link.OpenMode||"")
+                .toUpperCase()==="NEW_TAB"
+                ? 'target="_blank" rel="noopener"'
+                : ""}>
+              Open
+            </a>
+          </article>
+        `).join("");
+
+    }catch(error){
+      document.getElementById(
+        "public-systems"
+      )?.classList.add("hidden");
+    }
+  }
+
+  loadPublicSystemLinks();
 
   function renderDestinations(destinations) {
     const grid = document.getElementById("destinationGrid");
