@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- GTYMS Public Website v2.3.0 | Production Trip Management -->
+<!-- GTYMS Public Website v2.4.0 | Production Trip Management -->
 <html lang="ne">
 <head>
   <meta charset="UTF-8" />
@@ -1103,6 +1103,76 @@ button {
   }
 }
 
+
+/* GTYMS v2.4.0 – Back To Top + Live Tracking */
+.back-to-top{
+  position:fixed;
+  right:22px;
+  bottom:82px;
+  z-index:3200;
+  width:48px;
+  height:48px;
+  border:0;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  color:#fff;
+  background:var(--primary);
+  box-shadow:0 12px 30px rgba(44,27,21,.24);
+  font-size:1.25rem;
+  font-weight:800;
+  opacity:0;
+  visibility:hidden;
+  transform:translateY(12px);
+  transition:.22s ease;
+}
+.back-to-top.show{
+  opacity:1;
+  visibility:visible;
+  transform:translateY(0);
+}
+.back-to-top:hover{
+  background:var(--primary-dark);
+  transform:translateY(-2px);
+}
+.live-tracking-card{
+  width:min(860px,100%);
+  margin:0 auto;
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  padding:24px;
+}
+.live-map{
+  margin-top:16px;
+  min-height:320px;
+  border:1px solid var(--border);
+  border-radius:16px;
+  overflow:hidden;
+  background:#f5efe7;
+}
+.live-map iframe{
+  width:100%;
+  min-height:320px;
+  border:0;
+}
+.live-location-item{
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:14px;
+  background:#fffdf9;
+  margin-top:12px;
+}
+@media(max-width:620px){
+  .back-to-top{
+    right:14px;
+    bottom:74px;
+    width:44px;
+    height:44px;
+  }
+}
+
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
@@ -1144,6 +1214,7 @@ button {
         <a href="#library">डिजिटल लाइब्रेरी</a>
         <a href="#payment-submit">भुक्तानी</a>
         <a href="#e-ticket">E-Ticket</a>
+        <a href="#live-tracking">Live Tracking</a>
         <a href="#contact">सम्पर्क</a>
         <a href="#" id="bookingStatusNav">Booking Status</a>
       </nav>
@@ -1493,6 +1564,38 @@ button {
       </div>
     </section>
 
+
+    <section id="live-tracking" class="section section-soft">
+      <div class="container">
+        <div class="section-heading centered">
+          <div>
+            <span class="eyebrow">Family Journey View</span>
+            <h2>Live Trip Tracking</h2>
+          </div>
+        </div>
+
+        <div class="live-tracking-card">
+          <form id="liveTrackingForm" class="form-grid">
+            <div class="field">
+              <label>Booking Code *</label>
+              <input name="bookingCode" required>
+            </div>
+
+            <div class="field">
+              <label>Booking Mobile *</label>
+              <input name="mobile" inputmode="tel" required>
+            </div>
+
+            <button class="btn btn-primary full-button" type="submit">
+              Live Location हेर्नुहोस्
+            </button>
+          </form>
+
+          <div id="liveTrackingResult"></div>
+        </div>
+      </div>
+    </section>
+
     <section id="contact" class="section contact-section">
       <div class="container two-column">
         <div>
@@ -1670,6 +1773,8 @@ button {
 
   <div id="receiptPrintArea" class="receipt-print"></div>
   <div id="ticketPrintArea"></div>
+
+  <button id="backToTop" class="back-to-top" type="button" aria-label="माथि जानुहोस्">↑</button>
 
   <div id="toast" class="toast hidden" role="status"></div>
   <script>
@@ -2924,6 +3029,161 @@ window.GTYMS_UI = (() => {
     area.style.display = "block";
     window.print();
     area.style.display = "none";
+  }
+
+
+  /* Back To Top */
+  const backToTopButton =
+    document.getElementById("backToTop");
+
+  function updateBackToTopVisibility() {
+    if (!backToTopButton) return;
+
+    if (window.scrollY > 500) {
+      backToTopButton.classList.add("show");
+    } else {
+      backToTopButton.classList.remove("show");
+    }
+  }
+
+  window.addEventListener(
+    "scroll",
+    updateBackToTopVisibility,
+    { passive: true }
+  );
+
+  backToTopButton?.addEventListener(
+    "click",
+    () => {
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+      });
+    }
+  );
+
+  updateBackToTopVisibility();
+
+  /* Live Tracking – only available to matching Booking Code + Mobile */
+  document.getElementById("liveTrackingForm")
+    ?.addEventListener("submit", async event => {
+      event.preventDefault();
+
+      const payload =
+        UI.formToObject(event.currentTarget);
+
+      try {
+        UI.showLoading("Live Location लोड हुँदैछ...");
+
+        const data = await API.get(
+          "getPublicLiveTripTracking",
+          payload
+        );
+
+        renderPublicLiveTracking(data);
+
+      } catch (error) {
+        UI.showToast(
+          error.message ||
+          "Live Tracking विवरण लोड हुन सकेन ।",
+          "error"
+        );
+      } finally {
+        UI.hideLoading();
+      }
+    });
+
+  function renderPublicLiveTracking(data) {
+    const box =
+      document.getElementById(
+        "liveTrackingResult"
+      );
+
+    if (!data.available) {
+      box.innerHTML = `
+        <div class="empty-card" style="margin-top:18px">
+          ${UI.escapeHtml(
+            data.message ||
+            "Live Tracking उपलब्ध छैन ।"
+          )}
+        </div>
+      `;
+      return;
+    }
+
+    const locations =
+      (data.vehicles || [])
+        .map((vehicle, index) => {
+          const latest = vehicle.latest;
+
+          if (!latest) {
+            return `
+              <div class="live-location-item">
+                <strong>${UI.escapeHtml(
+                  vehicle.vehicleNumber ||
+                  vehicle.vehicleName ||
+                  `Vehicle ${index + 1}`
+                )}</strong><br>
+                <small>Location अझै प्राप्त भएको छैन ।</small>
+              </div>
+            `;
+          }
+
+          const lat = Number(latest.latitude || 0);
+          const lng = Number(latest.longitude || 0);
+
+          const mapUrl =
+            `https://www.google.com/maps?q=${encodeURIComponent(lat + "," + lng)}&z=15&output=embed`;
+
+          const openMap =
+            `https://www.google.com/maps?q=${encodeURIComponent(lat + "," + lng)}`;
+
+          return `
+            <div class="live-location-item">
+              <strong>${UI.escapeHtml(
+                vehicle.vehicleNumber ||
+                vehicle.vehicleName ||
+                `Vehicle ${index + 1}`
+              )}</strong><br>
+
+              <small>
+                Last Update:
+                ${UI.escapeHtml(
+                  latest.recordedAt || ""
+                )}
+              </small>
+
+              <div class="live-map">
+                <iframe
+                  loading="lazy"
+                  src="${mapUrl}"
+                  title="Live Trip Location">
+                </iframe>
+              </div>
+
+              <div class="card-actions">
+                <a
+                  class="btn btn-secondary"
+                  href="${openMap}"
+                  target="_blank"
+                  rel="noopener">
+                  Google Maps मा खोल्नुहोस्
+                </a>
+              </div>
+            </div>
+          `;
+        })
+        .join("");
+
+    box.innerHTML = `
+      <div style="margin-top:18px">
+        <span class="eyebrow">Current Journey</span>
+        <h3>${UI.escapeHtml(
+          data.tripTitle || ""
+        )}</h3>
+        ${locations}
+      </div>
+    `;
   }
 
   function renderDestinations(destinations) {
