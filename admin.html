@@ -85,6 +85,15 @@
     @media(max-width:980px){.payment-admin-grid{grid-template-columns:1fr 1fr}}
     @media(max-width:540px){.payment-admin-grid{grid-template-columns:1fr}}
 
+
+    .ticket-admin-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}
+    .ticket-admin-stat{border:1px solid var(--border);border-radius:14px;padding:14px;background:#fcfaf7}
+    .ticket-admin-stat small{display:block;color:var(--muted);margin-bottom:4px}
+    .ticket-admin-stat strong{font-size:1.15rem}
+    .checkin-box{border:1px solid var(--border);border-radius:16px;padding:16px;background:#fff;margin-bottom:16px}
+    @media(max-width:900px){.ticket-admin-grid{grid-template-columns:1fr 1fr}}
+    @media(max-width:540px){.ticket-admin-grid{grid-template-columns:1fr}}
+
 </style>
 </head>
 <body>
@@ -101,7 +110,7 @@
 
   <div id="adminApp" class="admin-layout hidden">
     <aside id="sidebar" class="sidebar">
-      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v2.2.0 • Production</small></div>
+      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v2.3.0 • Production</small></div>
       <nav class="nav">
         <button data-view="dashboard" class="active">▦ Dashboard</button>
         <button data-view="sliders">▣ Slider Manager</button>
@@ -109,6 +118,7 @@
         <button data-view="trips">🚌 Trip Manager</button>
         <button data-view="bookings">📋 Booking Manager</button>
         <button data-view="payments">💳 Payment Manager</button>
+        <button data-view="tickets">🎫 Ticket & Check-In</button>
         <button data-view="services">✓ Services Manager</button>
         <button data-view="library">▤ Digital Library</button>
         <button data-view="settings">⚙ Settings</button>
@@ -191,6 +201,7 @@
       <div class="modal-actions">
         <button id="bookingWaitlistBtn" type="button" class="btn btn-soft">Waitlist</button>
         <button id="bookingCancelBtn" type="button" class="btn btn-danger">Cancel</button>
+        <button id="issueBookingTicketBtn" type="button" class="btn btn-soft">Issue E-Ticket</button>
         <button id="bookingApproveBtn" type="button" class="btn btn-primary">Approve Booking</button>
       </div>
     </div>
@@ -320,14 +331,15 @@
       library:{title:"Digital Library",display:["LibraryID","Title","ResourceType","AccessLevel","Featured","Status"]},
       settings:{title:"Settings",display:["SettingKey","SettingValue","Category","IsPublic","Status"]},
       bookings:{title:"Booking Manager",display:["BookingCode","TripTitle","PrimaryContactName","PrimaryContactMobile","PassengerCount","PaymentStatus","BookingStatus"]},
-      payments:{title:"Payment Manager",display:["PaymentCode","BookingCode","PrimaryContactName","Amount","VerificationStatus"]}
+      payments:{title:"Payment Manager",display:["PaymentCode","BookingCode","PrimaryContactName","Amount","VerificationStatus"]},
+      tickets:{title:"Ticket & Check-In",display:["TicketCode","BookingCode","PassengerName","BusID","SeatID","CheckInStatus"]}
     };
 
     const TEXTAREA_HINTS = /Description|HTML|Message|Remarks|Notes|Terms|Advice|Attractions|Route|Content/i;
     const HIDDEN_FORM_FIELDS = /CreatedAt|CreatedBy|UpdatedAt|UpdatedBy|_rowNumber/i;
     const READONLY_ID_FIELDS = /ID$/;
 
-    const state={token:sessionStorage.getItem("gtymsAdminToken")||"",admin:null,view:"dashboard",schema:null,records:[],tripEditorData:null,currentBookingId:"",currentPaymentId:""};
+    const state={token:sessionStorage.getItem("gtymsAdminToken")||"",admin:null,view:"dashboard",schema:null,records:[],tripEditorData:null,currentBookingId:"",currentPaymentId:"",currentTicketToken:""};
 
     const $=id=>document.getElementById(id);
     const showLoading=()=>$("loading").classList.remove("hidden");
@@ -490,7 +502,7 @@ toast("Login सफल भयो ।");
       $("pageTitle").textContent=view==="dashboard"?"Dashboard":MODULES[view]?.title||view;
       showLoading();
       try{
-        if(view==="dashboard")await renderDashboard();else if(view==="trips")await renderTripManager();else if(view==="bookings")await renderBookingManager();else if(view==="payments")await renderPaymentManager();else await renderModule(view);
+        if(view==="dashboard")await renderDashboard();else if(view==="trips")await renderTripManager();else if(view==="bookings")await renderBookingManager();else if(view==="payments")await renderPaymentManager();else if(view==="tickets")await renderTicketManager();else await renderModule(view);
       } catch (e) {
         handleAdminApiError(e);
       } finally {
@@ -542,6 +554,261 @@ toast("Login सफल भयो ।");
 
 
 
+
+
+    async function renderTicketManager(){
+      const [dashboard,data]=await Promise.all([
+        api(
+          "adminGetTicketDashboard",
+          {token:state.token}
+        ),
+        api(
+          "adminListTickets",
+          {
+            token:state.token,
+            page:1,
+            pageSize:100
+          }
+        )
+      ]);
+
+      state.records=data.items||[];
+      const c=dashboard.cards||{};
+
+      $("content").innerHTML=`
+        <div class="ticket-admin-grid">
+          <div class="ticket-admin-stat"><small>Issued Tickets</small><strong>${c.issued||0}</strong></div>
+          <div class="ticket-admin-stat"><small>Checked-In</small><strong>${c.checkedIn||0}</strong></div>
+          <div class="ticket-admin-stat"><small>Waiting Check-In</small><strong>${c.waitingCheckIn||0}</strong></div>
+          <div class="ticket-admin-stat"><small>Seat Assigned</small><strong>${c.seatAssigned||0}</strong></div>
+        </div>
+
+        <div class="checkin-box">
+          <h3>Quick Check-In</h3>
+          <div class="toolbar" style="margin-top:10px">
+            <input id="ticketTokenInput" placeholder="QR Token / Ticket Token">
+            <input id="checkInGateInput" placeholder="Gate / Boarding Point" value="MAIN">
+            <button id="quickCheckInBtn" class="btn btn-primary">Check-In</button>
+          </div>
+          <div id="quickCheckInResult"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <h3>Ticket & Check-In Manager</h3>
+              <small>${data.pagination?.total||0} tickets</small>
+            </div>
+
+            <div class="toolbar">
+              <input id="ticketAdminSearch" placeholder="Ticket / Booking / Passenger / Seat">
+
+              <select id="ticketCheckInFilter">
+                <option value="">All</option>
+                <option value="CHECKED_IN">CHECKED_IN</option>
+                <option value="NOT_CHECKED_IN">NOT_CHECKED_IN</option>
+              </select>
+
+              <button id="ticketAdminSearchBtn" class="btn btn-soft">
+                Search
+              </button>
+            </div>
+          </div>
+
+          <div id="ticketAdminTable">
+            ${ticketAdminTable(state.records)}
+          </div>
+        </div>
+      `;
+
+      $("ticketAdminSearchBtn").onclick=searchAdminTickets;
+      $("ticketAdminSearch").addEventListener("keydown",e=>{
+        if(e.key==="Enter")searchAdminTickets();
+      });
+
+      $("quickCheckInBtn").onclick=quickTicketCheckIn;
+      wireTicketAdminActions();
+    }
+
+    function ticketAdminTable(rows){
+      if(!rows?.length){
+        return `<div class="empty">Issued Ticket छैन ।</div>`;
+      }
+
+      return `<div class="table-wrap"><table class="table">
+        <thead>
+          <tr>
+            <th>Ticket</th>
+            <th>Booking</th>
+            <th>Trip</th>
+            <th>Passenger</th>
+            <th>Bus</th>
+            <th>Seat</th>
+            <th>Check-In</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map(r=>`
+            <tr>
+              <td><strong>${esc(r.TicketCode||"")}</strong></td>
+              <td>${esc(r.BookingCode||r.BookingID||"")}</td>
+              <td>${esc(r.TripTitle||"")}</td>
+              <td>${esc(r.PassengerName||r.PilgrimID||"")}</td>
+              <td>${esc(r.BusID||"-")}</td>
+              <td>${esc(r.SeatID||"-")}</td>
+              <td><span class="chip">${esc(r.CheckInStatus||"NOT_CHECKED_IN")}</span></td>
+              <td>
+                <div class="actions">
+                  <button
+                    class="assignTravelBtn"
+                    data-id="${esc(r.BookingPassengerID||"")}"
+                    data-bus="${esc(r.BusID||"")}"
+                    data-seat="${esc(r.SeatID||"")}">
+                    Assign
+                  </button>
+
+                  <button
+                    class="checkInTicketBtn"
+                    data-token="${esc(r.TicketToken||"")}">
+                    Check-In
+                  </button>
+                </div>
+              </td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table></div>`;
+    }
+
+    function wireTicketAdminActions(){
+      document.querySelectorAll(".assignTravelBtn")
+        .forEach(button=>{
+          button.onclick=async()=>{
+            const busId=prompt(
+              "Bus / Vehicle ID:",
+              button.dataset.bus||""
+            );
+
+            if(busId===null)return;
+
+            const seatId=prompt(
+              "Seat Number / Seat ID:",
+              button.dataset.seat||""
+            );
+
+            if(seatId===null)return;
+
+            showLoading();
+
+            try{
+              await api(
+                "adminAssignPassengerTravel",
+                {
+                  token:state.token,
+                  bookingPassengerId:button.dataset.id,
+                  busId,
+                  seatId
+                },
+                "POST"
+              );
+
+              toast("Bus / Seat Assignment अपडेट भयो ।");
+              await renderTicketManager();
+
+            }catch(error){
+              handleAdminApiError(error);
+            }finally{
+              hideLoading();
+            }
+          };
+        });
+
+      document.querySelectorAll(".checkInTicketBtn")
+        .forEach(button=>{
+          button.onclick=()=>{
+            $("ticketTokenInput").value=
+              button.dataset.token||"";
+            quickTicketCheckIn();
+          };
+        });
+    }
+
+    async function searchAdminTickets(){
+      showLoading();
+
+      try{
+        const data=await api(
+          "adminListTickets",
+          {
+            token:state.token,
+            search:$("ticketAdminSearch").value,
+            checkInStatus:$("ticketCheckInFilter").value,
+            page:1,
+            pageSize:100
+          }
+        );
+
+        state.records=data.items||[];
+        $("ticketAdminTable").innerHTML=
+          ticketAdminTable(state.records);
+
+        wireTicketAdminActions();
+
+      }catch(error){
+        handleAdminApiError(error);
+      }finally{
+        hideLoading();
+      }
+    }
+
+    async function quickTicketCheckIn(){
+      const token=
+        $("ticketTokenInput").value.trim();
+
+      if(!token){
+        toast("Ticket Token आवश्यक छ ।",true);
+        return;
+      }
+
+      showLoading();
+
+      try{
+        const result=await api(
+          "adminCheckInTicket",
+          {
+            token:state.token,
+            ticketToken:token,
+            checkInGate:$("checkInGateInput").value||"MAIN"
+          },
+          "POST"
+        );
+
+        const p=result.passenger||{};
+
+        $("quickCheckInResult").innerHTML=`
+          <div style="margin-top:12px;padding:12px;border-radius:10px;background:#edf8f2">
+            <strong>${esc(p.PassengerName||"Passenger")}</strong><br>
+            Ticket: ${esc(p.TicketCode||"")}<br>
+            Seat: ${esc(p.SeatID||"-")}<br>
+            Status: ${result.alreadyCheckedIn?"Already Checked-In":"Check-In Successful"}
+          </div>
+        `;
+
+        toast(
+          result.alreadyCheckedIn
+            ? "यो Ticket पहिले नै Check-In भइसकेको छ ।"
+            : "Check-In सफल भयो ।"
+        );
+
+        await renderTicketManager();
+
+      }catch(error){
+        handleAdminApiError(error);
+      }finally{
+        hideLoading();
+      }
+    }
 
     async function renderPaymentManager(){
       const [dashboard,data]=await Promise.all([
@@ -1120,6 +1387,36 @@ toast("Login सफल भयो ।");
     $("bookingApproveBtn").onclick=()=>changeBookingStatus("APPROVED");
     $("bookingCancelBtn").onclick=()=>changeBookingStatus("CANCELLED");
     $("bookingWaitlistBtn").onclick=()=>changeBookingStatus("WAITLIST");
+
+    $("issueBookingTicketBtn").onclick=async()=>{
+      if(!state.currentBookingId)return;
+
+      showLoading();
+
+      try{
+        const result=await api(
+          "adminIssueBookingTickets",
+          {
+            token:state.token,
+            bookingId:state.currentBookingId
+          },
+          "POST"
+        );
+
+        toast(
+          `${result.ticketCount||0} वटा E-Ticket issue भयो । Invoice: ${result.invoiceNumber||""}`
+        );
+
+        closeBookingDetails();
+        await renderBookingManager();
+
+      }catch(error){
+        handleAdminApiError(error);
+      }finally{
+        hideLoading();
+      }
+    };
+
 
     async function renderTripManager(){
       const [schema,data,editorData]=await Promise.all([
