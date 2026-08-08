@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <title>Pilgrim Member Portal v2.7.1 | Guru Tirtha Yatra Sewa</title>
+  <title>Pilgrim Member Portal v2.7.2 | Guru Tirtha Yatra Sewa</title>
 
   <style>
     :root{
@@ -288,6 +288,24 @@
       }
     }
 
+
+    .smart-address-loading{
+      opacity:.65;
+      pointer-events:none;
+    }
+
+    select:disabled{
+      background:#f3eee8;
+      color:#8a817c;
+      cursor:not-allowed;
+    }
+
+    .address-help{
+      color:var(--muted);
+      font-size:.82rem;
+      margin-top:4px;
+    }
+
 </style>
 </head>
 
@@ -357,23 +375,54 @@
             </div>
 
             <div>
-              <label>Province</label>
-              <input name="province">
+              <label>Province *</label>
+              <select
+                id="regProvince"
+                name="province"
+                required>
+                <option value="">
+                  Province छान्नुहोस्
+                </option>
+              </select>
             </div>
 
             <div>
-              <label>District</label>
-              <input name="district">
+              <label>District *</label>
+              <select
+                id="regDistrict"
+                name="district"
+                required
+                disabled>
+                <option value="">
+                  पहिले Province छान्नुहोस्
+                </option>
+              </select>
             </div>
 
             <div>
-              <label>Municipality</label>
-              <input name="municipality">
+              <label>Municipality / Rural Municipality *</label>
+              <select
+                id="regMunicipality"
+                name="municipality"
+                required
+                disabled>
+                <option value="">
+                  पहिले District छान्नुहोस्
+                </option>
+              </select>
             </div>
 
             <div>
-              <label>Ward No.</label>
-              <input name="wardNo">
+              <label>Ward No. *</label>
+              <select
+                id="regWard"
+                name="wardNo"
+                required
+                disabled>
+                <option value="">
+                  पहिले Local Level छान्नुहोस्
+                </option>
+              </select>
             </div>
 
             <div class="full">
@@ -625,6 +674,430 @@
     }
 
 
+
+    const nepalAddressState = {
+      provinces: null
+    };
+
+    async function getNepalProvincesCached(){
+      if(
+        Array.isArray(
+          nepalAddressState.provinces
+        )
+      ){
+        return nepalAddressState.provinces;
+      }
+
+      const data=
+        await api(
+          "getNepalProvinces"
+        );
+
+      nepalAddressState.provinces=
+        data.items||[];
+
+      return nepalAddressState.provinces;
+    }
+
+    function setLocationSelectLoading(
+      select,
+      text
+    ){
+      if(!select)return;
+
+      select.disabled=true;
+      select.innerHTML=
+        `<option value="">${esc(text||"Loading...")}</option>`;
+    }
+
+    function fillLocationSelect(
+      select,
+      items,
+      placeholder,
+      valueKey="name",
+      labelBuilder=null
+    ){
+      if(!select)return;
+
+      select.innerHTML=
+        `<option value="">${esc(placeholder)}</option>`+
+        (items||[])
+          .map(item=>{
+            const value=
+              item[valueKey]??"";
+
+            const label=
+              labelBuilder
+                ? labelBuilder(item)
+                : item.name??value;
+
+            return `
+              <option
+                value="${esc(value)}"
+                data-id="${esc(item.id??"")}"
+                data-wards="${esc(item.totalWards??"")}">
+                ${esc(label)}
+              </option>
+            `;
+          })
+          .join("");
+
+      select.disabled=false;
+    }
+
+    function findOptionByText(
+      select,
+      text
+    ){
+      if(!select || !text)return null;
+
+      const target=
+        String(text)
+          .trim()
+          .toLowerCase();
+
+      return [...select.options]
+        .find(option=>
+          String(option.value||"")
+            .trim()
+            .toLowerCase()===target
+        ) || null;
+    }
+
+    async function setupNepalAddressCascade({
+      provinceId,
+      districtId,
+      municipalityId,
+      wardId,
+      initialProvince="",
+      initialDistrict="",
+      initialMunicipality="",
+      initialWard=""
+    }){
+      const province=
+        $(provinceId);
+
+      const district=
+        $(districtId);
+
+      const municipality=
+        $(municipalityId);
+
+      const ward=
+        $(wardId);
+
+      if(
+        !province ||
+        !district ||
+        !municipality ||
+        !ward
+      ){
+        return;
+      }
+
+      const loadProvinces=async()=>{
+        setLocationSelectLoading(
+          province,
+          "Province लोड हुँदैछ..."
+        );
+
+        try{
+          const items=
+            await getNepalProvincesCached();
+
+          fillLocationSelect(
+            province,
+            items,
+            "Province छान्नुहोस्"
+          );
+
+          if(initialProvince){
+            const option=
+              findOptionByText(
+                province,
+                initialProvince
+              );
+
+            if(option){
+              province.value=
+                option.value;
+            }
+          }
+
+        }catch(error){
+          province.innerHTML=
+            `<option value="">Province load हुन सकेन</option>`;
+
+          province.disabled=true;
+          throw error;
+        }
+      };
+
+      const loadDistricts=async(
+        restoreValue=""
+      )=>{
+        setLocationSelectLoading(
+          district,
+          "District लोड हुँदैछ..."
+        );
+
+        municipality.disabled=true;
+        municipality.innerHTML=
+          `<option value="">पहिले District छान्नुहोस्</option>`;
+
+        ward.disabled=true;
+        ward.innerHTML=
+          `<option value="">पहिले Local Level छान्नुहोस्</option>`;
+
+        const selected=
+          province.options[
+            province.selectedIndex
+          ];
+
+        const provinceApiId=
+          selected?.dataset?.id||"";
+
+        if(!provinceApiId){
+          district.innerHTML=
+            `<option value="">पहिले Province छान्नुहोस्</option>`;
+          return;
+        }
+
+        const data=
+          await api(
+            "getNepalDistricts",
+            {
+              provinceId:
+                provinceApiId
+            }
+          );
+
+        fillLocationSelect(
+          district,
+          data.items||[],
+          "District छान्नुहोस्"
+        );
+
+        if(restoreValue){
+          const option=
+            findOptionByText(
+              district,
+              restoreValue
+            );
+
+          if(option){
+            district.value=
+              option.value;
+          }
+        }
+      };
+
+      const loadMunicipalities=async(
+        restoreValue=""
+      )=>{
+        setLocationSelectLoading(
+          municipality,
+          "Local Level लोड हुँदैछ..."
+        );
+
+        ward.disabled=true;
+        ward.innerHTML=
+          `<option value="">पहिले Local Level छान्नुहोस्</option>`;
+
+        const selected=
+          district.options[
+            district.selectedIndex
+          ];
+
+        const districtApiId=
+          selected?.dataset?.id||"";
+
+        if(!districtApiId){
+          municipality.innerHTML=
+            `<option value="">पहिले District छान्नुहोस्</option>`;
+          return;
+        }
+
+        const data=
+          await api(
+            "getNepalLocalLevels",
+            {
+              districtId:
+                districtApiId
+            }
+          );
+
+        fillLocationSelect(
+          municipality,
+          data.items||[],
+          "Municipality / Rural Municipality छान्नुहोस्",
+          "name",
+          item=>
+            `${item.name} (${item.type||"स्थानीय तह"})`
+        );
+
+        if(restoreValue){
+          const option=
+            findOptionByText(
+              municipality,
+              restoreValue
+            );
+
+          if(option){
+            municipality.value=
+              option.value;
+          }
+        }
+      };
+
+      const loadWards=async(
+        restoreValue=""
+      )=>{
+        setLocationSelectLoading(
+          ward,
+          "Ward लोड हुँदैछ..."
+        );
+
+        const selected=
+          municipality.options[
+            municipality.selectedIndex
+          ];
+
+        const localLevelApiId=
+          selected?.dataset?.id||"";
+
+        if(!localLevelApiId){
+          ward.innerHTML=
+            `<option value="">पहिले Local Level छान्नुहोस्</option>`;
+          return;
+        }
+
+        const data=
+          await api(
+            "getNepalWards",
+            {
+              localLevelId:
+                localLevelApiId
+            }
+          );
+
+        fillLocationSelect(
+          ward,
+          data.items||[],
+          "Ward No. छान्नुहोस्",
+          "number",
+          item=>
+            item.label||
+            `वडा नं. ${item.number}`
+        );
+
+        if(
+          restoreValue!=="" &&
+          restoreValue!==null &&
+          restoreValue!==undefined
+        ){
+          const target=
+            String(restoreValue)
+              .replace(/\D/g,"");
+
+          const matching=
+            [...ward.options]
+              .find(option=>
+                String(option.value)===
+                target
+              );
+
+          if(matching){
+            ward.value=
+              matching.value;
+          }
+        }
+      };
+
+      province.addEventListener(
+        "change",
+        async()=>{
+          try{
+            await loadDistricts();
+          }catch(error){
+            alert(error.message);
+          }
+        }
+      );
+
+      district.addEventListener(
+        "change",
+        async()=>{
+          try{
+            await loadMunicipalities();
+          }catch(error){
+            alert(error.message);
+          }
+        }
+      );
+
+      municipality.addEventListener(
+        "change",
+        async()=>{
+          try{
+            await loadWards();
+          }catch(error){
+            alert(error.message);
+          }
+        }
+      );
+
+      await loadProvinces();
+
+      if(
+        province.value &&
+        initialDistrict
+      ){
+        await loadDistricts(
+          initialDistrict
+        );
+      }
+
+      if(
+        district.value &&
+        initialMunicipality
+      ){
+        await loadMunicipalities(
+          initialMunicipality
+        );
+      }
+
+      if(
+        municipality.value &&
+        initialWard!==""
+      ){
+        await loadWards(
+          initialWard
+        );
+      }
+    }
+
+    async function initializeRegistrationAddress(){
+      try{
+        await setupNepalAddressCascade({
+          provinceId:
+            "regProvince",
+          districtId:
+            "regDistrict",
+          municipalityId:
+            "regMunicipality",
+          wardId:
+            "regWard"
+        });
+      }catch(error){
+        $("registrationMessage")
+          .innerHTML=
+          `<div class="message" style="background:#fde7e3;color:#8a1c12">
+            ${esc(error.message)}
+          </div>`;
+      }
+    }
+
     let pendingRegistrationId="";
 
     $("showLoginBtn")
@@ -660,6 +1133,17 @@
 
           $("loginPanel")
             .classList.add("hidden");
+
+          if(
+            !$("regProvince")?.dataset?.loaded
+          ){
+            initializeRegistrationAddress()
+              .then(()=>{
+                if($("regProvince")){
+                  $("regProvince").dataset.loaded="1";
+                }
+              });
+          }
         }
       );
 
@@ -997,16 +1481,47 @@
           <input name="mobileSecondary" value="${esc(p.MobileSecondary||"")}">
 
           <label>Province</label>
-          <input name="province" value="${esc(p.Province||"")}">
+          <select
+            id="profileProvince"
+            name="province"
+            data-current="${esc(p.Province||"")}">
+            <option value="">
+              Province छान्नुहोस्
+            </option>
+          </select>
 
           <label>District</label>
-          <input name="district" value="${esc(p.District||"")}">
+          <select
+            id="profileDistrict"
+            name="district"
+            data-current="${esc(p.District||"")}"
+            disabled>
+            <option value="">
+              पहिले Province छान्नुहोस्
+            </option>
+          </select>
 
-          <label>Municipality</label>
-          <input name="municipality" value="${esc(p.Municipality||"")}">
+          <label>Municipality / Rural Municipality</label>
+          <select
+            id="profileMunicipality"
+            name="municipality"
+            data-current="${esc(p.Municipality||"")}"
+            disabled>
+            <option value="">
+              पहिले District छान्नुहोस्
+            </option>
+          </select>
 
           <label>Ward No.</label>
-          <input name="wardNo" value="${esc(p.WardNo||"")}">
+          <select
+            id="profileWard"
+            name="wardNo"
+            data-current="${esc(p.WardNo||"")}"
+            disabled>
+            <option value="">
+              पहिले Local Level छान्नुहोस्
+            </option>
+          </select>
 
           <label>Address</label>
           <textarea name="address">${esc(p.Address||"")}</textarea>
@@ -1037,6 +1552,26 @@
           </div>
         </form>
       `;
+
+
+      await setupNepalAddressCascade({
+        provinceId:
+          "profileProvince",
+        districtId:
+          "profileDistrict",
+        municipalityId:
+          "profileMunicipality",
+        wardId:
+          "profileWard",
+        initialProvince:
+          p.Province||"",
+        initialDistrict:
+          p.District||"",
+        initialMunicipality:
+          p.Municipality||"",
+        initialWard:
+          p.WardNo||""
+      });
 
       $("memberProfileForm")
         .addEventListener(
