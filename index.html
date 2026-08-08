@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- GTYMS Public Website v3.0.4 | Production Trip Management -->
+<!-- GTYMS Public Website v3.0.5 | Production Trip Management -->
 <html lang="ne">
 <head>
   <meta charset="UTF-8" />
@@ -1242,6 +1242,70 @@ button {
     transition:transform .12s ease,filter .12s ease;
   }
 
+
+  /* =========================================================
+     GTYMS v3.0.5 - Dynamic Social & Contact Links
+     Settings are the single source of truth.
+     Blank/inactive public setting => link remains hidden.
+     ========================================================= */
+
+  .social-links-wrap{
+    margin-top:18px;
+  }
+
+  .social-links-title{
+    margin:0 0 10px;
+    font-size:.95rem;
+    font-weight:800;
+  }
+
+  .social-links{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+
+  .social-link{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    min-height:42px;
+    padding:10px 14px;
+    border:1px solid var(--border);
+    border-radius:12px;
+    background:#fff;
+    color:var(--text);
+    font-weight:800;
+    text-decoration:none;
+    transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease;
+  }
+
+  .social-link:hover{
+    transform:translateY(-1px);
+    box-shadow:0 8px 22px rgba(55,35,18,.09);
+    border-color:var(--primary);
+  }
+
+  .social-link-icon{
+    font-size:1.05rem;
+    line-height:1;
+  }
+
+  .social-link.hidden{
+    display:none!important;
+  }
+
+  @media(max-width:560px){
+    .social-links{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+    }
+
+    .social-link{
+      justify-content:center;
+    }
+  }
+
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
@@ -1675,6 +1739,19 @@ button {
           <div class="contact-actions">
             <a id="callButton" class="btn btn-primary" href="tel:+9779843484934">फोन गर्नुहोस्</a>
             <a id="whatsAppButton" class="btn btn-secondary" href="https://wa.me/9779843484934?text=%E0%A4%A8%E0%A4%AE%E0%A4%B8%E0%A5%8D%E0%A4%95%E0%A4%BE%E0%A4%B0%20%E0%A4%97%E0%A5%81%E0%A4%B0%E0%A5%81%20%E0%A4%A4%E0%A5%80%E0%A4%B0%E0%A5%8D%E0%A4%A5%E0%A4%AF%E0%A4%BE%E0%A4%A4%E0%A5%8D%E0%A4%B0%E0%A4%BE%20%E0%A4%B8%E0%A5%87%E0%A4%B5%E0%A4%BE%20%E0%A5%A4" target="_blank" rel="noopener">WhatsApp</a>
+          </div>
+
+          <div
+            id="socialLinksWrap"
+            class="social-links-wrap hidden">
+            <div class="social-links-title">
+              Social Media
+            </div>
+
+            <div
+              id="socialLinks"
+              class="social-links">
+            </div>
           </div>
         </div>
 
@@ -2139,6 +2216,109 @@ window.GTYMS_UI = (() => {
         `<img src="${UI.escapeHtml(qrUrl)}" alt="Payment QR Code">
          <small>QR स्क्यान गरी शुल्क तिर्नुहोस् ।</small>`;
     }
+
+    renderDynamicSocialLinks();
+  }
+
+  function renderDynamicSocialLinks() {
+    const container =
+      document.getElementById("socialLinks");
+
+    const wrapper =
+      document.getElementById("socialLinksWrap");
+
+    if (!container || !wrapper) {
+      return;
+    }
+
+    const socialSettings = [
+      {
+        key: "FACEBOOK_URL",
+        label: "Facebook",
+        icon: "f"
+      },
+      {
+        key: "INSTAGRAM_URL",
+        label: "Instagram",
+        icon: "◎"
+      },
+      {
+        key: "YOUTUBE_URL",
+        label: "YouTube",
+        icon: "▶"
+      },
+      {
+        key: "TIKTOK_URL",
+        label: "TikTok",
+        icon: "♪"
+      },
+      {
+        key: "X_URL",
+        label: "X",
+        icon: "𝕏"
+      }
+    ];
+
+    const links =
+      socialSettings
+        .map((item) => {
+          const raw =
+            String(
+              state.settings[item.key] || ""
+            ).trim();
+
+          if (!raw) {
+            return "";
+          }
+
+          let safeUrl = "";
+
+          try {
+            const url =
+              new URL(raw);
+
+            if (
+              url.protocol !== "https:" &&
+              url.protocol !== "http:"
+            ) {
+              return "";
+            }
+
+            safeUrl =
+              UI.escapeHtml(
+                url.toString()
+              );
+
+          } catch (error) {
+            return "";
+          }
+
+          return `
+            <a
+              class="social-link"
+              href="${safeUrl}"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="${UI.escapeHtml(item.label)}">
+              <span class="social-link-icon">
+                ${UI.escapeHtml(item.icon)}
+              </span>
+              <span>
+                ${UI.escapeHtml(item.label)}
+              </span>
+            </a>
+          `;
+        })
+        .filter(Boolean)
+        .join("");
+
+    container.innerHTML =
+      links;
+
+    wrapper.classList.toggle(
+      "hidden",
+      !links
+    );
   }
 
   function renderSliders(sliders) {
