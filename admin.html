@@ -74,6 +74,17 @@
     @media(max-width:900px){.booking-detail-grid{grid-template-columns:1fr 1fr}}
     @media(max-width:540px){.booking-detail-grid{grid-template-columns:1fr}}
 
+
+    .payment-admin-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-bottom:16px}
+    .payment-admin-stat{border:1px solid var(--border);border-radius:14px;padding:14px;background:#fcfaf7}
+    .payment-admin-stat small{display:block;color:var(--muted);margin-bottom:4px}
+    .payment-admin-stat strong{font-size:1.15rem}
+    .voucher-preview{display:grid;place-items:center;min-height:300px;background:#f7f3ed;border-radius:14px;overflow:auto}
+    .voucher-preview img{max-width:100%;max-height:65vh}
+    .voucher-preview iframe{width:100%;height:65vh;border:0}
+    @media(max-width:980px){.payment-admin-grid{grid-template-columns:1fr 1fr}}
+    @media(max-width:540px){.payment-admin-grid{grid-template-columns:1fr}}
+
 </style>
 </head>
 <body>
@@ -90,13 +101,14 @@
 
   <div id="adminApp" class="admin-layout hidden">
     <aside id="sidebar" class="sidebar">
-      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v2.1.0 • Production</small></div>
+      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v2.2.0 • Production</small></div>
       <nav class="nav">
         <button data-view="dashboard" class="active">▦ Dashboard</button>
         <button data-view="sliders">▣ Slider Manager</button>
         <button data-view="destinations">⌖ Destination Manager</button>
         <button data-view="trips">🚌 Trip Manager</button>
         <button data-view="bookings">📋 Booking Manager</button>
+        <button data-view="payments">💳 Payment Manager</button>
         <button data-view="services">✓ Services Manager</button>
         <button data-view="library">▤ Digital Library</button>
         <button data-view="settings">⚙ Settings</button>
@@ -131,6 +143,39 @@
 
 
   
+
+  <div id="paymentDetailModal" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3 id="paymentDetailTitle">Payment Details</h3>
+        <button id="closePaymentDetail" class="close" type="button">×</button>
+      </div>
+
+      <div style="padding:20px">
+        <div id="paymentDetailSummary"></div>
+
+        <div style="margin-top:18px">
+          <h3>Voucher</h3>
+          <div id="paymentVoucherPreview" class="voucher-preview">
+            <div class="empty">Voucher Load गर्नुहोस् ।</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button id="loadPaymentVoucherBtn" type="button" class="btn btn-soft">
+          Voucher हेर्नुहोस्
+        </button>
+        <button id="rejectPaymentBtn" type="button" class="btn btn-danger">
+          Reject
+        </button>
+        <button id="verifyPaymentBtn" type="button" class="btn btn-primary">
+          Verify Payment
+        </button>
+      </div>
+    </div>
+  </div>
+
   <div id="bookingDetailModal" class="modal hidden">
     <div class="modal-card">
       <div class="modal-head">
@@ -274,14 +319,15 @@
       services:{title:"Services Manager",display:["ServiceID","ServiceTitle","ApplicableTripType","DisplayOrder","Status"]},
       library:{title:"Digital Library",display:["LibraryID","Title","ResourceType","AccessLevel","Featured","Status"]},
       settings:{title:"Settings",display:["SettingKey","SettingValue","Category","IsPublic","Status"]},
-      bookings:{title:"Booking Manager",display:["BookingCode","TripTitle","PrimaryContactName","PrimaryContactMobile","PassengerCount","PaymentStatus","BookingStatus"]}
+      bookings:{title:"Booking Manager",display:["BookingCode","TripTitle","PrimaryContactName","PrimaryContactMobile","PassengerCount","PaymentStatus","BookingStatus"]},
+      payments:{title:"Payment Manager",display:["PaymentCode","BookingCode","PrimaryContactName","Amount","VerificationStatus"]}
     };
 
     const TEXTAREA_HINTS = /Description|HTML|Message|Remarks|Notes|Terms|Advice|Attractions|Route|Content/i;
     const HIDDEN_FORM_FIELDS = /CreatedAt|CreatedBy|UpdatedAt|UpdatedBy|_rowNumber/i;
     const READONLY_ID_FIELDS = /ID$/;
 
-    const state={token:sessionStorage.getItem("gtymsAdminToken")||"",admin:null,view:"dashboard",schema:null,records:[],tripEditorData:null,currentBookingId:""};
+    const state={token:sessionStorage.getItem("gtymsAdminToken")||"",admin:null,view:"dashboard",schema:null,records:[],tripEditorData:null,currentBookingId:"",currentPaymentId:""};
 
     const $=id=>document.getElementById(id);
     const showLoading=()=>$("loading").classList.remove("hidden");
@@ -444,7 +490,7 @@ toast("Login सफल भयो ।");
       $("pageTitle").textContent=view==="dashboard"?"Dashboard":MODULES[view]?.title||view;
       showLoading();
       try{
-        if(view==="dashboard")await renderDashboard();else if(view==="trips")await renderTripManager();else if(view==="bookings")await renderBookingManager();else await renderModule(view);
+        if(view==="dashboard")await renderDashboard();else if(view==="trips")await renderTripManager();else if(view==="bookings")await renderBookingManager();else if(view==="payments")await renderPaymentManager();else await renderModule(view);
       } catch (e) {
         handleAdminApiError(e);
       } finally {
@@ -495,6 +541,366 @@ toast("Login सफल भयो ।");
     }
 
 
+
+
+    async function renderPaymentManager(){
+      const [dashboard,data]=await Promise.all([
+        api(
+          "adminGetPaymentDashboard",
+          {token:state.token}
+        ),
+        api(
+          "adminListPayments",
+          {
+            token:state.token,
+            page:1,
+            pageSize:100
+          }
+        )
+      ]);
+
+      state.records=data.items||[];
+      const c=dashboard.cards||{};
+
+      $("content").innerHTML=`
+        <div class="payment-admin-grid">
+          <div class="payment-admin-stat"><small>Total</small><strong>${c.total||0}</strong></div>
+          <div class="payment-admin-stat"><small>Pending</small><strong>${c.pending||0}</strong></div>
+          <div class="payment-admin-stat"><small>Verified</small><strong>${c.verified||0}</strong></div>
+          <div class="payment-admin-stat"><small>Rejected</small><strong>${c.rejected||0}</strong></div>
+          <div class="payment-admin-stat"><small>Verified Income</small><strong>रु. ${money(c.verifiedTotal||0)}</strong></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <h3>Payment & Voucher Manager</h3>
+              <small>${data.pagination?.total||0} records</small>
+            </div>
+
+            <div class="toolbar">
+              <input id="paymentAdminSearch" placeholder="Payment / Booking / Name / Mobile">
+
+              <select id="paymentStatusFilter">
+                <option value="">All Status</option>
+                <option value="PENDING">PENDING</option>
+                <option value="VERIFIED">VERIFIED</option>
+                <option value="REJECTED">REJECTED</option>
+              </select>
+
+              <button id="paymentAdminSearchBtn" class="btn btn-soft">
+                Search
+              </button>
+            </div>
+          </div>
+
+          <div id="paymentAdminTable">
+            ${paymentAdminTable(state.records)}
+          </div>
+        </div>
+      `;
+
+      $("paymentAdminSearchBtn").onclick=
+        searchAdminPayments;
+
+      $("paymentAdminSearch")
+        .addEventListener("keydown",e=>{
+          if(e.key==="Enter"){
+            searchAdminPayments();
+          }
+        });
+
+      wirePaymentAdminActions();
+    }
+
+    function paymentAdminTable(rows){
+      if(!rows?.length){
+        return `<div class="empty">Payment record छैन ।</div>`;
+      }
+
+      return `<div class="table-wrap"><table class="table">
+        <thead>
+          <tr>
+            <th>Payment</th>
+            <th>Booking</th>
+            <th>Trip</th>
+            <th>Contact</th>
+            <th>Amount</th>
+            <th>Method</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          ${rows.map(r=>`
+            <tr>
+              <td>
+                <strong>${esc(r.PaymentCode||"")}</strong><br>
+                <small>${esc(r.TransactionID||"")}</small>
+              </td>
+
+              <td>${esc(r.BookingCode||r.BookingID||"")}</td>
+              <td>${esc(r.TripTitle||"")}</td>
+
+              <td>
+                ${esc(r.PrimaryContactName||"")}<br>
+                <small>${esc(r.PrimaryContactMobile||"")}</small>
+              </td>
+
+              <td>रु. ${money(r.Amount||0)}</td>
+              <td>${esc(r.PaymentMethod||"")}</td>
+
+              <td>
+                <span class="chip">
+                  ${esc(r.VerificationStatus||"PENDING")}
+                </span>
+              </td>
+
+              <td>
+                <button
+                  class="viewPayment"
+                  data-id="${esc(r.PaymentID||"")}">
+                  View
+                </button>
+              </td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table></div>`;
+    }
+
+    function wirePaymentAdminActions(){
+      document
+        .querySelectorAll(".viewPayment")
+        .forEach(button=>{
+          button.onclick=()=>
+            openPaymentDetails(
+              button.dataset.id
+            );
+        });
+    }
+
+    async function searchAdminPayments(){
+      showLoading();
+
+      try{
+        const data=await api(
+          "adminListPayments",
+          {
+            token:state.token,
+            search:$("paymentAdminSearch").value,
+            verificationStatus:
+              $("paymentStatusFilter").value,
+            page:1,
+            pageSize:100
+          }
+        );
+
+        state.records=data.items||[];
+
+        $("paymentAdminTable").innerHTML=
+          paymentAdminTable(state.records);
+
+        wirePaymentAdminActions();
+
+      }catch(error){
+        handleAdminApiError(error);
+      }finally{
+        hideLoading();
+      }
+    }
+
+    async function openPaymentDetails(paymentId){
+      showLoading();
+
+      try{
+        const data=await api(
+          "adminGetPaymentDetails",
+          {
+            token:state.token,
+            paymentId
+          }
+        );
+
+        state.currentPaymentId=paymentId;
+
+        const p=data.payment||{};
+        const b=data.booking||{};
+        const t=data.trip||{};
+
+        $("paymentDetailTitle").textContent=
+          `Payment ${p.PaymentCode||paymentId}`;
+
+        $("paymentDetailSummary").innerHTML=`
+          <div class="booking-detail-grid">
+            <div class="booking-detail-card">
+              <small>Booking</small><br>
+              <strong>${esc(b.BookingCode||p.BookingID||"")}</strong>
+            </div>
+
+            <div class="booking-detail-card">
+              <small>Trip</small><br>
+              <strong>${esc(t.TripTitle||"")}</strong>
+            </div>
+
+            <div class="booking-detail-card">
+              <small>Contact</small><br>
+              <strong>${esc(b.PrimaryContactName||"")}</strong><br>
+              ${esc(b.PrimaryContactMobile||"")}
+            </div>
+
+            <div class="booking-detail-card">
+              <small>Submitted Amount</small><br>
+              <strong>रु. ${money(p.Amount||0)}</strong>
+            </div>
+
+            <div class="booking-detail-card">
+              <small>Method</small><br>
+              <strong>${esc(p.PaymentMethod||"")}</strong>
+            </div>
+
+            <div class="booking-detail-card">
+              <small>Transaction</small><br>
+              <strong>${esc(p.TransactionID||"")}</strong>
+            </div>
+
+            <div class="booking-detail-card">
+              <small>Status</small><br>
+              <strong>${esc(p.VerificationStatus||"PENDING")}</strong>
+            </div>
+
+            <div class="booking-detail-card">
+              <small>Receipt</small><br>
+              <strong>${esc(p.ReceiptNumber||"-")}</strong>
+            </div>
+          </div>
+        `;
+
+        $("paymentVoucherPreview").innerHTML=
+          `<div class="empty">Voucher हेर्न “Voucher हेर्नुहोस्” थिच्नुहोस् ।</div>`;
+
+        $("paymentDetailModal")
+          .classList.remove("hidden");
+
+      }catch(error){
+        handleAdminApiError(error);
+      }finally{
+        hideLoading();
+      }
+    }
+
+    function closePaymentDetails(){
+      $("paymentDetailModal")
+        .classList.add("hidden");
+
+      state.currentPaymentId="";
+    }
+
+    $("closePaymentDetail").onclick=
+      closePaymentDetails;
+
+    $("loadPaymentVoucherBtn").onclick=
+      async()=>{
+        if(!state.currentPaymentId)return;
+
+        showLoading();
+
+        try{
+          const file=await api(
+            "adminGetPaymentVoucher",
+            {
+              token:state.token,
+              paymentId:state.currentPaymentId
+            }
+          );
+
+          const src=
+            `data:${file.mimeType};base64,${file.base64}`;
+
+          if(
+            String(file.mimeType||"")
+              .toLowerCase()==="application/pdf"
+          ){
+            $("paymentVoucherPreview").innerHTML=
+              `<iframe src="${src}" title="Payment Voucher"></iframe>`;
+          }else{
+            $("paymentVoucherPreview").innerHTML=
+              `<img src="${src}" alt="Payment Voucher">`;
+          }
+
+        }catch(error){
+          handleAdminApiError(error);
+        }finally{
+          hideLoading();
+        }
+      };
+
+    async function decidePayment(decision){
+      if(!state.currentPaymentId)return;
+
+      let verifiedAmount="";
+      let note="";
+
+      if(decision==="VERIFIED"){
+        verifiedAmount=prompt(
+          "Verified Amount लेख्नुहोस् । खाली छोडे Submitted Amount नै Verify हुन्छ:",
+          ""
+        );
+
+        if(verifiedAmount===null)return;
+
+        note=prompt(
+          "Verification Note (optional):",
+          ""
+        )||"";
+
+      }else{
+        note=prompt(
+          "Reject गर्नुको कारण लेख्नुहोस्:",
+          ""
+        );
+
+        if(!note)return;
+      }
+
+      showLoading();
+
+      try{
+        const result=await api(
+          "adminVerifyPayment",
+          {
+            token:state.token,
+            paymentId:state.currentPaymentId,
+            decision,
+            verifiedAmount:
+              verifiedAmount||"",
+            note
+          },
+          "POST"
+        );
+
+        toast(
+          decision==="VERIFIED"
+            ? `Payment Verified भयो । Receipt: ${result.receiptNumber||""}`
+            : "Payment Rejected भयो ।"
+        );
+
+        closePaymentDetails();
+        await renderPaymentManager();
+
+      }catch(error){
+        handleAdminApiError(error);
+      }finally{
+        hideLoading();
+      }
+    }
+
+    $("verifyPaymentBtn").onclick=
+      ()=>decidePayment("VERIFIED");
+
+    $("rejectPaymentBtn").onclick=
+      ()=>decidePayment("REJECTED");
 
     async function renderBookingManager(){
       const [dashboard,data]=await Promise.all([
