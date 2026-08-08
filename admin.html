@@ -139,6 +139,35 @@
     @media(max-width:540px){.ticket-admin-grid{grid-template-columns:1fr}}
 
 
+    /* GTYMS v3.0.10 - Passenger Seat Assignment UI ONLY */
+    .seat-assignment-summary{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:12px;
+      padding:20px 20px 0;
+    }
+    .seat-assignment-card{
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:13px;
+      background:#fcfaf7;
+    }
+    .seat-assignment-card small{
+      display:block;
+      color:var(--muted);
+      margin-bottom:4px;
+    }
+    .seat-assignment-card strong{
+      display:block;
+      word-break:break-word;
+    }
+    @media(max-width:720px){
+      .seat-assignment-summary{
+        grid-template-columns:1fr;
+      }
+    }
+
+
 .nav::-webkit-scrollbar{
   width:6px;
 }
@@ -579,6 +608,69 @@
       </div>
     </div>
   </div>
+
+  <div id="seatAssignmentModal" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>Passenger Bus / Seat Assignment</h3>
+        <button id="closeSeatAssignmentModal" class="close" type="button">×</button>
+      </div>
+
+      <div class="seat-assignment-summary">
+        <div class="seat-assignment-card">
+          <small>Passenger</small>
+          <strong id="seatAssignPassenger">-</strong>
+        </div>
+        <div class="seat-assignment-card">
+          <small>Booking</small>
+          <strong id="seatAssignBooking">-</strong>
+        </div>
+        <div class="seat-assignment-card">
+          <small>Trip</small>
+          <strong id="seatAssignTrip">-</strong>
+        </div>
+      </div>
+
+      <form id="seatAssignmentForm">
+        <input type="hidden" id="seatAssignPassengerId">
+
+        <div class="form-grid">
+          <div class="field">
+            <label>Bus / Vehicle ID</label>
+            <input
+              id="seatAssignBus"
+              autocomplete="off"
+              placeholder="जस्तै: BUS-01">
+          </div>
+
+          <div class="field">
+            <label>Seat Number / Seat ID</label>
+            <input
+              id="seatAssignSeat"
+              autocomplete="off"
+              placeholder="जस्तै: 5 वा A1">
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button
+            id="cancelSeatAssignmentModal"
+            type="button"
+            class="btn btn-soft">
+            Cancel
+          </button>
+
+          <button
+            id="saveSeatAssignmentBtn"
+            type="submit"
+            class="btn btn-primary">
+            Save Assignment
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
 
   <div id="bookingDetailModal" class="modal hidden">
     <div class="modal-card">
@@ -3808,8 +3900,11 @@ toast("Login सफल भयो ।");
                     class="assignTravelBtn"
                     data-id="${esc(r.BookingPassengerID||"")}"
                     data-bus="${esc(r.BusID||"")}"
-                    data-seat="${esc(r.SeatID||"")}">
-                    Assign
+                    data-seat="${esc(r.SeatID||"")}"
+                    data-passenger="${esc(r.PassengerName||r.PilgrimID||"")}"
+                    data-booking="${esc(r.BookingCode||r.BookingID||"")}"
+                    data-trip="${esc(r.TripTitle||"")}">
+                    ${r.BusID||r.SeatID ? "Change Seat" : "Assign"}
                   </button>
 
                   <button
@@ -3828,43 +3923,8 @@ toast("Login सफल भयो ।");
     function wireTicketAdminActions(){
       document.querySelectorAll(".assignTravelBtn")
         .forEach(button=>{
-          button.onclick=async()=>{
-            const busId=prompt(
-              "Bus / Vehicle ID:",
-              button.dataset.bus||""
-            );
-
-            if(busId===null)return;
-
-            const seatId=prompt(
-              "Seat Number / Seat ID:",
-              button.dataset.seat||""
-            );
-
-            if(seatId===null)return;
-
-            showLoading();
-
-            try{
-              await api(
-                "adminAssignPassengerTravel",
-                {
-                  token:state.token,
-                  bookingPassengerId:button.dataset.id,
-                  busId,
-                  seatId
-                },
-                "POST"
-              );
-
-              toast("Bus / Seat Assignment अपडेट भयो ।");
-              await renderTicketManager();
-
-            }catch(error){
-              handleAdminApiError(error);
-            }finally{
-              hideLoading();
-            }
+          button.onclick=()=>{
+            openSeatAssignmentModal(button);
           };
         });
 
@@ -3877,6 +3937,118 @@ toast("Login सफल भयो ।");
           };
         });
     }
+
+
+    function openSeatAssignmentModal(button){
+      $("seatAssignPassengerId").value=
+        button.dataset.id||"";
+
+      $("seatAssignPassenger").textContent=
+        button.dataset.passenger||"-";
+
+      $("seatAssignBooking").textContent=
+        button.dataset.booking||"-";
+
+      $("seatAssignTrip").textContent=
+        button.dataset.trip||"-";
+
+      $("seatAssignBus").value=
+        button.dataset.bus||"";
+
+      $("seatAssignSeat").value=
+        button.dataset.seat||"";
+
+      $("seatAssignmentModal").classList.remove("hidden");
+
+      window.setTimeout(()=>{
+        $("seatAssignBus")?.focus();
+      },50);
+    }
+
+
+    function closeSeatAssignmentModal(){
+      $("seatAssignmentModal").classList.add("hidden");
+      $("seatAssignmentForm").reset();
+      $("seatAssignPassengerId").value="";
+      $("seatAssignPassenger").textContent="-";
+      $("seatAssignBooking").textContent="-";
+      $("seatAssignTrip").textContent="-";
+    }
+
+
+    $("closeSeatAssignmentModal").onclick=
+      closeSeatAssignmentModal;
+
+    $("cancelSeatAssignmentModal").onclick=
+      closeSeatAssignmentModal;
+
+
+    $("seatAssignmentForm").addEventListener(
+      "submit",
+      async event=>{
+        event.preventDefault();
+
+        const bookingPassengerId=
+          $("seatAssignPassengerId").value.trim();
+
+        const busId=
+          $("seatAssignBus").value.trim();
+
+        const seatId=
+          $("seatAssignSeat").value.trim();
+
+        if(!bookingPassengerId){
+          toast("Passenger record भेटिएन ।","error");
+          return;
+        }
+
+        if(!busId || !seatId){
+          toast(
+            "Bus / Vehicle ID र Seat Number दुवै आवश्यक छन् ।",
+            "error"
+          );
+          return;
+        }
+
+        const button=
+          $("saveSeatAssignmentBtn");
+
+        setButtonBusy(
+          button,
+          true,
+          "Saving..."
+        );
+
+        showLoading();
+
+        try{
+          await api(
+            "adminAssignPassengerTravel",
+            {
+              token:state.token,
+              bookingPassengerId,
+              busId,
+              seatId
+            },
+            "POST"
+          );
+
+          toast("Bus / Seat Assignment अपडेट भयो ।");
+
+          closeSeatAssignmentModal();
+          await renderTicketManager();
+
+        }catch(error){
+          handleAdminApiError(error);
+        }finally{
+          hideLoading();
+          setButtonBusy(
+            button,
+            false
+          );
+        }
+      }
+    );
 
     async function searchAdminTickets(){
       showLoading();
