@@ -509,6 +509,162 @@
       }
     }
 
+
+    /* =========================================================
+       GTYMS v3.0.12 - Bus Seat Occupancy Dashboard ONLY
+       Additive UI. Existing manifest, scanner and check-in stay unchanged.
+       ========================================================= */
+
+    .bus-seat-dashboard{
+      display:grid;
+      gap:16px;
+      padding:18px;
+    }
+
+    .bus-seat-card{
+      border:1px solid var(--border);
+      border-radius:16px;
+      background:#fff;
+      overflow:hidden;
+    }
+
+    .bus-seat-card-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:14px 16px;
+      border-bottom:1px solid var(--border);
+      background:#fcfaf7;
+    }
+
+    .bus-seat-card-head h4{
+      margin:0;
+    }
+
+    .bus-seat-meta{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      color:var(--muted);
+      font-size:.86rem;
+    }
+
+    .seat-legend{
+      display:flex;
+      flex-wrap:wrap;
+      gap:12px;
+      padding:12px 16px 0;
+      font-size:.82rem;
+      color:var(--muted);
+    }
+
+    .seat-legend span{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+    }
+
+    .seat-legend i{
+      width:14px;
+      height:14px;
+      border-radius:4px;
+      border:1px solid var(--border);
+      display:inline-block;
+    }
+
+    .seat-legend .free{background:#f8f8f8}
+    .seat-legend .occupied{background:#fff1cf;border-color:#e7c76b}
+    .seat-legend .checked{background:#e8f6ee;border-color:#87c79f}
+    .seat-legend .duplicate{background:#fde3df;border-color:#e49c92}
+
+    .bus-seat-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(92px,1fr));
+      gap:10px;
+      padding:16px;
+    }
+
+    .bus-seat{
+      min-height:76px;
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:9px;
+      background:#f8f8f8;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      gap:2px;
+      text-align:center;
+    }
+
+    .bus-seat strong{
+      font-size:1rem;
+    }
+
+    .bus-seat small{
+      color:var(--muted);
+      line-height:1.25;
+      word-break:break-word;
+    }
+
+    .bus-seat.occupied{
+      background:#fff1cf;
+      border-color:#e7c76b;
+    }
+
+    .bus-seat.checked{
+      background:#e8f6ee;
+      border-color:#87c79f;
+    }
+
+    .bus-seat.duplicate{
+      background:#fde3df;
+      border-color:#e49c92;
+    }
+
+    .bus-seat-custom{
+      padding:0 16px 16px;
+    }
+
+    .bus-seat-custom h5{
+      margin:0 0 10px;
+    }
+
+    .bus-seat-custom-list{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+    }
+
+    .bus-seat-custom-item{
+      border:1px solid var(--border);
+      border-radius:10px;
+      padding:8px 10px;
+      background:#fcfaf7;
+      font-size:.84rem;
+    }
+
+    .bus-seat-warning{
+      margin:0 16px 16px;
+      padding:10px 12px;
+      border-radius:10px;
+      background:#fde7e3;
+      color:#8a1c12;
+      font-weight:700;
+    }
+
+    @media(max-width:620px){
+      .bus-seat-grid{
+        grid-template-columns:repeat(3,minmax(0,1fr));
+      }
+
+      .bus-seat-card-head{
+        align-items:flex-start;
+        flex-direction:column;
+      }
+    }
+
 </style>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
@@ -3073,6 +3229,34 @@ toast("Login सफल भयो ।");
 
         <div class="panel" style="margin-bottom:16px">
           <div class="panel-head">
+            <div>
+              <h3>Bus-wise Seat Occupancy</h3>
+              <small>
+                Trip अनुसार खाली, occupied, checked-in र duplicate seat हेर्नुहोस् ।
+              </small>
+            </div>
+
+            <div class="toolbar">
+              <button id="refreshSeatOccupancyBtn" class="btn btn-soft">
+                Refresh Seat View
+              </button>
+            </div>
+          </div>
+
+          <div class="seat-legend">
+            <span><i class="free"></i> खाली</span>
+            <span><i class="occupied"></i> Assigned</span>
+            <span><i class="checked"></i> Checked-In</span>
+            <span><i class="duplicate"></i> Duplicate Warning</span>
+          </div>
+
+          <div id="busSeatOccupancyBox">
+            <div class="empty">Trip छानेपछि Bus Seat View यहाँ देखिन्छ ।</div>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-bottom:16px">
+          <div class="panel-head">
             <h3>Camera QR Scanner</h3>
 
             <div class="toolbar">
@@ -3136,6 +3320,7 @@ toast("Login सफल भयो ।");
       $("fieldLoadBtn").onclick=loadFieldManifest;
       $("fieldSearchBtn").onclick=loadFieldManifest;
       $("fieldPrintManifestBtn").onclick=printFieldManifest;
+      $("refreshSeatOccupancyBtn").onclick=loadBusSeatOccupancy;
       $("fieldTripSelect").onchange=loadFieldManifest;
       $("fieldStartCameraBtn").onclick=startFieldScanner;
       $("fieldStopCameraBtn").onclick=stopFieldScanner;
@@ -3228,12 +3413,476 @@ toast("Login सफल भयो ।");
 
         wireManifestActions();
 
+        // GTYMS v3.0.12 additive only:
+        // Seat Occupancy uses complete trip manifest, not current search/filter rows.
+        await loadBusSeatOccupancy();
+
       }catch(error){
         handleAdminApiError(error);
       }finally{
         hideLoading();
       }
     }
+
+    async function loadBusSeatOccupancy(){
+      const box=
+        $("busSeatOccupancyBox");
+
+      if(!box)return;
+
+      const tripId=
+        $("fieldTripSelect")?.value||"";
+
+      if(!tripId){
+        box.innerHTML=
+          `<div class="empty">Seat Occupancy हेर्न एउटा Trip छान्नुहोस् ।</div>`;
+        return;
+      }
+
+      box.innerHTML=
+        `<div class="empty">Bus Seat View लोड हुँदैछ...</div>`;
+
+      try{
+        const [manifestData,vehiclesData,assignmentsData]=
+          await Promise.all([
+            api(
+              "adminGetTripManifest",
+              {
+                token:state.token,
+                tripId
+              }
+            ),
+            api(
+              "adminListVehicles",
+              {
+                token:state.token
+              }
+            ),
+            api(
+              "adminListTripVehicleAssignments",
+              {
+                token:state.token
+              }
+            )
+          ]);
+
+        const rows=
+          manifestData.items||[];
+
+        const vehicles=
+          vehiclesData.items||[];
+
+        const assignments=
+          (assignmentsData.items||[])
+            .filter(a=>
+              String(a.TripID||"")===
+              String(tripId)
+            );
+
+        state.busSeatOccupancyRows=rows;
+
+        box.innerHTML=
+          busSeatOccupancyHtml(
+            tripId,
+            rows,
+            vehicles,
+            assignments
+          );
+
+      }catch(error){
+        box.innerHTML=
+          `<div class="empty">Bus Seat View लोड हुन सकेन ।</div>`;
+        handleAdminApiError(error);
+      }
+    }
+
+
+    function busSeatOccupancyHtml(
+      tripId,
+      rows,
+      vehicles,
+      assignments
+    ){
+      const busMap=new Map();
+
+      function ensureBus(busKey,label=""){
+        const key=
+          String(busKey||"").trim();
+
+        if(!key)return null;
+
+        if(!busMap.has(key)){
+          busMap.set(
+            key,
+            {
+              key,
+              label:label||key,
+              capacity:0,
+              vehicle:null,
+              assignment:null,
+              passengers:[]
+            }
+          );
+        }
+
+        return busMap.get(key);
+      }
+
+
+      // First: buses already assigned in manifest.
+      (rows||[]).forEach(row=>{
+        const busId=
+          String(row.BusID||"").trim();
+
+        if(!busId)return;
+
+        const bus=
+          ensureBus(busId,busId);
+
+        bus.passengers.push(row);
+      });
+
+
+      // Second: Trip vehicle assignments.
+      (assignments||[]).forEach(a=>{
+        const keys=[
+          a.VehicleID,
+          a.VehicleNumber
+        ]
+        .map(v=>String(v||"").trim())
+        .filter(Boolean);
+
+        const vehicle=
+          (vehicles||[]).find(v=>
+            keys.includes(
+              String(v.VehicleID||"").trim()
+            ) ||
+            keys.includes(
+              String(v.VehicleNumber||"").trim()
+            )
+          )||null;
+
+        const preferredKey=
+          String(
+            a.VehicleID ||
+            a.VehicleNumber ||
+            ""
+          ).trim();
+
+        if(!preferredKey)return;
+
+        let bus=
+          busMap.get(preferredKey);
+
+        if(!bus && a.VehicleNumber){
+          bus=
+            busMap.get(
+              String(a.VehicleNumber).trim()
+            );
+        }
+
+        if(!bus){
+          bus=
+            ensureBus(
+              preferredKey,
+              a.VehicleNumber ||
+              a.VehicleID
+            );
+        }
+
+        bus.assignment=a;
+        bus.vehicle=vehicle;
+
+        if(vehicle){
+          bus.capacity=
+            Math.max(
+              0,
+              parseInt(
+                vehicle.Capacity||0,
+                10
+              )||0
+            );
+
+          bus.label=
+            vehicle.VehicleName
+              ? `${vehicle.VehicleName} (${vehicle.VehicleNumber||bus.key})`
+              : (vehicle.VehicleNumber||bus.label);
+        }
+      });
+
+
+      // Third: match unlinked manifest bus IDs to vehicle ID/number/name.
+      busMap.forEach(bus=>{
+        if(bus.vehicle)return;
+
+        const target=
+          String(bus.key||"").trim().toLowerCase();
+
+        const vehicle=
+          (vehicles||[]).find(v=>{
+            return [
+              v.VehicleID,
+              v.VehicleNumber,
+              v.VehicleName
+            ]
+            .map(x=>String(x||"").trim().toLowerCase())
+            .includes(target);
+          })||null;
+
+        if(vehicle){
+          bus.vehicle=vehicle;
+          bus.capacity=
+            Math.max(
+              0,
+              parseInt(
+                vehicle.Capacity||0,
+                10
+              )||0
+            );
+
+          bus.label=
+            vehicle.VehicleName
+              ? `${vehicle.VehicleName} (${vehicle.VehicleNumber||bus.key})`
+              : (vehicle.VehicleNumber||bus.label);
+        }
+      });
+
+
+      if(!busMap.size){
+        return `
+          <div class="empty">
+            यो Trip मा Bus assignment वा Passenger BusID अझै छैन ।
+          </div>
+        `;
+      }
+
+
+      return `
+        <div class="bus-seat-dashboard">
+          ${Array.from(busMap.values())
+            .map(bus=>
+              oneBusSeatCardHtml(bus)
+            )
+            .join("")}
+        </div>
+      `;
+    }
+
+
+    function oneBusSeatCardHtml(bus){
+      const passengers=
+        bus.passengers||[];
+
+      const seatMap=new Map();
+      const customSeats=[];
+      const duplicateKeys=new Set();
+
+      passengers.forEach(row=>{
+        const rawSeat=
+          String(row.SeatID||"").trim();
+
+        if(!rawSeat)return;
+
+        const numeric=
+          /^\d+$/.test(rawSeat)
+            ? parseInt(rawSeat,10)
+            : null;
+
+        const key=
+          rawSeat.toLowerCase();
+
+        if(seatMap.has(key)){
+          duplicateKeys.add(key);
+        }else{
+          seatMap.set(key,row);
+        }
+
+        if(numeric===null){
+          customSeats.push({
+            seat:rawSeat,
+            row
+          });
+        }
+      });
+
+
+      const assignedCount=
+        passengers.filter(r=>
+          String(r.SeatID||"").trim()
+        ).length;
+
+      const checkedCount=
+        passengers.filter(r=>
+          String(r.CheckInStatus||"")
+            .toUpperCase()==="CHECKED_IN"
+        ).length;
+
+      const capacity=
+        Number(bus.capacity||0);
+
+      const seatItems=[];
+
+      if(capacity>0){
+        for(let i=1;i<=capacity;i++){
+          const key=String(i);
+          const row=seatMap.get(key);
+          const duplicate=
+            duplicateKeys.has(key);
+
+          if(!row){
+            seatItems.push(`
+              <div class="bus-seat">
+                <strong>Seat ${i}</strong>
+                <small>खाली</small>
+              </div>
+            `);
+            continue;
+          }
+
+          const checked=
+            String(row.CheckInStatus||"")
+              .toUpperCase()==="CHECKED_IN";
+
+          seatItems.push(`
+            <div class="bus-seat ${
+              duplicate
+                ?"duplicate"
+                :(checked?"checked":"occupied")
+            }">
+              <strong>Seat ${i}</strong>
+              <small>${esc(row.PassengerName||"Passenger")}</small>
+              <small>${esc(row.BookingCode||"")}</small>
+              <small>${checked?"CHECKED-IN":"ASSIGNED"}</small>
+            </div>
+          `);
+        }
+      }else{
+        const numericRows=
+          passengers
+            .filter(r=>
+              /^\d+$/.test(
+                String(r.SeatID||"").trim()
+              )
+            )
+            .sort((a,b)=>
+              Number(a.SeatID||0)-
+              Number(b.SeatID||0)
+            );
+
+        numericRows.forEach(row=>{
+          const seat=
+            String(row.SeatID||"").trim();
+
+          const duplicate=
+            duplicateKeys.has(
+              seat.toLowerCase()
+            );
+
+          const checked=
+            String(row.CheckInStatus||"")
+              .toUpperCase()==="CHECKED_IN";
+
+          seatItems.push(`
+            <div class="bus-seat ${
+              duplicate
+                ?"duplicate"
+                :(checked?"checked":"occupied")
+            }">
+              <strong>Seat ${esc(seat)}</strong>
+              <small>${esc(row.PassengerName||"Passenger")}</small>
+              <small>${esc(row.BookingCode||"")}</small>
+              <small>${checked?"CHECKED-IN":"ASSIGNED"}</small>
+            </div>
+          `);
+        });
+      }
+
+
+      const duplicateCount=
+        duplicateKeys.size;
+
+      const freeCount=
+        capacity>0
+          ? Math.max(
+              0,
+              capacity-assignedCount
+            )
+          : null;
+
+
+      return `
+        <div class="bus-seat-card">
+          <div class="bus-seat-card-head">
+            <div>
+              <h4>${esc(bus.label||bus.key)}</h4>
+
+              <div class="bus-seat-meta">
+                <span>Bus ID: ${esc(bus.key)}</span>
+                <span>Capacity: ${capacity>0?capacity:"Not Set"}</span>
+                <span>Assigned: ${assignedCount}</span>
+                ${freeCount===null
+                  ?""
+                  :`<span>Available: ${freeCount}</span>`}
+                <span>Checked-In: ${checkedCount}</span>
+              </div>
+            </div>
+          </div>
+
+          ${duplicateCount
+            ?`
+              <div class="bus-seat-warning">
+                ⚠ ${duplicateCount} वटा duplicate seat assignment भेटियो ।
+              </div>
+            `
+            :""}
+
+          ${seatItems.length
+            ?`
+              <div class="bus-seat-grid">
+                ${seatItems.join("")}
+              </div>
+            `
+            :`
+              <div class="empty">
+                Seat assignment अझै गरिएको छैन ।
+              </div>
+            `}
+
+          ${customSeats.length
+            ?`
+              <div class="bus-seat-custom">
+                <h5>Custom / Non-Numeric Seat IDs</h5>
+
+                <div class="bus-seat-custom-list">
+                  ${customSeats.map(item=>{
+                    const checked=
+                      String(item.row.CheckInStatus||"")
+                        .toUpperCase()==="CHECKED_IN";
+
+                    const duplicate=
+                      duplicateKeys.has(
+                        String(item.seat)
+                          .toLowerCase()
+                      );
+
+                    return `
+                      <div class="bus-seat-custom-item">
+                        <strong>${esc(item.seat)}</strong>
+                        — ${esc(item.row.PassengerName||"Passenger")}
+                        — ${esc(item.row.BookingCode||"")}
+                        ${checked?" — CHECKED-IN":""}
+                        ${duplicate?" — ⚠ DUPLICATE":""}
+                      </div>
+                    `;
+                  }).join("")}
+                </div>
+              </div>
+            `
+            :""}
+        </div>
+      `;
+    }
+
 
     function printFieldManifest(){
       const rows=
