@@ -4702,6 +4702,32 @@ toast("Login सफल भयो ।");
 
         <div class="panel">
           <div class="panel-head">
+            <div>
+              <h3>Trip Seat Summary</h3>
+              <small>Total / Booked / Available / Assigned / Unassigned</small>
+            </div>
+            <div class="toolbar">
+              <select id="seatSummaryTripSelect">
+                <option value="">Trip छान्नुहोस्</option>
+                ${state.records.map(r=>`
+                  <option value="${esc(r.TripID||"")}">
+                    ${esc(r.TripTitle||r.TripCode||r.TripID||"Trip")}
+                  </option>
+                `).join("")}
+              </select>
+              <button id="loadSeatSummaryBtn" class="btn btn-soft">
+                Seat Summary
+              </button>
+            </div>
+          </div>
+
+          <div id="tripSeatSummaryBox">
+            <div class="empty">Trip छानेपछि Seat Summary यहाँ देखिन्छ ।</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
             <div><h3>Production Trip Manager</h3><small>${total} records</small></div>
             <div class="toolbar">
               <input id="tripSearch" placeholder="Trip search...">
@@ -4719,8 +4745,87 @@ toast("Login सफल भयो ।");
         if(e.key==="Enter")searchTripsProduction();
       });
 
+      $("loadSeatSummaryBtn").onclick=loadTripSeatSummary;
+      $("seatSummaryTripSelect").onchange=()=>{
+        if($("seatSummaryTripSelect").value){
+          loadTripSeatSummary();
+        }
+      };
+
       wireTripActions();
     }
+
+    async function loadTripSeatSummary(){
+      const tripId=
+        $("seatSummaryTripSelect")?.value||"";
+
+      if(!tripId){
+        toast("पहिले Trip छान्नुहोस् ।",true);
+        return;
+      }
+
+      const box=$("tripSeatSummaryBox");
+
+      if(box){
+        box.innerHTML=
+          `<div class="empty">Seat Summary लोड हुँदैछ...</div>`;
+      }
+
+      showLoading();
+
+      try{
+        const summary=await api(
+          "adminGetTripSeatSummary",
+          {
+            token:state.token,
+            tripId
+          }
+        );
+
+        if(!box)return;
+
+        box.innerHTML=`
+          <div class="trip-summary-grid">
+            <div class="trip-summary">
+              <small>Total Seats</small>
+              <strong>${esc(summary.totalSeatCapacity??0)}</strong>
+            </div>
+
+            <div class="trip-summary">
+              <small>Booked Seats</small>
+              <strong>${esc(summary.bookedSeats??0)}</strong>
+            </div>
+
+            <div class="trip-summary">
+              <small>Available Seats</small>
+              <strong>${summary.availableSeats===null?"-":esc(summary.availableSeats??0)}</strong>
+            </div>
+
+            <div class="trip-summary">
+              <small>Assigned Seats</small>
+              <strong>${esc(summary.assignedSeats??0)}</strong>
+            </div>
+
+            <div class="trip-summary">
+              <small>Unassigned Booked</small>
+              <strong>${esc(summary.unassignedBookedSeats??0)}</strong>
+            </div>
+          </div>
+        `;
+
+      }catch(error){
+        handleAdminApiError(error);
+
+        if(box){
+          box.innerHTML=
+            `<div class="empty">Seat Summary लोड हुन सकेन ।</div>`;
+        }
+
+      }finally{
+        hideLoading();
+      }
+    }
+
 
     function tripTableHtml(rows){
       if(!rows?.length){
