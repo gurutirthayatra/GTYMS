@@ -158,7 +158,23 @@
     @media(max-width:900px){.fleet-grid{grid-template-columns:1fr 1fr}}
     @media(max-width:540px){.fleet-grid{grid-template-columns:1fr}}
 
+
+    .fieldops-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-bottom:16px}
+    .fieldops-stat{border:1px solid var(--border);border-radius:14px;padding:14px;background:#fcfaf7}
+    .fieldops-stat small{display:block;color:var(--muted);margin-bottom:4px}
+    .fieldops-stat strong{font-size:1.15rem}
+    .scanner-panel{display:grid;grid-template-columns:minmax(280px,440px) 1fr;gap:18px;align-items:start}
+    #qrReader{width:100%;min-height:280px;border:1px solid var(--border);border-radius:14px;overflow:hidden;background:#111}
+    .scan-result-card{border:1px solid var(--border);border-radius:14px;padding:16px;background:#fff}
+    .manifest-emergency{font-size:.84rem;line-height:1.35}
+    .status-ok{color:var(--success);font-weight:800}
+    .status-warn{color:#9a6700;font-weight:800}
+    .status-bad{color:var(--danger);font-weight:800}
+    @media(max-width:980px){.fieldops-grid{grid-template-columns:1fr 1fr}.scanner-panel{grid-template-columns:1fr}}
+    @media(max-width:540px){.fieldops-grid{grid-template-columns:1fr}}
+
 </style>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
 <body>
   <div id="loginScreen" class="login-screen">
@@ -174,7 +190,7 @@
 
   <div id="adminApp" class="admin-layout hidden">
     <aside id="sidebar" class="sidebar">
-      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v2.4.0 • Production</small></div>
+      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v2.5.0 • Production</small></div>
       <nav class="nav">
         <button data-view="dashboard" class="active">▦ Dashboard</button>
         <button data-view="sliders">▣ Slider Manager</button>
@@ -184,6 +200,7 @@
         <button data-view="payments">💳 Payment Manager</button>
         <button data-view="tickets">🎫 Ticket & Check-In</button>
         <button data-view="fleet">📍 Fleet & Tracking</button>
+        <button data-view="fieldops">📷 QR Check-In & Field Ops</button>
         <button data-view="services">✓ Services Manager</button>
         <button data-view="library">▤ Digital Library</button>
         <button data-view="settings">⚙ Settings</button>
@@ -398,7 +415,8 @@
       bookings:{title:"Booking Manager",display:["BookingCode","TripTitle","PrimaryContactName","PrimaryContactMobile","PassengerCount","PaymentStatus","BookingStatus"]},
       payments:{title:"Payment Manager",display:["PaymentCode","BookingCode","PrimaryContactName","Amount","VerificationStatus"]},
       tickets:{title:"Ticket & Check-In",display:["TicketCode","BookingCode","PassengerName","BusID","SeatID","CheckInStatus"]},
-      fleet:{title:"Fleet & Tracking",display:["TripTitle","VehicleNumber","DriverName","TrackingStatus"]}
+      fleet:{title:"Fleet & Tracking",display:["TripTitle","VehicleNumber","DriverName","TrackingStatus"]},
+      fieldops:{title:"QR Check-In & Field Ops",display:["PassengerName","BookingCode","TicketCode","BusID","SeatID","CheckInStatus"]}
     };
 
     const TEXTAREA_HINTS = /Description|HTML|Message|Remarks|Notes|Terms|Advice|Attractions|Route|Content/i;
@@ -568,7 +586,7 @@ toast("Login सफल भयो ।");
       $("pageTitle").textContent=view==="dashboard"?"Dashboard":MODULES[view]?.title||view;
       showLoading();
       try{
-        if(view==="dashboard")await renderDashboard();else if(view==="trips")await renderTripManager();else if(view==="bookings")await renderBookingManager();else if(view==="payments")await renderPaymentManager();else if(view==="tickets")await renderTicketManager();else if(view==="fleet")await renderFleetManager();else await renderModule(view);
+        if(view==="dashboard")await renderDashboard();else if(view==="trips")await renderTripManager();else if(view==="bookings")await renderBookingManager();else if(view==="payments")await renderPaymentManager();else if(view==="tickets")await renderTicketManager();else if(view==="fleet")await renderFleetManager();else if(view==="fieldops")await renderFieldOpsManager();else await renderModule(view);
       } catch (e) {
         handleAdminApiError(e);
       } finally {
@@ -622,6 +640,490 @@ toast("Login सफल भयो ।");
 
 
 
+
+
+    let fieldQrScanner=null;
+    let fieldLastScanToken="";
+    let fieldScanLocked=false;
+
+    async function renderFieldOpsManager(){
+      stopFieldScanner();
+
+      const tripsData=await api(
+        "adminGetFieldTrips",
+        {token:state.token}
+      );
+
+      const trips=tripsData.items||[];
+      state.fieldTrips=trips;
+
+      $("content").innerHTML=`
+        <div class="panel" style="margin-bottom:16px">
+          <div class="panel-head">
+            <div>
+              <h3>QR Camera Check-In & Field Operations</h3>
+              <small>Mobile camera बाट E-Ticket QR scan गर्नुहोस् ।</small>
+            </div>
+
+            <div class="toolbar">
+              <select id="fieldTripSelect">
+                <option value="">सबै Trip</option>
+                ${trips.map(t=>`
+                  <option value="${esc(t.TripID||"")}">
+                    ${esc(t.TripTitle||t.TripCode||"")}
+                  </option>
+                `).join("")}
+              </select>
+
+              <button id="fieldLoadBtn" class="btn btn-primary">
+                Manifest Load
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div id="fieldStats"></div>
+
+        <div class="panel" style="margin-bottom:16px">
+          <div class="panel-head">
+            <h3>Camera QR Scanner</h3>
+
+            <div class="toolbar">
+              <input id="fieldGateInput" placeholder="Gate / Boarding Point" value="MAIN">
+              <button id="fieldStartCameraBtn" class="btn btn-primary">Camera Start</button>
+              <button id="fieldStopCameraBtn" class="btn btn-soft">Stop</button>
+            </div>
+          </div>
+
+          <div style="padding:16px" class="scanner-panel">
+            <div>
+              <div id="qrReader"></div>
+              <small>
+                Camera permission browser बाट Allow गर्नुहोस् ।
+                HTTPS मा मात्र camera access चल्छ ।
+              </small>
+            </div>
+
+            <div id="fieldScanResult" class="scan-result-card">
+              QR scan भएपछि यात्रुको विवरण यहाँ देखिन्छ ।
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <h3>Trip Passenger Manifest</h3>
+              <small id="manifestCount">0 records</small>
+            </div>
+
+            <div class="toolbar">
+              <input id="fieldManifestSearch" placeholder="Name / Booking / Ticket / Seat">
+
+              <select id="fieldBusFilter">
+                <option value="">All Bus</option>
+              </select>
+
+              <select id="fieldCheckInFilter">
+                <option value="">All Check-In</option>
+                <option value="CHECKED_IN">CHECKED_IN</option>
+                <option value="NOT_CHECKED_IN">NOT_CHECKED_IN</option>
+              </select>
+
+              <button id="fieldSearchBtn" class="btn btn-soft">
+                Search
+              </button>
+            </div>
+          </div>
+
+          <div id="fieldManifestTable">
+            <div class="empty">Trip छानेर Manifest Load गर्नुहोस् ।</div>
+          </div>
+        </div>
+      `;
+
+      $("fieldLoadBtn").onclick=loadFieldManifest;
+      $("fieldSearchBtn").onclick=loadFieldManifest;
+      $("fieldTripSelect").onchange=loadFieldManifest;
+      $("fieldStartCameraBtn").onclick=startFieldScanner;
+      $("fieldStopCameraBtn").onclick=stopFieldScanner;
+
+      $("fieldManifestSearch").addEventListener("keydown",e=>{
+        if(e.key==="Enter")loadFieldManifest();
+      });
+
+      if(trips.length){
+        $("fieldTripSelect").value=trips[0].TripID||"";
+        await loadFieldManifest();
+      }else{
+        await loadFieldStats("");
+      }
+    }
+
+    async function loadFieldStats(tripId){
+      const dashboard=await api(
+        "adminGetFieldDashboard",
+        {
+          token:state.token,
+          tripId:tripId||""
+        }
+      );
+
+      const c=dashboard.cards||{};
+
+      $("fieldStats").innerHTML=`
+        <div class="fieldops-grid">
+          <div class="fieldops-stat"><small>Passengers</small><strong>${c.passengers||0}</strong></div>
+          <div class="fieldops-stat"><small>Issued Tickets</small><strong>${c.issuedTickets||0}</strong></div>
+          <div class="fieldops-stat"><small>Checked-In</small><strong>${c.checkedIn||0}</strong></div>
+          <div class="fieldops-stat"><small>Not Checked-In</small><strong>${c.notCheckedIn||0}</strong></div>
+          <div class="fieldops-stat"><small>Bus Assigned</small><strong>${c.busAssigned||0}</strong></div>
+        </div>
+      `;
+    }
+
+    async function loadFieldManifest(){
+      const tripId=$("fieldTripSelect")?.value||"";
+
+      showLoading();
+
+      try{
+        await loadFieldStats(tripId);
+
+        const data=await api(
+          "adminGetTripManifest",
+          {
+            token:state.token,
+            tripId,
+            search:$("fieldManifestSearch")?.value||"",
+            busId:$("fieldBusFilter")?.value||"",
+            checkInStatus:$("fieldCheckInFilter")?.value||""
+          }
+        );
+
+        const rows=data.items||[];
+
+        $("manifestCount").textContent=
+          `${data.total||0} records`;
+
+        const currentBus=
+          $("fieldBusFilter")?.value||"";
+
+        $("fieldBusFilter").innerHTML=
+          `<option value="">All Bus</option>`+
+          (data.buses||[])
+            .map(bus=>`
+              <option value="${esc(bus)}">
+                ${esc(bus)}
+              </option>
+            `)
+            .join("");
+
+        if(
+          currentBus &&
+          (data.buses||[]).includes(currentBus)
+        ){
+          $("fieldBusFilter").value=currentBus;
+        }
+
+        $("fieldManifestTable").innerHTML=
+          fieldManifestTable(rows);
+
+        wireManifestActions();
+
+      }catch(error){
+        handleAdminApiError(error);
+      }finally{
+        hideLoading();
+      }
+    }
+
+    function fieldManifestTable(rows){
+      if(!rows?.length){
+        return `<div class="empty">Manifest record छैन ।</div>`;
+      }
+
+      return `<div class="table-wrap"><table class="table">
+        <thead>
+          <tr>
+            <th>Passenger</th>
+            <th>Booking</th>
+            <th>Ticket</th>
+            <th>Bus</th>
+            <th>Seat</th>
+            <th>Payment</th>
+            <th>Check-In</th>
+            <th>Emergency</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          ${rows.map(r=>{
+            const checked=
+              String(r.CheckInStatus||"")
+                .toUpperCase()==="CHECKED_IN";
+
+            return `
+              <tr>
+                <td>
+                  <strong>${esc(r.PassengerName||"")}</strong><br>
+                  <small>${esc(r.Mobile||"")}</small>
+                </td>
+
+                <td>${esc(r.BookingCode||"")}</td>
+                <td>${esc(r.TicketCode||"-")}</td>
+                <td>${esc(r.BusID||"-")}</td>
+                <td>${esc(r.SeatID||"-")}</td>
+                <td><span class="chip">${esc(r.PaymentStatus||"")}</span></td>
+
+                <td>
+                  <span class="${checked?"status-ok":"status-warn"}">
+                    ${esc(r.CheckInStatus||"NOT_CHECKED_IN")}
+                  </span>
+                  ${r.CheckInAt?`<br><small>${esc(r.CheckInAt)}</small>`:""}
+                </td>
+
+                <td class="manifest-emergency">
+                  ${esc(r.EmergencyContactName||"-")}<br>
+                  ${esc(r.EmergencyContactMobile||"")}
+                  ${r.HealthNote?`<br><strong>Health:</strong> ${esc(r.HealthNote)}`:""}
+                </td>
+
+                <td>
+                  ${r.TicketToken
+                    ? `<button
+                         class="manifestCheckInBtn"
+                         data-token="${esc(r.TicketToken)}">
+                         ${checked?"View":"Check-In"}
+                       </button>`
+                    : `<small>Ticket छैन</small>`}
+                </td>
+              </tr>
+            `;
+          }).join("")}
+        </tbody>
+      </table></div>`;
+    }
+
+    function wireManifestActions(){
+      document.querySelectorAll(".manifestCheckInBtn")
+        .forEach(button=>{
+          button.onclick=async()=>{
+            await previewAndCheckInTicket(
+              button.dataset.token,
+              false
+            );
+          };
+        });
+    }
+
+    async function startFieldScanner(){
+      if(!window.Html5Qrcode){
+        toast("QR Scanner library load भएन । Internet connection जाँच गर्नुहोस् ।",true);
+        return;
+      }
+
+      stopFieldScanner();
+
+      try{
+        fieldQrScanner=
+          new Html5Qrcode("qrReader");
+
+        const cameras=
+          await Html5Qrcode.getCameras();
+
+        if(!cameras?.length){
+          throw new Error("Camera भेटिएन ।");
+        }
+
+        const preferred=
+          cameras.find(c=>
+            /back|rear|environment/i.test(c.label)
+          ) || cameras[cameras.length-1];
+
+        await fieldQrScanner.start(
+          preferred.id,
+          {
+            fps:10,
+            qrbox:{
+              width:230,
+              height:230
+            },
+            aspectRatio:1.0
+          },
+          async decodedText=>{
+            if(fieldScanLocked)return;
+
+            const token=
+              String(decodedText||"").trim();
+
+            if(
+              !token ||
+              token===fieldLastScanToken
+            ){
+              return;
+            }
+
+            fieldScanLocked=true;
+            fieldLastScanToken=token;
+
+            try{
+              await previewAndCheckInTicket(
+                token,
+                true
+              );
+            }finally{
+              setTimeout(()=>{
+                fieldScanLocked=false;
+                fieldLastScanToken="";
+              },1800);
+            }
+          },
+          ()=>{}
+        );
+
+        toast("Camera QR Scanner सुरु भयो ।");
+
+      }catch(error){
+        stopFieldScanner();
+        toast(
+          error.message||
+          "Camera सुरु हुन सकेन । Permission जाँच गर्नुहोस् ।",
+          true
+        );
+      }
+    }
+
+    async function stopFieldScanner(){
+      if(!fieldQrScanner)return;
+
+      try{
+        const stateValue=
+          fieldQrScanner.getState?.();
+
+        if(
+          stateValue===2 ||
+          stateValue===3
+        ){
+          await fieldQrScanner.stop();
+        }
+
+        await fieldQrScanner.clear();
+
+      }catch(ignored){}
+
+      fieldQrScanner=null;
+    }
+
+    async function previewAndCheckInTicket(
+      token,
+      autoCheckIn
+    ){
+      showLoading();
+
+      try{
+        const preview=await api(
+          "adminGetTicketScanPreview",
+          {
+            token:state.token,
+            ticketToken:token
+          }
+        );
+
+        const p=preview.passenger||{};
+        const b=preview.booking||{};
+        const t=preview.trip||{};
+
+        const alreadyChecked=
+          String(p.CheckInStatus||"")
+            .toUpperCase()==="CHECKED_IN";
+
+        $("fieldScanResult").innerHTML=`
+          <span class="eyebrow">Scanned Ticket</span>
+          <h3 style="margin:6px 0">${esc(p.PassengerName||"Passenger")}</h3>
+
+          <div class="booking-detail-grid">
+            <div class="booking-detail-card"><small>Trip</small><br><strong>${esc(t.TripTitle||"")}</strong></div>
+            <div class="booking-detail-card"><small>Ticket</small><br><strong>${esc(p.TicketCode||"")}</strong></div>
+            <div class="booking-detail-card"><small>Booking</small><br><strong>${esc(b.BookingCode||"")}</strong></div>
+            <div class="booking-detail-card"><small>Payment</small><br><strong>${esc(b.PaymentStatus||"")}</strong></div>
+            <div class="booking-detail-card"><small>Bus</small><br><strong>${esc(p.BusID||"-")}</strong></div>
+            <div class="booking-detail-card"><small>Seat</small><br><strong>${esc(p.SeatID||"-")}</strong></div>
+            <div class="booking-detail-card"><small>Emergency</small><br><strong>${esc(p.EmergencyContactName||"-")}</strong><br>${esc(p.EmergencyContactMobile||"")}</div>
+            <div class="booking-detail-card"><small>Status</small><br><strong>${esc(p.CheckInStatus||"NOT_CHECKED_IN")}</strong></div>
+          </div>
+
+          ${p.HealthNote||p.SpecialAssistance
+            ? `<div style="margin-top:12px;padding:12px;border-radius:10px;background:#fff4e5">
+                 <strong>Health / Assistance:</strong><br>
+                 ${esc(p.HealthNote||p.SpecialAssistance||"")}
+               </div>`
+            : ""}
+
+          ${alreadyChecked
+            ? `<div style="margin-top:12px" class="status-ok">
+                 Already Checked-In ${p.CheckInAt?`• ${esc(p.CheckInAt)}`:""}
+               </div>`
+            : `<button
+                 id="confirmScannedCheckIn"
+                 class="btn btn-primary"
+                 style="margin-top:14px">
+                 Confirm Check-In
+               </button>`}
+        `;
+
+        if(alreadyChecked){
+          toast("यो Ticket पहिले नै Check-In भइसकेको छ ।");
+          return;
+        }
+
+        const doCheckIn=async()=>{
+          const result=await api(
+            "adminFieldCheckInTicket",
+            {
+              token:state.token,
+              ticketToken:token,
+              checkInGate:$("fieldGateInput")?.value||"MAIN"
+            },
+            "POST"
+          );
+
+          const passenger=result.passenger||{};
+
+          $("fieldScanResult").innerHTML+=`
+            <div style="margin-top:12px;padding:12px;border-radius:10px;background:#edf8f2">
+              <strong>✓ Check-In Successful</strong><br>
+              ${esc(passenger.PassengerName||"")} • Seat ${esc(passenger.SeatID||"-")}
+            </div>
+          `;
+
+          toast("Check-In सफल भयो ।");
+          await loadFieldManifest();
+        };
+
+        $("confirmScannedCheckIn")?.addEventListener(
+          "click",
+          doCheckIn,
+          {once:true}
+        );
+
+        if(autoCheckIn){
+          await doCheckIn();
+        }
+
+      }catch(error){
+        $("fieldScanResult").innerHTML=`
+          <div class="status-bad">
+            ${esc(error.message||"QR Ticket verify हुन सकेन ।")}
+          </div>
+        `;
+
+        handleAdminApiError(error);
+      }finally{
+        hideLoading();
+      }
+    }
 
     async function renderFleetManager(){
       const [dashboard, vehicles, drivers, assignments, editor] =
