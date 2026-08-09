@@ -888,6 +888,53 @@
       color:#786a62;
     }
 
+  
+    /* GTYMS v3.10.0 Digital Library Upload Manager */
+    .library-upload-box{
+      border:1px solid #eadbd0;
+      border-radius:14px;
+      background:#fffaf6;
+      padding:12px;
+    }
+
+    .library-upload-row{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+      margin-top:8px;
+    }
+
+    .library-upload-row input[type="file"]{
+      flex:1 1 240px;
+      min-width:0;
+    }
+
+    .library-cover-preview{
+      width:150px;
+      height:205px;
+      object-fit:cover;
+      border-radius:10px;
+      border:1px solid #e3d4ca;
+      background:#f3eee9;
+      margin-top:10px;
+      display:block;
+    }
+
+    .library-cover-preview.hidden{
+      display:none;
+    }
+
+    .library-protection-note{
+      margin-top:8px;
+      padding:9px 10px;
+      border-radius:10px;
+      background:#f7efe8;
+      color:#6e5547;
+      font-size:12px;
+      line-height:1.45;
+    }
+
   </style>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
@@ -1227,7 +1274,7 @@
       destinations:{title:"Destination Manager",display:["DestinationID","DestinationName","CoverImageURL","CategoryID","DistrictCity","Featured","Status"]},
       trips:{title:"Trip Manager",display:["TripID","TripTitle","StartDate","EndDate","BasePrice","TripStatus"]},
       services:{title:"Services Manager",display:["ServiceID","ServiceTitle","ApplicableTripType","DisplayOrder","Status"]},
-      library:{title:"Digital Library",display:["LibraryID","Title","ResourceType","AccessLevel","Featured","Status"]},
+      library:{title:"Digital Library",display:["LibraryID","CoverImageURL","Title","ResourceType","AllowPreview","AllowDownload","AccessLevel","Featured","Status"]},
       settings:{title:"Settings",display:["SettingKey","SettingValue","Category","IsPublic","Status"]},
       bookings:{title:"Booking Manager",display:["BookingCode","TripTitle","PrimaryContactName","PrimaryContactMobile","PassengerCount","PaymentStatus","BookingStatus"]},
       payments:{title:"Payment Manager",display:["PaymentCode","BookingCode","PrimaryContactName","Amount","VerificationStatus"]},
@@ -8171,6 +8218,10 @@ toast("Login सफल भयो ।");
         wireDestinationImageUploadField();
         wireDestinationRichTextEditor();
       }
+
+      if(state.view==="library"){
+        wireDigitalLibraryUploadFields();
+      }
     }
     function closeModal(){$("recordModal").classList.add("hidden");$("recordFields").innerHTML=""}
 
@@ -8197,6 +8248,20 @@ toast("Login सफल भयो ।");
         /^FullDescriptionHTML$/i.test(h)
       ){
         return destinationRichTextFieldHtml(h,v);
+      }
+
+      if(
+        state.view==="library" &&
+        /^CoverImageURL$/i.test(h)
+      ){
+        return libraryCoverFieldHtml(h,v);
+      }
+
+      if(
+        state.view==="library" &&
+        /^FileURL$/i.test(h)
+      ){
+        return libraryPdfFieldHtml(h,v);
       }
 
       if(TEXTAREA_HINTS.test(h))return `<div class="${cls}">${label}<textarea name="${esc(h)}" rows="${/HTML|Content/i.test(h)?8:4}">${esc(v)}</textarea></div>`;
@@ -8324,6 +8389,367 @@ toast("Login सफल भयो ।");
           };
         });
     }
+
+    function libraryCoverFieldHtml(fieldName,value){
+      const preview=value
+        ? `<img class="library-cover-preview" src="${esc(value)}" alt="Book Cover">`
+        : `<img class="library-cover-preview hidden" alt="Book Cover">`;
+
+      return `
+        <div class="field full-span library-upload-box"
+             data-library-cover-field="${esc(fieldName)}">
+
+          <label>Book Front Cover</label>
+
+          <input
+            name="${esc(fieldName)}"
+            class="library-cover-url"
+            value="${esc(value)}"
+            placeholder="Cover upload गरेपछि URL automatically आउँछ ।">
+
+          <div class="library-upload-row">
+            <input
+              type="file"
+              class="library-cover-file"
+              accept="image/jpeg,image/png,image/webp">
+
+            <button
+              type="button"
+              class="btn btn-soft library-cover-upload-btn">
+              🖼️ Cover Upload
+            </button>
+          </div>
+
+          <small class="rte-note">
+            JPG / PNG / WEBP • अधिकतम 5 MB • Portrait book cover recommended
+          </small>
+
+          ${preview}
+        </div>`;
+    }
+
+
+    function libraryPdfFieldHtml(fieldName,value){
+      return `
+        <div class="field full-span library-upload-box"
+             data-library-pdf-field="${esc(fieldName)}">
+
+          <label>Protected PDF Book</label>
+
+          <input
+            name="${esc(fieldName)}"
+            class="library-pdf-url"
+            value="${esc(value)}"
+            readonly
+            placeholder="PDF upload गरेपछि protected preview URL यहाँ आउँछ ।">
+
+          <div class="library-upload-row">
+            <input
+              type="file"
+              class="library-pdf-file"
+              accept="application/pdf">
+
+            <button
+              type="button"
+              class="btn btn-soft library-pdf-upload-btn">
+              📕 PDF Upload
+            </button>
+          </div>
+
+          <div class="library-protection-note">
+            PDF public website मा popup reader भित्र मात्र खोलिन्छ ।
+            Normal Download / Print / Copy controls हटाउने protection backend बाट apply हुन्छ ।
+            PDF अधिकतम 20 MB राख्नुहोस् ।
+          </div>
+        </div>`;
+    }
+
+
+    function wireDigitalLibraryUploadFields(){
+      wireLibraryCoverUpload();
+      wireLibraryPdfUpload();
+    }
+
+
+    function getCurrentLibraryId(){
+      return (
+        document.querySelector(
+          '#recordForm [name="LibraryID"]'
+        )?.value || ""
+      );
+    }
+
+
+    function setLibraryDefaultsAfterPdfUpload(result){
+      const form=
+        document.getElementById("recordForm");
+
+      if(!form)return;
+
+      const setValue=(name,value)=>{
+        const field=
+          form.querySelector(
+            `[name="${name}"]`
+          );
+
+        if(field && !String(field.value||"").trim()){
+          field.value=value;
+        }
+      };
+
+      const forceValue=(name,value)=>{
+        const field=
+          form.querySelector(
+            `[name="${name}"]`
+          );
+
+        if(field){
+          field.value=value;
+        }
+      };
+
+      setValue("ResourceType","PDF");
+      forceValue("AllowPreview","TRUE");
+      forceValue("AllowDownload","FALSE");
+      setValue("AccessLevel","PUBLIC");
+      setValue("Status","ACTIVE");
+    }
+
+
+    function wireLibraryCoverUpload(){
+      const box=
+        document.querySelector(
+          "[data-library-cover-field]"
+        );
+
+      if(!box)return;
+
+      const urlInput=
+        box.querySelector(
+          ".library-cover-url"
+        );
+
+      const fileInput=
+        box.querySelector(
+          ".library-cover-file"
+        );
+
+      const uploadBtn=
+        box.querySelector(
+          ".library-cover-upload-btn"
+        );
+
+      const preview=
+        box.querySelector(
+          ".library-cover-preview"
+        );
+
+      const refreshPreview=()=>{
+        const url=
+          String(
+            urlInput.value||""
+          ).trim();
+
+        if(!url){
+          preview.removeAttribute("src");
+          preview.classList.add("hidden");
+          return;
+        }
+
+        preview.src=url;
+        preview.classList.remove("hidden");
+      };
+
+      urlInput.addEventListener(
+        "change",
+        refreshPreview
+      );
+
+      uploadBtn.onclick=async()=>{
+        const file=
+          fileInput.files?.[0];
+
+        if(!file){
+          toast("पहिले Book Cover छान्नुहोस् ।");
+          return;
+        }
+
+        if(
+          ![
+            "image/jpeg",
+            "image/png",
+            "image/webp"
+          ].includes(file.type)
+        ){
+          toast("JPG, PNG वा WEBP cover मात्र छान्नुहोस् ।");
+          return;
+        }
+
+        if(
+          file.size >
+          5*1024*1024
+        ){
+          toast("Cover image बढीमा 5 MB हुनुपर्छ ।");
+          return;
+        }
+
+        setButtonBusy(
+          uploadBtn,
+          true,
+          "Uploading..."
+        );
+
+        try{
+          const base64Data=
+            await readFileAsDataUrl(
+              file
+            );
+
+          const result=
+            await api(
+              "adminUploadLibraryCover",
+              {
+                token:state.token,
+                libraryId:
+                  getCurrentLibraryId(),
+                fileName:file.name,
+                mimeType:file.type,
+                base64Data
+              },
+              "POST"
+            );
+
+          urlInput.value=
+            result.imageUrl||"";
+
+          refreshPreview();
+
+          toast(
+            "Book Cover upload भयो । अब record Save गर्नुहोस् ।"
+          );
+
+        }catch(error){
+          handleAdminApiError(error);
+        }finally{
+          setButtonBusy(
+            uploadBtn,
+            false
+          );
+        }
+      };
+    }
+
+
+    function wireLibraryPdfUpload(){
+      const box=
+        document.querySelector(
+          "[data-library-pdf-field]"
+        );
+
+      if(!box)return;
+
+      const urlInput=
+        box.querySelector(
+          ".library-pdf-url"
+        );
+
+      const fileInput=
+        box.querySelector(
+          ".library-pdf-file"
+        );
+
+      const uploadBtn=
+        box.querySelector(
+          ".library-pdf-upload-btn"
+        );
+
+      uploadBtn.onclick=async()=>{
+        const file=
+          fileInput.files?.[0];
+
+        if(!file){
+          toast("पहिले PDF Book छान्नुहोस् ।");
+          return;
+        }
+
+        if(
+          file.type !==
+          "application/pdf"
+        ){
+          toast("PDF file मात्र upload गर्नुहोस् ।");
+          return;
+        }
+
+        if(
+          file.size >
+          20*1024*1024
+        ){
+          toast("PDF बढीमा 20 MB हुनुपर्छ ।");
+          return;
+        }
+
+        setButtonBusy(
+          uploadBtn,
+          true,
+          "Uploading PDF..."
+        );
+
+        showLoading();
+
+        try{
+          const base64Data=
+            await readFileAsDataUrl(
+              file
+            );
+
+          const result=
+            await api(
+              "adminUploadLibraryPdf",
+              {
+                token:state.token,
+                libraryId:
+                  getCurrentLibraryId(),
+                fileName:file.name,
+                mimeType:file.type,
+                base64Data
+              },
+              "POST"
+            );
+
+          urlInput.value=
+            result.fileUrl||"";
+
+          setLibraryDefaultsAfterPdfUpload(
+            result
+          );
+
+          if(
+            result.restrictionApplied
+          ){
+            toast(
+              "PDF upload भयो र Download / Print / Copy protection लागू भयो ।"
+            );
+          }else{
+            toast(
+              "PDF upload भयो । Drive restriction status जाँच गर्नुहोस्: " +
+              (result.restrictionMessage||""),
+              true
+            );
+          }
+
+        }catch(error){
+          handleAdminApiError(error);
+        }finally{
+          hideLoading();
+
+          setButtonBusy(
+            uploadBtn,
+            false
+          );
+        }
+      };
+    }
+
 
     function destinationRichTextFieldHtml(fieldName,value){
       const safeValue=String(value||"");
