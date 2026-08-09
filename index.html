@@ -1537,10 +1537,189 @@ button {
       }
     }
 
+  
+    /* GTYMS v3.10.0 Protected Digital Library */
+    .library-grid{
+      align-items:stretch;
+    }
+
+    .library-card{
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+    }
+
+    .library-cover-wrap{
+      position:relative;
+      aspect-ratio:3/4;
+      overflow:hidden;
+      background:#efe5dc;
+      border-radius:16px 16px 0 0;
+    }
+
+    .library-cover{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+    }
+
+    .library-cover-fallback{
+      width:100%;
+      height:100%;
+      display:grid;
+      place-items:center;
+      text-align:center;
+      padding:20px;
+      font-size:56px;
+      background:linear-gradient(145deg,#7d2018,#bd7412);
+      color:#fff;
+    }
+
+    .library-card-body{
+      padding:16px;
+      display:flex;
+      flex-direction:column;
+      flex:1;
+    }
+
+    .library-card-body h3{
+      margin:8px 0;
+    }
+
+    .library-card-body p{
+      flex:1;
+    }
+
+    .library-reader-modal{
+      position:fixed;
+      inset:0;
+      z-index:10050;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:14px;
+      background:rgba(20,10,5,.84);
+    }
+
+    .library-reader-modal.hidden{
+      display:none;
+    }
+
+    .library-reader-dialog{
+      width:min(1100px,98vw);
+      height:min(94vh,950px);
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+      border-radius:18px;
+      background:#fff;
+      box-shadow:0 28px 90px rgba(0,0,0,.42);
+    }
+
+    .library-reader-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:12px 16px;
+      border-bottom:1px solid #e6d6ca;
+      background:#fffaf5;
+    }
+
+    .library-reader-head h3{
+      margin:0;
+      font-size:18px;
+    }
+
+    .library-reader-close{
+      border:0;
+      width:42px;
+      height:42px;
+      border-radius:50%;
+      background:#f2e7de;
+      color:#8b1e1e;
+      font-size:24px;
+      cursor:pointer;
+    }
+
+    .library-reader-note{
+      padding:8px 16px;
+      background:#fff4e9;
+      color:#6f5547;
+      font-size:12px;
+      border-bottom:1px solid #eadbd0;
+    }
+
+    .library-reader-frame-wrap{
+      flex:1;
+      min-height:0;
+      background:#3d3632;
+    }
+
+    .library-reader-frame{
+      width:100%;
+      height:100%;
+      border:0;
+      display:block;
+      background:#3d3632;
+    }
+
+    @media(max-width:640px){
+      .library-reader-modal{
+        padding:0;
+      }
+
+      .library-reader-dialog{
+        width:100%;
+        height:100%;
+        max-height:none;
+        border-radius:0;
+      }
+    }
+
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
+  <!-- Protected Digital Library Reader -->
+  <div id="libraryReaderModal"
+       class="library-reader-modal hidden"
+       aria-hidden="true">
+
+    <div class="library-reader-dialog">
+      <div class="library-reader-head">
+        <h3 id="libraryReaderTitle">
+          Digital Library Reader
+        </h3>
+
+        <button
+          id="libraryReaderClose"
+          class="library-reader-close"
+          type="button"
+          aria-label="Close">
+          ×
+        </button>
+      </div>
+
+      <div class="library-reader-note">
+        यो सामग्री पढ्नका लागि मात्र उपलब्ध छ ।
+        सामान्य Download / Print / Copy सुविधा उपलब्ध छैन ।
+      </div>
+
+      <div class="library-reader-frame-wrap">
+        <iframe
+          id="libraryReaderFrame"
+          class="library-reader-frame"
+          title="Digital Library PDF Reader"
+          sandbox="allow-scripts allow-same-origin allow-forms"
+          referrerpolicy="no-referrer"
+          allowfullscreen>
+        </iframe>
+      </div>
+    </div>
+  </div>
+
   <div id="loadingOverlay" class="loading-overlay hidden" aria-live="polite">
     <div class="spinner"></div>
     <p>लोड हुँदैछ...</p>
@@ -2506,6 +2685,12 @@ window.GTYMS_UI = (() => {
     document.getElementById("destinationExplorerSearch")?.addEventListener("input", renderDestinationExplorer);
     document.getElementById("destinationExplorerDistrict")?.addEventListener("change", renderDestinationExplorer);
     document.getElementById("contactForm")?.addEventListener("submit", submitContact);
+    document.getElementById("libraryReaderClose")?.addEventListener("click", closeLibraryReader);
+    document.getElementById("libraryReaderModal")?.addEventListener("click", (event) => {
+      if (event.target.id === "libraryReaderModal") {
+        closeLibraryReader();
+      }
+    });
     document.getElementById("tripSearchForm")?.addEventListener("submit", filterTrips);
   }
 
@@ -4689,6 +4874,15 @@ window.GTYMS_UI = (() => {
 
     if (
       !document.getElementById(
+        "libraryReaderModal"
+      )?.classList.contains("hidden")
+    ) {
+      closeLibraryReader();
+      return;
+    }
+
+    if (
+      !document.getElementById(
         "destinationExplorerModal"
       )?.classList.contains("hidden")
     ) {
@@ -4780,26 +4974,234 @@ window.GTYMS_UI = (() => {
   }
 
   function renderLibrary(items) {
-    const grid = document.getElementById("libraryGrid");
+    const grid =
+      document.getElementById(
+        "libraryGrid"
+      );
 
     if (!items.length) {
-      grid.innerHTML = `<div class="empty-card">डाउनलोड सामग्री चाँडै उपलब्ध हुनेछ ।</div>`;
+      grid.innerHTML =
+        `<div class="empty-card">
+          डिजिटल पुस्तकहरू चाँडै उपलब्ध हुनेछन् ।
+        </div>`;
       return;
     }
 
-    grid.innerHTML = items.map((item) => `
-      <article class="library-card">
-        <span class="badge">${UI.escapeHtml(item.ResourceType || "RESOURCE")}</span>
-        <h3>${UI.escapeHtml(item.Title || "")}</h3>
-        <p>${UI.escapeHtml(item.ShortDescription || "")}</p>
-        <a class="btn btn-primary"
-          href="${UI.escapeHtml(item.FileURL || item.ExternalURL || "#")}"
-          target="_blank" rel="noopener">
-          हेर्नुहोस् / डाउनलोड
-        </a>
-      </article>
-    `).join("");
+    grid.innerHTML =
+      items.map((item) => {
+        const cover =
+          String(
+            item.CoverImageURL || ""
+          ).trim();
+
+        const resourceType =
+          String(
+            item.ResourceType ||
+            "PDF"
+          ).toUpperCase();
+
+        const canPreview =
+          String(
+            item.AllowPreview
+          ).toLowerCase() === "true" ||
+          String(
+            item.AllowPreview
+          ) === "1" ||
+          String(
+            item.AllowPreview
+          ).toUpperCase() === "TRUE";
+
+        const allowDownload =
+          String(
+            item.AllowDownload
+          ).toLowerCase() === "true" ||
+          String(
+            item.AllowDownload
+          ) === "1" ||
+          String(
+            item.AllowDownload
+          ).toUpperCase() === "TRUE";
+
+        return `
+          <article class="library-card">
+
+            <div class="library-cover-wrap">
+              ${cover
+                ? `<img
+                    class="library-cover"
+                    src="${UI.escapeHtml(cover)}"
+                    alt="${UI.escapeHtml(item.Title || "Book")}">`
+                : `<div class="library-cover-fallback">📖</div>`}
+            </div>
+
+            <div class="library-card-body">
+              <span class="badge">
+                ${UI.escapeHtml(resourceType)}
+              </span>
+
+              <h3>
+                ${UI.escapeHtml(item.Title || "")}
+              </h3>
+
+              <p>
+                ${UI.escapeHtml(
+                  item.ShortDescription || ""
+                )}
+              </p>
+
+              ${canPreview
+                ? `<button
+                    class="btn btn-primary library-read-btn"
+                    type="button"
+                    data-library-id="${UI.escapeHtml(item.LibraryID || "")}">
+                    📖 पढ्नुहोस्
+                  </button>`
+                : `<span class="muted">
+                    Preview उपलब्ध छैन ।
+                  </span>`}
+
+              ${allowDownload
+                ? `<small class="muted" style="margin-top:8px">
+                    यो record मा Admin ले Download अनुमति दिएको छ ।
+                  </small>`
+                : ""}
+            </div>
+          </article>
+        `;
+      }).join("");
+
+    grid
+      .querySelectorAll(
+        ".library-read-btn"
+      )
+      .forEach((button) => {
+        button.addEventListener(
+          "click",
+          () => {
+            openLibraryReader(
+              button.dataset.libraryId || ""
+            );
+          }
+        );
+      });
   }
+
+
+  async function openLibraryReader(libraryId) {
+    if (!libraryId) {
+      UI.showToast(
+        "Library Book ID भेटिएन ।",
+        "error"
+      );
+      return;
+    }
+
+    const modal =
+      document.getElementById(
+        "libraryReaderModal"
+      );
+
+    const frame =
+      document.getElementById(
+        "libraryReaderFrame"
+      );
+
+    const title =
+      document.getElementById(
+        "libraryReaderTitle"
+      );
+
+    modal?.classList.remove("hidden");
+    modal?.setAttribute(
+      "aria-hidden",
+      "false"
+    );
+
+    document.body.style.overflow =
+      "hidden";
+
+    if (title) {
+      title.textContent =
+        "Digital Library Reader";
+    }
+
+    if (frame) {
+      frame.removeAttribute("src");
+    }
+
+    try {
+      UI.showLoading(
+        "पुस्तक खोलिँदैछ..."
+      );
+
+      const data =
+        await API.get(
+          "getLibraryReader",
+          {
+            libraryId
+          }
+        );
+
+      if (title) {
+        title.textContent =
+          data.title ||
+          "Digital Library Reader";
+      }
+
+      if (
+        !data.previewUrl
+      ) {
+        throw new Error(
+          "Reader URL उपलब्ध छैन ।"
+        );
+      }
+
+      if (frame) {
+        frame.src =
+          data.previewUrl;
+      }
+
+    } catch (error) {
+      closeLibraryReader();
+
+      UI.showToast(
+        error.message ||
+        "पुस्तक खोल्न सकिएन ।",
+        "error"
+      );
+
+    } finally {
+      UI.hideLoading();
+    }
+  }
+
+
+  function closeLibraryReader() {
+    const modal =
+      document.getElementById(
+        "libraryReaderModal"
+      );
+
+    const frame =
+      document.getElementById(
+        "libraryReaderFrame"
+      );
+
+    if (frame) {
+      frame.removeAttribute("src");
+    }
+
+    modal?.classList.add("hidden");
+
+    modal?.setAttribute(
+      "aria-hidden",
+      "true"
+    );
+
+    document.body.style.overflow =
+      "";
+  }
+
 
   function fillDestinationSelect(destinations) {
     const picker = document.getElementById("destinationPicker");
