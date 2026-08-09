@@ -889,7 +889,7 @@
     }
 
   
-    /* GTYMS v3.10.0 Digital Library Upload Manager */
+    /* GTYMS v3.10.1 Digital Library Large PDF Upload Manager */
     .library-upload-box{
       border:1px solid #eadbd0;
       border-radius:14px;
@@ -933,6 +933,37 @@
       color:#6e5547;
       font-size:12px;
       line-height:1.45;
+    }
+
+  
+    .library-upload-progress-wrap{
+      margin-top:10px;
+      display:none;
+    }
+
+    .library-upload-progress-wrap.active{
+      display:block;
+    }
+
+    .library-upload-progress-track{
+      height:12px;
+      overflow:hidden;
+      border-radius:999px;
+      background:#eadfd6;
+    }
+
+    .library-upload-progress-bar{
+      height:100%;
+      width:0%;
+      background:#9d211f;
+      transition:width .2s ease;
+    }
+
+    .library-upload-progress-text{
+      margin-top:6px;
+      font-size:12px;
+      font-weight:700;
+      color:#6e5547;
     }
 
   </style>
@@ -8434,14 +8465,14 @@ toast("Login सफल भयो ।");
         <div class="field full-span library-upload-box"
              data-library-pdf-field="${esc(fieldName)}">
 
-          <label>Protected PDF Book</label>
+          <label>Protected PDF Book — Large File Supported</label>
 
           <input
             name="${esc(fieldName)}"
             class="library-pdf-url"
             value="${esc(value)}"
             readonly
-            placeholder="PDF upload गरेपछि protected preview URL यहाँ आउँछ ।">
+            placeholder="PDF upload पूरा भएपछि protected preview URL यहाँ आउँछ ।">
 
           <div class="library-upload-row">
             <input
@@ -8452,14 +8483,24 @@ toast("Login सफल भयो ।");
             <button
               type="button"
               class="btn btn-soft library-pdf-upload-btn">
-              📕 PDF Upload
+              📕 Large PDF Upload
             </button>
           </div>
 
+          <div class="library-upload-progress-wrap">
+            <div class="library-upload-progress-track">
+              <div class="library-upload-progress-bar"></div>
+            </div>
+            <div class="library-upload-progress-text">
+              Upload सुरु भएको छैन ।
+            </div>
+          </div>
+
           <div class="library-protection-note">
-            PDF public website मा popup reader भित्र मात्र खोलिन्छ ।
-            Normal Download / Print / Copy controls हटाउने protection backend बाट apply हुन्छ ।
-            PDF अधिकतम 20 MB राख्नुहोस् ।
+            20 MB fixed limit हटाइएको छ ।
+            PDF सानो-सानो resumable chunks मा Google Drive मा upload हुन्छ ।
+            Upload बीचमा temporary network/API समस्या आए system ले received bytes जाँचेर resume गर्ने प्रयास गर्छ ।
+            Normal Download / Print / Copy controls protection upload पूरा भएपछि apply हुन्छ ।
           </div>
         </div>`;
     }
@@ -8663,6 +8704,46 @@ toast("Login सफल भयो ।");
           ".library-pdf-upload-btn"
         );
 
+      const progressWrap=
+        box.querySelector(
+          ".library-upload-progress-wrap"
+        );
+
+      const progressBar=
+        box.querySelector(
+          ".library-upload-progress-bar"
+        );
+
+      const progressText=
+        box.querySelector(
+          ".library-upload-progress-text"
+        );
+
+      const setProgress=(percent,message)=>{
+        const safe=
+          Math.max(
+            0,
+            Math.min(
+              100,
+              Number(percent||0)
+            )
+          );
+
+        progressWrap
+          ?.classList.add("active");
+
+        if(progressBar){
+          progressBar.style.width=
+            safe+"%";
+        }
+
+        if(progressText){
+          progressText.textContent=
+            message ||
+            `Uploading... ${safe}%`;
+        }
+      };
+
       uploadBtn.onclick=async()=>{
         const file=
           fileInput.files?.[0];
@@ -8680,74 +8761,333 @@ toast("Login सफल भयो ।");
           return;
         }
 
-        if(
-          file.size >
-          20*1024*1024
-        ){
-          toast("PDF बढीमा 20 MB हुनुपर्छ ।");
-          return;
-        }
-
         setButtonBusy(
           uploadBtn,
           true,
-          "Uploading PDF..."
+          "Starting..."
         );
 
-        showLoading();
+        setProgress(
+          0,
+          `तयारी हुँदैछ... ${formatFileSize(file.size)}`
+        );
+
+        let uploadId="";
+        let offset=0;
+        let chunkBytes=
+          4*1024*1024;
 
         try{
-          const base64Data=
-            await readFileAsDataUrl(
-              file
-            );
-
-          const result=
+          const start=
             await api(
-              "adminUploadLibraryPdf",
+              "adminStartLibraryPdfUpload",
               {
                 token:state.token,
                 libraryId:
                   getCurrentLibraryId(),
                 fileName:file.name,
                 mimeType:file.type,
-                base64Data
+                fileSize:file.size
               },
               "POST"
             );
 
+          uploadId=
+            start.uploadId||"";
+
+          chunkBytes=
+            Number(
+              start.recommendedChunkBytes ||
+              chunkBytes
+            );
+
+          if(!uploadId){
+            throw new Error(
+              "Upload Session ID प्राप्त भएन ।"
+            );
+          }
+
+          setButtonBusy(
+            uploadBtn,
+            true,
+            "Uploading..."
+          );
+
+          let finalResult=null;
+
+          while(offset < file.size){
+            const endExclusive=
+              Math.min(
+                offset+chunkBytes,
+                file.size
+              );
+
+            const blob=
+              file.slice(
+                offset,
+                endExclusive
+              );
+
+            const base64Data=
+              await readBlobAsDataUrl(
+                blob
+              );
+
+            let chunkResult=null;
+
+            try{
+              chunkResult=
+                await api(
+                  "adminUploadLibraryPdfChunk",
+                  {
+                    token:state.token,
+                    uploadId,
+                    startByte:offset,
+                    endByte:
+                      endExclusive-1,
+                    totalBytes:
+                      file.size,
+                    base64Data
+                  },
+                  "POST"
+                );
+
+            }catch(chunkError){
+              // A response may be lost even if Drive accepted the chunk.
+              // Query the official resumable session before retrying.
+              const status=
+                await api(
+                  "adminGetLibraryPdfUploadStatus",
+                  {
+                    token:state.token,
+                    uploadId
+                  }
+                );
+
+              if(status.complete){
+                finalResult=status;
+                offset=file.size;
+                break;
+              }
+
+              const resumedOffset=
+                Number(
+                  status.nextOffset||0
+                );
+
+              if(
+                resumedOffset >
+                offset
+              ){
+                offset=
+                  resumedOffset;
+
+                setProgress(
+                  Math.floor(
+                    (
+                      offset /
+                      file.size
+                    )*100
+                  ),
+                  `Upload resume भयो... ${formatFileSize(offset)} / ${formatFileSize(file.size)}`
+                );
+
+                continue;
+              }
+
+              // No forward progress. Rethrow the original error.
+              throw chunkError;
+            }
+
+            if(chunkResult.complete){
+              finalResult=
+                chunkResult;
+
+              offset=
+                file.size;
+
+              setProgress(
+                100,
+                "PDF upload पूरा भयो ।"
+              );
+
+              break;
+            }
+
+            const nextOffset=
+              Number(
+                chunkResult.nextOffset ||
+                endExclusive
+              );
+
+            // Never move backwards.
+            offset=
+              Math.max(
+                endExclusive,
+                nextOffset
+              );
+
+            const percent=
+              Math.min(
+                99,
+                Math.floor(
+                  (
+                    offset /
+                    file.size
+                  )*100
+                )
+              );
+
+            setProgress(
+              percent,
+              `${percent}% — ${formatFileSize(offset)} / ${formatFileSize(file.size)}`
+            );
+          }
+
+          if(
+            !finalResult ||
+            !finalResult.fileUrl
+          ){
+            // Final status check if the last chunk response was unusual.
+            const status=
+              await api(
+                "adminGetLibraryPdfUploadStatus",
+                {
+                  token:state.token,
+                  uploadId
+                }
+              );
+
+            if(
+              status.complete
+            ){
+              finalResult=status;
+            }
+          }
+
+          if(
+            !finalResult ||
+            !finalResult.fileUrl
+          ){
+            throw new Error(
+              "PDF upload पूरा भएको पुष्टि हुन सकेन ।"
+            );
+          }
+
           urlInput.value=
-            result.fileUrl||"";
+            finalResult.fileUrl||"";
 
           setLibraryDefaultsAfterPdfUpload(
-            result
+            finalResult
+          );
+
+          setProgress(
+            100,
+            "100% — PDF सुरक्षित रूपमा upload भयो । अब record Save गर्नुहोस् ।"
           );
 
           if(
-            result.restrictionApplied
+            finalResult.restrictionApplied
           ){
             toast(
-              "PDF upload भयो र Download / Print / Copy protection लागू भयो ।"
+              "Large PDF upload पूरा भयो र Download / Print / Copy protection लागू भयो ।"
             );
           }else{
             toast(
-              "PDF upload भयो । Drive restriction status जाँच गर्नुहोस्: " +
-              (result.restrictionMessage||""),
+              "PDF upload पूरा भयो । Drive restriction status जाँच गर्नुहोस्: " +
+              (
+                finalResult.restrictionMessage ||
+                ""
+              ),
               true
             );
           }
 
         }catch(error){
-          handleAdminApiError(error);
-        }finally{
-          hideLoading();
+          setProgress(
+            Math.floor(
+              (
+                offset /
+                Math.max(
+                  1,
+                  file.size
+                )
+              )*100
+            ),
+            "Upload रोकियो: " +
+            (
+              error.message ||
+              "Unknown error"
+            )
+          );
 
+          handleAdminApiError(
+            error
+          );
+
+        }finally{
           setButtonBusy(
             uploadBtn,
             false
           );
         }
       };
+    }
+
+
+    function readBlobAsDataUrl(blob){
+      return new Promise(
+        (resolve,reject)=>{
+          const reader=
+            new FileReader();
+
+          reader.onload=()=>{
+            resolve(
+              String(
+                reader.result||""
+              )
+            );
+          };
+
+          reader.onerror=()=>{
+            reject(
+              new Error(
+                "PDF chunk पढ्न सकिएन ।"
+              )
+            );
+          };
+
+          reader.readAsDataURL(
+            blob
+          );
+        }
+      );
+    }
+
+
+    function formatFileSize(bytes){
+      const value=
+        Number(bytes||0);
+
+      if(value < 1024){
+        return value+" B";
+      }
+
+      if(value < 1024*1024){
+        return (
+          value/1024
+        ).toFixed(1)+" KB";
+      }
+
+      if(value < 1024*1024*1024){
+        return (
+          value/(1024*1024)
+        ).toFixed(1)+" MB";
+      }
+
+      return (
+        value/(1024*1024*1024)
+      ).toFixed(2)+" GB";
     }
 
 
