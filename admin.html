@@ -1151,7 +1151,7 @@
 
     const MODULES = {
       sliders:{title:"Slider Manager",display:["SliderID","Title","Subtitle","ImageURL","DisplayOrder","Status"]},
-      destinations:{title:"Destination Manager",display:["DestinationID","DestinationName","CategoryID","DistrictCity","Featured","Status"]},
+      destinations:{title:"Destination Manager",display:["DestinationID","DestinationName","CoverImageURL","CategoryID","DistrictCity","Featured","Status"]},
       trips:{title:"Trip Manager",display:["TripID","TripTitle","StartDate","EndDate","BasePrice","TripStatus"]},
       services:{title:"Services Manager",display:["ServiceID","ServiceTitle","ApplicableTripType","DisplayOrder","Status"]},
       library:{title:"Digital Library",display:["LibraryID","Title","ResourceType","AccessLevel","Featured","Status"]},
@@ -8093,6 +8093,10 @@ toast("Login सफल भयो ।");
       if(state.view==="sliders"){
         wireSliderImageUploadFields();
       }
+
+      if(state.view==="destinations"){
+        wireDestinationImageUploadField();
+      }
     }
     function closeModal(){$("recordModal").classList.add("hidden");$("recordFields").innerHTML=""}
 
@@ -8105,6 +8109,13 @@ toast("Login सफल भयो ।");
         /^(ImageURL|MobileImageURL)$/i.test(h)
       ){
         return sliderImageFieldHtml(h,v);
+      }
+
+      if(
+        state.view==="destinations" &&
+        /^CoverImageURL$/i.test(h)
+      ){
+        return destinationCoverImageFieldHtml(h,v);
       }
 
       if(TEXTAREA_HINTS.test(h))return `<div class="${cls}">${label}<textarea name="${esc(h)}" rows="${/HTML|Content/i.test(h)?8:4}">${esc(v)}</textarea></div>`;
@@ -8231,6 +8242,118 @@ toast("Login सफल भयो ।");
             }
           };
         });
+    }
+
+    function destinationCoverImageFieldHtml(fieldName,value){
+      const preview=value
+        ? `<img class="slider-image-preview" src="${esc(value)}" alt="Destination preview">`
+        : `<img class="slider-image-preview hidden" alt="Destination preview">`;
+
+      return `
+        <div class="field full-span slider-image-field"
+             data-destination-image-field="${esc(fieldName)}">
+          <label>Destination Cover Photo</label>
+
+          <input
+            name="${esc(fieldName)}"
+            class="destination-image-url-input"
+            value="${esc(value)}"
+            placeholder="Upload गरेपछि CoverImageURL automatically यहाँ आउँछ । Manual URL पनि राख्न सकिन्छ ।">
+
+          <div class="slider-upload-row">
+            <input
+              type="file"
+              class="destination-image-file-input"
+              accept="image/jpeg,image/png,image/webp">
+
+            <button
+              type="button"
+              class="btn btn-soft destination-image-upload-btn">
+              📷 गन्तव्य फोटो Upload
+            </button>
+          </div>
+
+          <small class="slider-upload-note">
+            JPG / PNG / WEBP • अधिकतम 5 MB • Landscape photo recommended
+          </small>
+
+          ${preview}
+        </div>`;
+    }
+
+    function wireDestinationImageUploadField(){
+      const box=document.querySelector("[data-destination-image-field]");
+      if(!box)return;
+
+      const urlInput=box.querySelector(".destination-image-url-input");
+      const fileInput=box.querySelector(".destination-image-file-input");
+      const uploadBtn=box.querySelector(".destination-image-upload-btn");
+      const preview=box.querySelector(".slider-image-preview");
+
+      const refreshPreview=()=>{
+        const url=String(urlInput.value||"").trim();
+        if(!url){
+          preview.removeAttribute("src");
+          preview.classList.add("hidden");
+          return;
+        }
+        preview.src=url;
+        preview.classList.remove("hidden");
+      };
+
+      urlInput.addEventListener("change",refreshPreview);
+
+      uploadBtn.onclick=async()=>{
+        const file=fileInput.files?.[0];
+
+        if(!file){
+          toast("पहिले गन्तव्यको फोटो छान्नुहोस् ।");
+          return;
+        }
+
+        if(!["image/jpeg","image/png","image/webp"].includes(file.type)){
+          toast("JPG, PNG वा WEBP image मात्र छान्नुहोस् ।");
+          return;
+        }
+
+        if(file.size>5*1024*1024){
+          toast("Image बढीमा 5 MB हुनुपर्छ ।");
+          return;
+        }
+
+        setButtonBusy(uploadBtn,true,"Uploading...");
+
+        try{
+          const base64Data=await readFileAsDataUrl(file);
+
+          const destinationId=
+            document.querySelector(
+              '#recordForm [name="DestinationID"]'
+            )?.value || "";
+
+          const result=await api(
+            "adminUploadDestinationImage",
+            {
+              token:state.token,
+              destinationId,
+              fileName:file.name,
+              mimeType:file.type,
+              base64Data
+            },
+            "POST"
+          );
+
+          urlInput.value=result.imageUrl||"";
+          refreshPreview();
+
+          toast("गन्तव्यको फोटो upload भयो । अब Save गर्नुहोस् ।");
+
+        }catch(error){
+          handleAdminApiError(error);
+        }finally{
+          setButtonBusy(uploadBtn,false);
+        }
+      };
     }
 
     function readFileAsDataUrl(file){
