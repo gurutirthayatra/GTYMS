@@ -1425,6 +1425,118 @@ button {
       }
     }
 
+  
+    /* GTYMS v3.9.1 Universal Destination Explorer Popup */
+    .destination-explorer-card{
+      width:min(1180px,97vw);
+      height:min(90vh,900px);
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+      background:#fffaf5;
+      border-radius:22px;
+      box-shadow:0 25px 80px rgba(0,0,0,.38);
+    }
+
+    .destination-explorer-head{
+      flex:0 0 auto;
+      padding:22px 24px 16px;
+      border-bottom:1px solid #eadbd0;
+      background:#fffaf5;
+    }
+
+    .destination-explorer-head h2{
+      margin:4px 50px 4px 0;
+    }
+
+    .destination-explorer-head p{
+      margin:0;
+      color:#786a62;
+    }
+
+    .destination-explorer-tools{
+      display:grid;
+      grid-template-columns:minmax(0,1fr) minmax(180px,260px);
+      gap:12px;
+      margin-top:16px;
+    }
+
+    .destination-explorer-tools input,
+    .destination-explorer-tools select{
+      width:100%;
+      min-height:48px;
+      border:1px solid #d9c9bd;
+      border-radius:12px;
+      background:#fff;
+      padding:10px 13px;
+      font:inherit;
+    }
+
+    .destination-explorer-result-line{
+      margin-top:10px;
+      font-size:13px;
+      color:#786a62;
+      font-weight:700;
+    }
+
+    .destination-explorer-scroll{
+      flex:1 1 auto;
+      overflow:auto;
+      padding:20px 24px 28px;
+      overscroll-behavior:contain;
+    }
+
+    .destination-explorer-grid{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:18px;
+    }
+
+    .destination-explorer-grid .card{
+      margin:0;
+    }
+
+    .destination-explorer-empty{
+      grid-column:1/-1;
+      text-align:center;
+      padding:42px 18px;
+      border:1px dashed #d9c9bd;
+      border-radius:16px;
+      color:#786a62;
+      background:#fff;
+    }
+
+    @media(max-width:900px){
+      .destination-explorer-grid{
+        grid-template-columns:repeat(2,minmax(0,1fr));
+      }
+    }
+
+    @media(max-width:640px){
+      .destination-explorer-card{
+        width:100%;
+        height:100%;
+        max-height:none;
+        border-radius:0;
+      }
+
+      .destination-explorer-head{
+        padding:18px 16px 14px;
+      }
+
+      .destination-explorer-tools{
+        grid-template-columns:1fr;
+      }
+
+      .destination-explorer-scroll{
+        padding:14px 14px 24px;
+      }
+
+      .destination-explorer-grid{
+        grid-template-columns:1fr;
+      }
+    }
+
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
@@ -1549,11 +1661,42 @@ button {
 
         <div id="destinationMoreWrap" class="destination-more-wrap hidden">
           <button id="showMoreDestinations" class="btn btn-primary" type="button">
-            थप गन्तव्यहरू हेर्नुहोस्
+            सबै गन्तव्य हेर्नुहोस्
           </button>
         </div>
       </div>
     </section>
+
+    <!-- Universal Destination Explorer Popup -->
+    <div id="destinationExplorerModal" class="destination-modal hidden" aria-hidden="true">
+      <div class="destination-explorer-card">
+        <button id="closeDestinationExplorer" class="destination-modal-close" type="button" aria-label="Close">×</button>
+
+        <div class="destination-explorer-head">
+          <span class="eyebrow">गन्तव्य खोज</span>
+          <h2>सबै धार्मिक तथा पर्यटकीय गन्तव्य</h2>
+          <p>नाम वा जिल्ला अनुसार खोजेर आफूलाई मन परेको गन्तव्य छान्नुहोस् ।</p>
+
+          <div class="destination-explorer-tools">
+            <input
+              id="destinationExplorerSearch"
+              type="search"
+              placeholder="गन्तव्य, जिल्ला वा स्थान खोज्नुहोस्..."
+              autocomplete="off">
+
+            <select id="destinationExplorerDistrict">
+              <option value="">सबै जिल्ला / स्थान</option>
+            </select>
+          </div>
+
+          <div id="destinationExplorerCount" class="destination-explorer-result-line"></div>
+        </div>
+
+        <div class="destination-explorer-scroll">
+          <div id="destinationExplorerGrid" class="destination-explorer-grid"></div>
+        </div>
+      </div>
+    </div>
 
     <!-- Destination Details Modal -->
     <div id="destinationDetailsModal" class="destination-modal hidden" aria-hidden="true">
@@ -2308,7 +2451,6 @@ window.GTYMS_UI = (() => {
     sliders: [],
     destinations: [],
     allDestinations: [],
-    destinationExpanded: false,
     trips: [],
     currentSlide: 0,
     sliderTimer: null
@@ -2357,9 +2499,12 @@ window.GTYMS_UI = (() => {
     document.getElementById("refreshTrips")?.addEventListener("click", refreshTrips);
     document.getElementById("interestForm")?.addEventListener("submit", submitInterest);
     document.getElementById("destinationCardInterestForm")?.addEventListener("submit", submitDestinationCardInterest);
-    document.getElementById("showMoreDestinations")?.addEventListener("click", toggleAllDestinations);
+    document.getElementById("showMoreDestinations")?.addEventListener("click", openDestinationExplorer);
     document.getElementById("closeDestinationDetails")?.addEventListener("click", closeDestinationDetails);
     document.getElementById("closeDestinationInterest")?.addEventListener("click", closeDestinationInterest);
+    document.getElementById("closeDestinationExplorer")?.addEventListener("click", closeDestinationExplorer);
+    document.getElementById("destinationExplorerSearch")?.addEventListener("input", renderDestinationExplorer);
+    document.getElementById("destinationExplorerDistrict")?.addEventListener("change", renderDestinationExplorer);
     document.getElementById("contactForm")?.addEventListener("submit", submitContact);
     document.getElementById("tripSearchForm")?.addEventListener("submit", filterTrips);
   }
@@ -3765,11 +3910,8 @@ window.GTYMS_UI = (() => {
 
     if (hasMore && moreWrap && moreButton) {
       moreWrap.classList.remove("hidden");
-
       moreButton.textContent =
-        state.destinationExpanded
-          ? "लोकप्रिय गन्तव्य मात्र देखाउनुहोस्"
-          : `सबै गन्तव्य हेर्नुहोस् (${state.allDestinations.length})`;
+        `सबै गन्तव्य हेर्नुहोस् (${state.allDestinations.length})`;
     } else {
       moreWrap?.classList.add("hidden");
     }
@@ -3800,21 +3942,277 @@ window.GTYMS_UI = (() => {
     return all;
   }
 
-  function toggleAllDestinations() {
-    state.destinationExpanded =
-      !state.destinationExpanded;
+  function openDestinationExplorer() {
+    const modal =
+      document.getElementById(
+        "destinationExplorerModal"
+      );
 
-    renderDestinations(
-      state.destinationExpanded
-        ? state.allDestinations
-        : state.destinations
+    buildDestinationExplorerDistricts();
+
+    const search =
+      document.getElementById(
+        "destinationExplorerSearch"
+      );
+
+    if (search) {
+      search.value = "";
+    }
+
+    const district =
+      document.getElementById(
+        "destinationExplorerDistrict"
+      );
+
+    if (district) {
+      district.value = "";
+    }
+
+    renderDestinationExplorer();
+
+    modal?.classList.remove("hidden");
+    modal?.setAttribute("aria-hidden", "false");
+
+    document.body.style.overflow = "hidden";
+
+    window.setTimeout(() => {
+      search?.focus();
+    }, 120);
+  }
+
+  function closeDestinationExplorer() {
+    const modal =
+      document.getElementById(
+        "destinationExplorerModal"
+      );
+
+    modal?.classList.add("hidden");
+    modal?.setAttribute("aria-hidden", "true");
+
+    document.body.style.overflow = "";
+  }
+
+  function buildDestinationExplorerDistricts() {
+    const select =
+      document.getElementById(
+        "destinationExplorerDistrict"
+      );
+
+    if (!select) return;
+
+    const currentValue =
+      String(select.value || "");
+
+    const values = Array.from(
+      new Set(
+        state.allDestinations
+          .map((item) =>
+            String(
+              item.DistrictCity ||
+              item.LocationName ||
+              ""
+            ).trim()
+          )
+          .filter(Boolean)
+      )
+    ).sort((a,b) =>
+      a.localeCompare(
+        b,
+        "ne",
+        { sensitivity:"base" }
+      )
     );
 
-    document.getElementById("destinations")
-      ?.scrollIntoView({
-        behavior: "smooth",
-        block: "start"
+    select.innerHTML =
+      `<option value="">सबै जिल्ला / स्थान</option>` +
+      values.map((value) =>
+        `<option value="${UI.escapeHtml(value)}">${UI.escapeHtml(value)}</option>`
+      ).join("");
+
+    if (
+      values.includes(currentValue)
+    ) {
+      select.value = currentValue;
+    }
+  }
+
+  function renderDestinationExplorer() {
+    const grid =
+      document.getElementById(
+        "destinationExplorerGrid"
+      );
+
+    const count =
+      document.getElementById(
+        "destinationExplorerCount"
+      );
+
+    if (!grid) return;
+
+    const keyword =
+      String(
+        document.getElementById(
+          "destinationExplorerSearch"
+        )?.value || ""
+      )
+      .trim()
+      .toLowerCase();
+
+    const district =
+      String(
+        document.getElementById(
+          "destinationExplorerDistrict"
+        )?.value || ""
+      )
+      .trim();
+
+    const items =
+      state.allDestinations.filter((item) => {
+        const districtValue =
+          String(
+            item.DistrictCity ||
+            item.LocationName ||
+            ""
+          ).trim();
+
+        if (
+          district &&
+          districtValue !== district
+        ) {
+          return false;
+        }
+
+        if (!keyword) {
+          return true;
+        }
+
+        const haystack = [
+          item.DestinationName,
+          item.DistrictCity,
+          item.LocationName,
+          item.Country,
+          item.ShortDescription
+        ]
+          .map((value) =>
+            String(value || "").toLowerCase()
+          )
+          .join(" ");
+
+        return haystack.includes(keyword);
       });
+
+    if (count) {
+      count.textContent =
+        `${items.length} वटा गन्तव्य भेटिए`;
+    }
+
+    if (!items.length) {
+      grid.innerHTML =
+        `<div class="destination-explorer-empty">
+          खोजअनुसार कुनै गन्तव्य भेटिएन ।
+        </div>`;
+      return;
+    }
+
+    grid.innerHTML =
+      items.map((item) =>
+        destinationExplorerCard(item)
+      ).join("");
+
+    grid
+      .querySelectorAll(
+        ".destination-explorer-details"
+      )
+      .forEach((button) => {
+        button.addEventListener(
+          "click",
+          () => {
+            closeDestinationExplorer();
+
+            openDestinationDetails(
+              button.dataset.id || ""
+            );
+          }
+        );
+      });
+
+    grid
+      .querySelectorAll(
+        ".destination-explorer-interest"
+      )
+      .forEach((button) => {
+        button.addEventListener(
+          "click",
+          () => {
+            closeDestinationExplorer();
+
+            openDestinationInterest(
+              button.dataset.id || ""
+            );
+          }
+        );
+      });
+  }
+
+  function destinationExplorerCard(item) {
+    return `
+      <article class="card">
+        <img
+          class="card-image"
+          src="${UI.escapeHtml(
+            UI.safeImage(item.CoverImageURL)
+          )}"
+          alt="${UI.escapeHtml(
+            item.DestinationName ||
+            "Destination"
+          )}">
+
+        <div class="card-body">
+          <div class="card-meta">
+            <span class="badge">
+              ${UI.escapeHtml(
+                item.DistrictCity ||
+                item.LocationName ||
+                item.Country ||
+                "गन्तव्य"
+              )}
+            </span>
+          </div>
+
+          <h3>
+            ${UI.escapeHtml(
+              item.DestinationName || ""
+            )}
+          </h3>
+
+          <p>
+            ${UI.escapeHtml(
+              item.ShortDescription || ""
+            )}
+          </p>
+
+          <div class="card-actions destination-card-actions">
+            <button
+              class="btn btn-soft destination-explorer-details"
+              type="button"
+              data-id="${UI.escapeHtml(
+                item.DestinationID || ""
+              )}">
+              विस्तृत जानकारी
+            </button>
+
+            <button
+              class="btn btn-primary destination-explorer-interest"
+              type="button"
+              data-id="${UI.escapeHtml(
+                item.DestinationID || ""
+              )}">
+              म यहाँ जान चाहन्छु
+            </button>
+          </div>
+        </div>
+      </article>
+    `;
   }
 
   function findDestinationById(destinationId) {
@@ -4142,6 +4540,56 @@ window.GTYMS_UI = (() => {
       </div>
     `;
   }
+
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
+
+    if (
+      !document.getElementById(
+        "destinationExplorerModal"
+      )?.classList.contains("hidden")
+    ) {
+      closeDestinationExplorer();
+      return;
+    }
+
+    if (
+      !document.getElementById(
+        "destinationDetailsModal"
+      )?.classList.contains("hidden")
+    ) {
+      closeDestinationDetails();
+      return;
+    }
+
+    if (
+      !document.getElementById(
+        "destinationInterestModal"
+      )?.classList.contains("hidden")
+    ) {
+      closeDestinationInterest();
+    }
+  });
+
+  [
+    "destinationExplorerModal",
+    "destinationDetailsModal",
+    "destinationInterestModal"
+  ].forEach((id) => {
+    document.getElementById(id)
+      ?.addEventListener("click", (event) => {
+        if (event.target.id !== id) return;
+
+        if (id === "destinationExplorerModal") {
+          closeDestinationExplorer();
+        } else if (id === "destinationDetailsModal") {
+          closeDestinationDetails();
+        } else {
+          closeDestinationInterest();
+        }
+      });
+  });
 
   function renderServices(services) {
     const grid = document.getElementById("serviceGrid");
