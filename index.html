@@ -147,7 +147,6 @@ button {
   align-items: center;
   gap: 22px;
   font-weight: 600;
-  font-size: 15px;
 }
 
 .main-nav a:hover {
@@ -1307,7 +1306,126 @@ button {
     }
   }
 
-</style>
+
+    /* GTYMS v3.9.0 Destination Explorer */
+    .destination-more-wrap{
+      display:flex;
+      justify-content:center;
+      margin-top:24px;
+    }
+
+    .destination-card-actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    .destination-modal{
+      position:fixed;
+      inset:0;
+      z-index:9997;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+      background:rgba(25,12,5,.72);
+    }
+
+    .destination-modal.hidden{
+      display:none;
+    }
+
+    .destination-modal-card{
+      position:relative;
+      width:min(760px,96vw);
+      max-height:92vh;
+      overflow:auto;
+      border-radius:22px;
+      background:#fffaf5;
+      box-shadow:0 25px 70px rgba(0,0,0,.35);
+    }
+
+    .destination-modal-close{
+      position:absolute;
+      top:12px;
+      right:12px;
+      width:42px;
+      height:42px;
+      border:0;
+      border-radius:50%;
+      cursor:pointer;
+      font-size:24px;
+      background:#fff;
+      color:#8b1e1e;
+      box-shadow:0 4px 18px rgba(0,0,0,.16);
+      z-index:2;
+    }
+
+    .destination-detail-cover{
+      width:100%;
+      height:300px;
+      object-fit:cover;
+      display:block;
+      background:#f3eee9;
+    }
+
+    .destination-detail-body{
+      padding:24px;
+    }
+
+    .destination-detail-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:12px;
+      margin:18px 0;
+    }
+
+    .destination-detail-box{
+      border:1px solid #eadbd0;
+      border-radius:12px;
+      padding:12px;
+      background:#fff;
+    }
+
+    .destination-detail-box strong{
+      display:block;
+      color:#8b1e1e;
+      margin-bottom:5px;
+    }
+
+    .destination-interest-summary{
+      border:1px solid #eadbd0;
+      border-radius:14px;
+      padding:12px 14px;
+      background:#fff6ed;
+      margin-bottom:14px;
+      font-weight:700;
+    }
+
+    .destination-interest-form{
+      padding:24px;
+    }
+
+    @media(max-width:640px){
+      .destination-detail-grid{
+        grid-template-columns:1fr;
+      }
+
+      .destination-detail-cover{
+        height:210px;
+      }
+
+      .destination-modal{
+        padding:8px;
+      }
+
+      .destination-modal-card{
+        width:100%;
+        max-height:96vh;
+      }
+    }
+
+  </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
@@ -1428,8 +1546,75 @@ button {
         <div id="destinationGrid" class="card-grid">
           <div class="empty-card">गन्तव्यहरू लोड हुँदैछन्...</div>
         </div>
+
+        <div id="destinationMoreWrap" class="destination-more-wrap hidden">
+          <button id="showMoreDestinations" class="btn btn-primary" type="button">
+            थप गन्तव्यहरू हेर्नुहोस्
+          </button>
+        </div>
       </div>
     </section>
+
+    <!-- Destination Details Modal -->
+    <div id="destinationDetailsModal" class="destination-modal hidden" aria-hidden="true">
+      <div class="destination-modal-card">
+        <button id="closeDestinationDetails" class="destination-modal-close" type="button" aria-label="Close">×</button>
+        <div id="destinationDetailsContent"></div>
+      </div>
+    </div>
+
+    <!-- Card-specific Interest Form Modal.
+         Main page interest form remains unchanged. -->
+    <div id="destinationInterestModal" class="destination-modal hidden" aria-hidden="true">
+      <div class="destination-modal-card">
+        <button id="closeDestinationInterest" class="destination-modal-close" type="button" aria-label="Close">×</button>
+
+        <form id="destinationCardInterestForm" class="destination-interest-form">
+          <span class="eyebrow">यात्रा रुचि फारम</span>
+          <h2 id="destinationInterestTitle">म यहाँ जान चाहन्छु</h2>
+
+          <div id="destinationInterestSummary" class="destination-interest-summary"></div>
+
+          <input id="destinationCardDestinationId" name="destinationId" type="hidden">
+
+          <div class="form-grid">
+            <div class="field">
+              <label>पूरा नाम *</label>
+              <input name="fullName" required>
+            </div>
+
+            <div class="field">
+              <label>मोबाइल नम्बर *</label>
+              <input name="mobile" inputmode="numeric" required>
+            </div>
+
+            <div class="field">
+              <label>जान चाहेको समय</label>
+              <input name="preferredTravelMonth" placeholder="जस्तै: वैशाख">
+            </div>
+
+            <div class="field">
+              <label>यात्रु संख्या</label>
+              <input name="passengerCount" type="number" min="1" value="1">
+            </div>
+
+            <div class="field full">
+              <label>विशेष सुझाव वा आवश्यकता</label>
+              <textarea name="specialRequest" rows="4"></textarea>
+            </div>
+
+            <label class="checkbox-row full">
+              <input type="checkbox" name="whatsAppConsent" checked>
+              नयाँ यात्राको WhatsApp सूचना प्राप्त गर्न चाहन्छु ।
+            </label>
+          </div>
+
+          <button class="btn btn-primary full-button" type="submit">
+            विवरण पठाउनुहोस्
+          </button>
+        </form>
+      </div>
+    </div>
 
     <section id="services" class="section">
       <div class="container">
@@ -1739,8 +1924,7 @@ button {
 
           <div class="contact-actions">
             <a id="callButton" class="btn btn-primary" href="tel:+9779843484934">फोन गर्नुहोस्</a>
-            <a id="whatsAppButton" class="btn btn-secondary" href="https://wa.me/9779843484934?text=%E0%A4%A8%E0%A4%AE%E0%A4%B8%E0%A5%8D%E0%A4%95%E0%A4%BE%E0%A4%B0%20%E0%A4%97%E0%A5%81%E0%A4%B0%E0%A5%81%20%E0%A4%A4%E0%A5%80%E0%A4%B0%E0%A5%8D%E0%A4%A5%E0%A4%AF%E0%A4%BE%20%E0%A4%B8%E0%A5%87%E0%A4%B5%E0%A4%BE%20%E0%A5%A4" target="_blank" rel="noopener">WhatsApp</a>
-            <a id="googleMapButton" class="btn btn-secondary hidden" href="#" target="_blank" rel="noopener noreferrer">📍 Google Map</a>
+            <a id="whatsAppButton" class="btn btn-secondary" href="https://wa.me/9779843484934?text=%E0%A4%A8%E0%A4%AE%E0%A4%B8%E0%A5%8D%E0%A4%95%E0%A4%BE%E0%A4%B0%20%E0%A4%97%E0%A5%81%E0%A4%B0%E0%A5%81%20%E0%A4%A4%E0%A5%80%E0%A4%B0%E0%A5%8D%E0%A4%A5%E0%A4%AF%E0%A4%BE%E0%A4%A4%E0%A5%8D%E0%A4%B0%E0%A4%BE%20%E0%A4%B8%E0%A5%87%E0%A4%B5%E0%A4%BE%20%E0%A5%A4" target="_blank" rel="noopener">WhatsApp</a>
           </div>
 
           <div
@@ -2124,6 +2308,7 @@ window.GTYMS_UI = (() => {
     sliders: [],
     destinations: [],
     allDestinations: [],
+    destinationExpanded: false,
     trips: [],
     currentSlide: 0,
     sliderTimer: null
@@ -2137,20 +2322,15 @@ window.GTYMS_UI = (() => {
     try {
       UI.showLoading("वेबसाइटको जानकारी लोड हुँदैछ...");
 
-      const [homeData, allDestinationData] = await Promise.all([
+      const [homeData, allDestinations] = await Promise.all([
         API.get("getHomeData"),
-        API.get("getDestinations", {
-          page: 1,
-          pageSize: 100,
-          sortField: "DisplayOrder",
-          sortDirection: "asc"
-        })
+        loadAllDestinations()
       ]);
 
       state.settings = homeData.settings || {};
       state.sliders = homeData.sliders || [];
       state.destinations = homeData.featuredDestinations || [];
-      state.allDestinations = allDestinationData.items || [];
+      state.allDestinations = allDestinations || [];
       state.trips = homeData.openTrips || [];
 
       applySettings();
@@ -2176,6 +2356,10 @@ window.GTYMS_UI = (() => {
     document.getElementById("nextSlide")?.addEventListener("click", () => moveSlide(1));
     document.getElementById("refreshTrips")?.addEventListener("click", refreshTrips);
     document.getElementById("interestForm")?.addEventListener("submit", submitInterest);
+    document.getElementById("destinationCardInterestForm")?.addEventListener("submit", submitDestinationCardInterest);
+    document.getElementById("showMoreDestinations")?.addEventListener("click", toggleAllDestinations);
+    document.getElementById("closeDestinationDetails")?.addEventListener("click", closeDestinationDetails);
+    document.getElementById("closeDestinationInterest")?.addEventListener("click", closeDestinationInterest);
     document.getElementById("contactForm")?.addEventListener("submit", submitContact);
     document.getElementById("tripSearchForm")?.addEventListener("submit", filterTrips);
   }
@@ -2211,20 +2395,6 @@ window.GTYMS_UI = (() => {
       const element = document.getElementById(id);
       if (element) element.href = whatsAppLink;
     });
-
-    // GTYMS additive update: Google Map URL from Admin Settings.
-    const googleMapUrl = String(state.settings.GOOGLE_MAP_URL || "").trim();
-    const googleMapButton = document.getElementById("googleMapButton");
-
-    if (googleMapButton) {
-      if (/^https?:\/\//i.test(googleMapUrl)) {
-        googleMapButton.href = googleMapUrl;
-        googleMapButton.classList.remove("hidden");
-      } else {
-        googleMapButton.href = "#";
-        googleMapButton.classList.add("hidden");
-      }
-    }
 
     const qrUrl = state.settings.PAYMENT_QR_URL;
     if (qrUrl) {
@@ -3531,9 +3701,12 @@ window.GTYMS_UI = (() => {
 
   function renderDestinations(destinations) {
     const grid = document.getElementById("destinationGrid");
+    const moreWrap = document.getElementById("destinationMoreWrap");
+    const moreButton = document.getElementById("showMoreDestinations");
 
     if (!destinations.length) {
       grid.innerHTML = `<div class="empty-card">गन्तव्य विवरण चाँडै थपिनेछ ।</div>`;
+      moreWrap?.classList.add("hidden");
       return;
     }
 
@@ -3542,15 +3715,29 @@ window.GTYMS_UI = (() => {
         <img class="card-image"
           src="${UI.escapeHtml(UI.safeImage(item.CoverImageURL))}"
           alt="${UI.escapeHtml(item.DestinationName || "Destination")}">
+
         <div class="card-body">
           <div class="card-meta">
-            <span class="badge">${UI.escapeHtml(item.DistrictCity || item.Country || "गन्तव्य")}</span>
+            <span class="badge">
+              ${UI.escapeHtml(item.DistrictCity || item.Country || "गन्तव्य")}
+            </span>
           </div>
+
           <h3>${UI.escapeHtml(item.DestinationName || "")}</h3>
           <p>${UI.escapeHtml(item.ShortDescription || "")}</p>
-          <div class="card-actions">
-            <button class="btn btn-primary interest-destination"
-              data-id="${UI.escapeHtml(item.DestinationID || "")}">
+
+          <div class="card-actions destination-card-actions">
+            <button
+              class="btn btn-soft destination-details-button"
+              data-id="${UI.escapeHtml(item.DestinationID || "")}"
+              type="button">
+              विस्तृत जानकारी
+            </button>
+
+            <button
+              class="btn btn-primary interest-destination"
+              data-id="${UI.escapeHtml(item.DestinationID || "")}"
+              type="button">
               म यहाँ जान चाहन्छु
             </button>
           </div>
@@ -3558,12 +3745,402 @@ window.GTYMS_UI = (() => {
       </article>
     `).join("");
 
-    grid.querySelectorAll(".interest-destination").forEach((button) => {
+    grid.querySelectorAll(".destination-details-button").forEach((button) => {
       button.addEventListener("click", () => {
-        document.getElementById("interestDestination").value = button.dataset.id;
-        document.getElementById("interest").scrollIntoView({ behavior: "smooth" });
+        openDestinationDetails(button.dataset.id || "");
       });
     });
+
+    // IMPORTANT:
+    // Card click uses a separate modal form.
+    // Main page interest form is left exactly as it is.
+    grid.querySelectorAll(".interest-destination").forEach((button) => {
+      button.addEventListener("click", () => {
+        openDestinationInterest(button.dataset.id || "");
+      });
+    });
+
+    const hasMore =
+      state.allDestinations.length > state.destinations.length;
+
+    if (hasMore && moreWrap && moreButton) {
+      moreWrap.classList.remove("hidden");
+
+      moreButton.textContent =
+        state.destinationExpanded
+          ? "लोकप्रिय गन्तव्य मात्र देखाउनुहोस्"
+          : `सबै गन्तव्य हेर्नुहोस् (${state.allDestinations.length})`;
+    } else {
+      moreWrap?.classList.add("hidden");
+    }
+  }
+
+  async function loadAllDestinations() {
+    const all = [];
+    let page = 1;
+    let totalPages = 1;
+
+    do {
+      const result = await API.get("getDestinations", {
+        page,
+        pageSize: 100,
+        sortField: "DisplayOrder",
+        sortDirection: "asc"
+      });
+
+      all.push(...(result.items || []));
+
+      totalPages =
+        Number(result.pagination?.totalPages || 1);
+
+      page += 1;
+
+    } while (page <= totalPages);
+
+    return all;
+  }
+
+  function toggleAllDestinations() {
+    state.destinationExpanded =
+      !state.destinationExpanded;
+
+    renderDestinations(
+      state.destinationExpanded
+        ? state.allDestinations
+        : state.destinations
+    );
+
+    document.getElementById("destinations")
+      ?.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+  }
+
+  function findDestinationById(destinationId) {
+    return state.allDestinations.find((item) =>
+      String(item.DestinationID || "") ===
+      String(destinationId || "")
+    ) || null;
+  }
+
+  function openDestinationInterest(destinationId) {
+    const destination =
+      findDestinationById(destinationId);
+
+    if (!destination) {
+      UI.showToast(
+        "गन्तव्य विवरण भेटिएन ।",
+        "error"
+      );
+      return;
+    }
+
+    const modal =
+      document.getElementById(
+        "destinationInterestModal"
+      );
+
+    document.getElementById(
+      "destinationCardDestinationId"
+    ).value =
+      destination.DestinationID || "";
+
+    document.getElementById(
+      "destinationInterestTitle"
+    ).textContent =
+      `${destination.DestinationName || "गन्तव्य"} जान चाहन्छु`;
+
+    document.getElementById(
+      "destinationInterestSummary"
+    ).innerHTML =
+      `<strong>${UI.escapeHtml(
+        destination.DestinationName || ""
+      )}</strong>` +
+      (
+        destination.DistrictCity
+          ? `<br><span>${UI.escapeHtml(
+              destination.DistrictCity
+            )}</span>`
+          : ""
+      );
+
+    modal?.classList.remove("hidden");
+    modal?.setAttribute("aria-hidden", "false");
+
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeDestinationInterest() {
+    const modal =
+      document.getElementById(
+        "destinationInterestModal"
+      );
+
+    modal?.classList.add("hidden");
+    modal?.setAttribute("aria-hidden", "true");
+
+    document.body.style.overflow = "";
+  }
+
+  async function submitDestinationCardInterest(event) {
+    event.preventDefault();
+
+    const form = event.currentTarget;
+    const payload = UI.formToObject(form);
+
+    if (!payload.destinationId) {
+      UI.showToast(
+        "गन्तव्य चयन भएको छैन ।",
+        "error"
+      );
+      return;
+    }
+
+    try {
+      UI.showLoading(
+        "तपाईंको विवरण पठाइँदैछ..."
+      );
+
+      const result =
+        await API.post(
+          "submitTravelInterest",
+          payload
+        );
+
+      const selectedDestinationId =
+        payload.destinationId;
+
+      form.reset();
+
+      document.getElementById(
+        "destinationCardDestinationId"
+      ).value = "";
+
+      closeDestinationInterest();
+
+      UI.showToast(
+        `विवरण सफलतापूर्वक पठाइयो । ID: ${result.interestId}`
+      );
+
+      // Keep selected destination logic isolated from main form.
+      console.info(
+        "Destination interest submitted:",
+        selectedDestinationId
+      );
+
+    } catch (error) {
+      UI.showToast(
+        "हाल अनुरोध पूरा हुन सकेन । कृपया केही समयपछि पुनः प्रयास गर्नुहोस् ।",
+        "error"
+      );
+    } finally {
+      UI.hideLoading();
+    }
+  }
+
+  async function openDestinationDetails(destinationId) {
+    const modal =
+      document.getElementById(
+        "destinationDetailsModal"
+      );
+
+    const content =
+      document.getElementById(
+        "destinationDetailsContent"
+      );
+
+    modal?.classList.remove("hidden");
+    modal?.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+
+    content.innerHTML =
+      `<div class="destination-detail-body">
+        <div class="empty-card">विस्तृत जानकारी लोड हुँदैछ...</div>
+      </div>`;
+
+    try {
+      const result =
+        await API.get(
+          "getDestinationDetails",
+          {
+            destinationId
+          }
+        );
+
+      const d = result.destination || {};
+      const trips = result.trips || [];
+
+      content.innerHTML = `
+        <img
+          class="destination-detail-cover"
+          src="${UI.escapeHtml(
+            UI.safeImage(d.CoverImageURL)
+          )}"
+          alt="${UI.escapeHtml(
+            d.DestinationName || "Destination"
+          )}">
+
+        <div class="destination-detail-body">
+          <span class="eyebrow">
+            ${UI.escapeHtml(
+              d.DistrictCity ||
+              d.Country ||
+              "गन्तव्य"
+            )}
+          </span>
+
+          <h2>${UI.escapeHtml(
+            d.DestinationName || ""
+          )}</h2>
+
+          <p>${UI.escapeHtml(
+            plainDestinationText(
+              d.ShortDescription
+            )
+          )}</p>
+
+          <div class="destination-detail-grid">
+            ${destinationInfoBox(
+              "धार्मिक महत्त्व",
+              d.ReligiousImportanceHTML
+            )}
+
+            ${destinationInfoBox(
+              "ऐतिहासिक पृष्ठभूमि",
+              d.HistoricalBackgroundHTML
+            )}
+
+            ${destinationInfoBox(
+              "उत्तम समय",
+              d.BestSeason
+            )}
+
+            ${destinationInfoBox(
+              "सिफारिस अवधि",
+              d.RecommendedDuration
+            )}
+
+            ${destinationInfoBox(
+              "यात्रा मार्ग",
+              d.TravelRouteHTML
+            )}
+
+            ${destinationInfoBox(
+              "स्वास्थ्य सुझाव",
+              d.HealthAdviceHTML
+            )}
+
+            ${destinationInfoBox(
+              "आवश्यक सामग्री",
+              d.RequiredItemsHTML
+            )}
+
+            ${destinationInfoBox(
+              "मुख्य आकर्षण",
+              d.MainAttractionsHTML
+            )}
+          </div>
+
+          ${d.FullDescriptionHTML
+            ? `<div class="destination-detail-box">
+                <strong>विस्तृत परिचय</strong>
+                <div>${UI.escapeHtml(
+                  plainDestinationText(
+                    d.FullDescriptionHTML
+                  )
+                )}</div>
+              </div>`
+            : ""}
+
+          ${trips.length
+            ? `<p style="margin-top:16px">
+                यस गन्तव्यसँग सम्बन्धित
+                <strong>${trips.length}</strong>
+                यात्रा प्याकेज उपलब्ध/रेकर्डमा छन् ।
+              </p>`
+            : ""}
+
+          <div class="card-actions destination-card-actions" style="margin-top:18px">
+            ${d.GoogleMapURL
+              ? `<a class="btn btn-soft"
+                   href="${UI.escapeHtml(d.GoogleMapURL)}"
+                   target="_blank"
+                   rel="noopener">
+                   Google Map
+                 </a>`
+              : ""}
+
+            <button
+              class="btn btn-primary"
+              type="button"
+              id="detailInterestButton">
+              म यहाँ जान चाहन्छु
+            </button>
+          </div>
+        </div>
+      `;
+
+      document.getElementById(
+        "detailInterestButton"
+      )?.addEventListener(
+        "click",
+        () => {
+          closeDestinationDetails();
+          openDestinationInterest(
+            d.DestinationID || destinationId
+          );
+        }
+      );
+
+    } catch (error) {
+      content.innerHTML =
+        `<div class="destination-detail-body">
+          <div class="empty-card">
+            विस्तृत जानकारी लोड हुन सकेन ।
+          </div>
+        </div>`;
+    }
+  }
+
+  function closeDestinationDetails() {
+    const modal =
+      document.getElementById(
+        "destinationDetailsModal"
+      );
+
+    modal?.classList.add("hidden");
+    modal?.setAttribute("aria-hidden", "true");
+
+    document.body.style.overflow = "";
+  }
+
+  function plainDestinationText(value) {
+    const div =
+      document.createElement("div");
+
+    div.innerHTML =
+      String(value || "");
+
+    return (
+      div.textContent ||
+      div.innerText ||
+      ""
+    ).trim();
+  }
+
+  function destinationInfoBox(title, value) {
+    const text =
+      plainDestinationText(value);
+
+    if (!text) return "";
+
+    return `
+      <div class="destination-detail-box">
+        <strong>${UI.escapeHtml(title)}</strong>
+        <span>${UI.escapeHtml(text)}</span>
+      </div>
+    `;
   }
 
   function renderServices(services) {
