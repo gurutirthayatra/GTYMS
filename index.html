@@ -4979,111 +4979,289 @@ window.GTYMS_UI = (() => {
         "libraryGrid"
       );
 
-    if (!items.length) {
-      grid.innerHTML =
-        `<div class="empty-card">
-          डिजिटल पुस्तकहरू चाँडै उपलब्ध हुनेछन् ।
-        </div>`;
-      return;
+    if (!grid) return;
+
+    const HOME_LIBRARY_LIMIT = 6;
+
+    let libraryItems =
+      Array.isArray(items)
+        ? items.slice()
+        : [];
+
+    let libraryExpanded = false;
+
+    document
+      .getElementById(
+        "libraryViewMoreWrap"
+      )
+      ?.remove();
+
+    function libraryCardHtml(item) {
+      const cover =
+        String(
+          item.CoverImageURL || ""
+        ).trim();
+
+      const resourceType =
+        String(
+          item.ResourceType ||
+          "PDF"
+        ).toUpperCase();
+
+      const canPreview =
+        String(
+          item.AllowPreview
+        ).toLowerCase() === "true" ||
+        String(
+          item.AllowPreview
+        ) === "1" ||
+        String(
+          item.AllowPreview
+        ).toUpperCase() === "TRUE";
+
+      const allowDownload =
+        String(
+          item.AllowDownload
+        ).toLowerCase() === "true" ||
+        String(
+          item.AllowDownload
+        ) === "1" ||
+        String(
+          item.AllowDownload
+        ).toUpperCase() === "TRUE";
+
+      return `
+        <article class="library-card">
+
+          <div class="library-cover-wrap">
+            ${cover
+              ? `<img
+                  class="library-cover"
+                  src="${UI.escapeHtml(cover)}"
+                  alt="${UI.escapeHtml(item.Title || "Book")}">`
+              : `<div class="library-cover-fallback">📖</div>`}
+          </div>
+
+          <div class="library-card-body">
+            <span class="badge">
+              ${UI.escapeHtml(resourceType)}
+            </span>
+
+            <h3>
+              ${UI.escapeHtml(item.Title || "")}
+            </h3>
+
+            <p>
+              ${UI.escapeHtml(
+                item.ShortDescription || ""
+              )}
+            </p>
+
+            ${canPreview
+              ? `<button
+                  class="btn btn-primary library-read-btn"
+                  type="button"
+                  data-library-id="${UI.escapeHtml(item.LibraryID || "")}">
+                  📖 पढ्नुहोस्
+                </button>`
+              : `<span class="muted">
+                  Preview उपलब्ध छैन ।
+                </span>`}
+
+            ${allowDownload
+              ? `<small class="muted" style="margin-top:8px">
+                  यो record मा Admin ले Download अनुमति दिएको छ ।
+                </small>`
+              : ""}
+          </div>
+        </article>
+      `;
     }
 
-    grid.innerHTML =
-      items.map((item) => {
-        const cover =
-          String(
-            item.CoverImageURL || ""
-          ).trim();
+    function bindLibraryReadButtons() {
+      grid
+        .querySelectorAll(
+          ".library-read-btn"
+        )
+        .forEach((button) => {
+          button.addEventListener(
+            "click",
+            () => {
+              openLibraryReader(
+                button.dataset.libraryId || ""
+              );
+            }
+          );
+        });
+    }
 
-        const resourceType =
-          String(
-            item.ResourceType ||
-            "PDF"
-          ).toUpperCase();
+    function drawLibrary() {
+      document
+        .getElementById(
+          "libraryViewMoreWrap"
+        )
+        ?.remove();
 
-        const canPreview =
-          String(
-            item.AllowPreview
-          ).toLowerCase() === "true" ||
-          String(
-            item.AllowPreview
-          ) === "1" ||
-          String(
-            item.AllowPreview
-          ).toUpperCase() === "TRUE";
+      if (!libraryItems.length) {
+        grid.innerHTML =
+          `<div class="empty-card">
+            डिजिटल पुस्तकहरू चाँडै उपलब्ध हुनेछन् ।
+          </div>`;
+        return;
+      }
 
-        const allowDownload =
-          String(
-            item.AllowDownload
-          ).toLowerCase() === "true" ||
-          String(
-            item.AllowDownload
-          ) === "1" ||
-          String(
-            item.AllowDownload
-          ).toUpperCase() === "TRUE";
-
-        return `
-          <article class="library-card">
-
-            <div class="library-cover-wrap">
-              ${cover
-                ? `<img
-                    class="library-cover"
-                    src="${UI.escapeHtml(cover)}"
-                    alt="${UI.escapeHtml(item.Title || "Book")}">`
-                : `<div class="library-cover-fallback">📖</div>`}
-            </div>
-
-            <div class="library-card-body">
-              <span class="badge">
-                ${UI.escapeHtml(resourceType)}
-              </span>
-
-              <h3>
-                ${UI.escapeHtml(item.Title || "")}
-              </h3>
-
-              <p>
-                ${UI.escapeHtml(
-                  item.ShortDescription || ""
-                )}
-              </p>
-
-              ${canPreview
-                ? `<button
-                    class="btn btn-primary library-read-btn"
-                    type="button"
-                    data-library-id="${UI.escapeHtml(item.LibraryID || "")}">
-                    📖 पढ्नुहोस्
-                  </button>`
-                : `<span class="muted">
-                    Preview उपलब्ध छैन ।
-                  </span>`}
-
-              ${allowDownload
-                ? `<small class="muted" style="margin-top:8px">
-                    यो record मा Admin ले Download अनुमति दिएको छ ।
-                  </small>`
-                : ""}
-            </div>
-          </article>
-        `;
-      }).join("");
-
-    grid
-      .querySelectorAll(
-        ".library-read-btn"
-      )
-      .forEach((button) => {
-        button.addEventListener(
-          "click",
-          () => {
-            openLibraryReader(
-              button.dataset.libraryId || ""
+      const visibleItems =
+        libraryExpanded
+          ? libraryItems
+          : libraryItems.slice(
+              0,
+              HOME_LIBRARY_LIMIT
             );
-          }
+
+      grid.innerHTML =
+        visibleItems
+          .map(libraryCardHtml)
+          .join("");
+
+      bindLibraryReadButtons();
+
+      if (
+        libraryItems.length <=
+        HOME_LIBRARY_LIMIT
+      ) {
+        return;
+      }
+
+      const wrap =
+        document.createElement(
+          "div"
         );
-      });
+
+      wrap.id =
+        "libraryViewMoreWrap";
+
+      wrap.style.cssText =
+        "width:100%;display:flex;justify-content:center;align-items:center;margin:24px 0 10px;";
+
+      const button =
+        document.createElement(
+          "button"
+        );
+
+      button.type =
+        "button";
+
+      button.id =
+        "libraryViewMoreBtn";
+
+      button.className =
+        "btn btn-primary";
+
+      button.style.minWidth =
+        "190px";
+
+      button.textContent =
+        libraryExpanded
+          ? "कम देखाउनुहोस्"
+          : "थप पुस्तक हेर्नुहोस्";
+
+      button.addEventListener(
+        "click",
+        () => {
+          libraryExpanded =
+            !libraryExpanded;
+
+          drawLibrary();
+
+          if (!libraryExpanded) {
+            grid.scrollIntoView({
+              behavior: "smooth",
+              block: "start"
+            });
+          }
+        }
+      );
+
+      wrap.appendChild(
+        button
+      );
+
+      grid.insertAdjacentElement(
+        "afterend",
+        wrap
+      );
+    }
+
+    async function loadLibraryForHome() {
+      try {
+        const firstPage =
+          await API.get(
+            "getLibrary",
+            {
+              featured: "TRUE",
+              accessLevel: "PUBLIC",
+              page: 1,
+              pageSize: 100
+            }
+          );
+
+        const allItems =
+          [
+            ...(firstPage?.items || [])
+          ];
+
+        let nextPage = 2;
+
+        const totalPages =
+          Number(
+            firstPage?.pagination
+              ?.totalPages || 1
+          );
+
+        while (
+          nextPage <= totalPages
+        ) {
+          const pageData =
+            await API.get(
+              "getLibrary",
+              {
+                featured: "TRUE",
+                accessLevel: "PUBLIC",
+                page: nextPage,
+                pageSize: 100
+              }
+            );
+
+          allItems.push(
+            ...(pageData?.items || [])
+          );
+
+          nextPage += 1;
+        }
+
+        if (allItems.length) {
+          libraryItems =
+            allItems;
+
+          drawLibrary();
+        }
+      } catch (error) {
+        console.warn(
+          "GTYMS Library View More check failed:",
+          error
+        );
+      }
+    }
+
+    drawLibrary();
+
+    /*
+     * Home API ले हाल 6 वटा Featured Library records मात्र दिन सक्छ ।
+     * त्यसैले 7औँ वा बढी पुस्तक छ कि छैन भनेर getLibrary बाट
+     * read-only रूपमा पूरा Featured/Public list जाँचिन्छ ।
+     * Existing Protected Reader logic परिवर्तन गरिएको छैन ।
+     */
+    loadLibraryForHome();
   }
 
 
