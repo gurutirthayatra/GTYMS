@@ -792,7 +792,7 @@
 
   <div id="adminApp" class="admin-layout hidden">
     <aside id="sidebar" class="sidebar">
-      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v4.0.0 • Finance Management</small></div>
+      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v4.1.0 • Vendor & Supplier</small></div>
       <nav class="nav">
         <button data-view="dashboard" class="active">▦ Dashboard</button>
         <button data-view="launcher">🔗 System Launcher</button>
@@ -807,6 +807,7 @@
         <button data-view="bookings">📋 Booking Manager</button>
         <button data-view="payments">💳 Payment Manager</button>
         <button data-view="financemgmt">💰 Finance Management</button>
+        <button data-view="vendormgmt">🏪 Vendor & Supplier</button>
         <button data-view="tickets">🎫 Ticket & Check-In</button>
         <button data-view="fleet">📍 Fleet & Tracking</button>
         <button data-view="opshub">📣 Ops, Family & Analytics</button>
@@ -1399,10 +1400,10 @@ toast("Login सफल भयो ।");
     async function openView(view){
       state.view=view;
       document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.view===view));
-      $("pageTitle").textContent=view==="dashboard"?"Dashboard":view==="finalops"?"Final Operations":view==="travelmgmt"?"Travel Management":view==="financemgmt"?"Finance Management":MODULES[view]?.title||view;
+      $("pageTitle").textContent=view==="dashboard"?"Dashboard":view==="finalops"?"Final Operations":view==="travelmgmt"?"Travel Management":view==="financemgmt"?"Finance Management":view==="vendormgmt"?"Vendor & Supplier":MODULES[view]?.title||view;
       showLoading();
       try{
-        if(view==="dashboard")await renderDashboard();else if(view==="launcher")await renderSystemLauncher();else if(view==="members")await renderMemberRewardsManager();else if(view==="rewardengine")await renderRewardEngineManager();else if(view==="identity")await renderIdentityManager();else if(view==="cleanup")await renderCleanupManager();else if(view==="trips")await renderTripManager();else if(view==="bookings")await renderBookingManager();else if(view==="payments")await renderPaymentManager();else if(view==="tickets")await renderTicketManager();else if(view==="fleet")await renderFleetManager();else if(view==="opshub")await renderOperationsHub();else if(view==="finalops")await renderFinalOperations();else if(view==="travelmgmt")await renderTravelManagement();else if(view==="financemgmt")await renderFinanceManagement();else if(view==="fieldops")await renderFieldOpsManager();else await renderModule(view);
+        if(view==="dashboard")await renderDashboard();else if(view==="launcher")await renderSystemLauncher();else if(view==="members")await renderMemberRewardsManager();else if(view==="rewardengine")await renderRewardEngineManager();else if(view==="identity")await renderIdentityManager();else if(view==="cleanup")await renderCleanupManager();else if(view==="trips")await renderTripManager();else if(view==="bookings")await renderBookingManager();else if(view==="payments")await renderPaymentManager();else if(view==="tickets")await renderTicketManager();else if(view==="fleet")await renderFleetManager();else if(view==="opshub")await renderOperationsHub();else if(view==="finalops")await renderFinalOperations();else if(view==="travelmgmt")await renderTravelManagement();else if(view==="financemgmt")await renderFinanceManagement();else if(view==="vendormgmt")await renderVendorManagement();else if(view==="fieldops")await renderFieldOpsManager();else await renderModule(view);
       } catch (e) {
         handleAdminApiError(e);
       } finally {
@@ -8170,6 +8171,1236 @@ toast("Login सफल भयो ।");
     }
 
 
+
+
+
+    /* =========================================================
+       GTYMS v4.1.0 VENDOR & SUPPLIER — ADDITIVE ADMIN MODULE
+       ========================================================= */
+
+    const VENDOR_TABS=[
+      ["overview","▦ Overview"],
+      ["master","🏪 Vendor Master"],
+      ["assignment","🧾 Trip Assignment"],
+      ["cost","💰 Cost Summary"],
+      ["rating","⭐ Performance"],
+      ["import","🔄 Import Existing"]
+    ];
+
+    async function renderVendorManagement(){
+      const data=await api(
+        "adminGetVendorDashboard",
+        {token:state.token}
+      );
+
+      state.vendorDashboard=data;
+
+      const c=data.cards||{};
+      const trips=data.trips||[];
+
+      $("content").innerHTML=`
+        <div class="stats">
+          <div class="stat"><small>Active Vendors</small><strong>${c.vendors||0}</strong></div>
+          <div class="stat"><small>Active Assignments</small><strong>${c.activeAssignments||0}</strong></div>
+          <div class="stat"><small>Outstanding</small><strong>रु. ${vendorMoney(c.outstandingAmount||0)}</strong></div>
+          <div class="stat"><small>Watchlist</small><strong>${c.watchlist||0}</strong></div>
+          <div class="stat"><small>Blacklist</small><strong>${c.blacklist||0}</strong></div>
+          <div class="stat"><small>Ratings</small><strong>${c.ratings||0}</strong></div>
+        </div>
+
+        <div class="panel" style="margin-top:16px">
+          <div class="panel-head">
+            <div>
+              <h3>Vendor & Supplier Management</h3>
+              <small>
+                Bus • Hotel • Food • Insurance • Guide • Supplier → Trip Assignment → Finance Payable
+              </small>
+            </div>
+
+            <div class="toolbar">
+              <select id="vendorTripFilter">
+                <option value="">All Trips</option>
+                ${trips.map(t=>`
+                  <option value="${esc(t.TripID||"")}">
+                    ${esc(t.TripTitle||t.TripCode||t.TripID||"")}
+                  </option>
+                `).join("")}
+              </select>
+            </div>
+          </div>
+
+          <div
+            class="toolbar"
+            style="margin:14px 0;flex-wrap:wrap">
+            ${VENDOR_TABS.map((tab,index)=>`
+              <button
+                class="btn ${index===0?"btn-primary":"btn-soft"} vendorTabBtn"
+                data-tab="${esc(tab[0])}">
+                ${esc(tab[1])}
+              </button>
+            `).join("")}
+          </div>
+
+          <div id="vendorBody">
+            <div class="empty">Vendor Management लोड हुँदैछ...</div>
+          </div>
+        </div>
+      `;
+
+      document.querySelectorAll(".vendorTabBtn").forEach(button=>{
+        button.onclick=async()=>{
+          document.querySelectorAll(".vendorTabBtn").forEach(b=>{
+            b.classList.toggle("btn-primary",b===button);
+            b.classList.toggle("btn-soft",b!==button);
+          });
+
+          await loadVendorTab(button.dataset.tab||"overview");
+        };
+      });
+
+      $("vendorTripFilter").onchange=()=>{
+        const active=
+          document.querySelector(".vendorTabBtn.btn-primary")?.dataset.tab||
+          "overview";
+
+        loadVendorTab(active);
+      };
+
+      await loadVendorTab("overview");
+    }
+
+
+    function vendorTripId(){
+      return $("vendorTripFilter")?.value||"";
+    }
+
+
+    async function loadVendorTab(tab){
+      const box=$("vendorBody");
+      if(!box)return;
+
+      box.innerHTML=`<div class="empty">लोड हुँदैछ...</div>`;
+
+      try{
+        if(tab==="overview"){
+          await vendorOverview(box);
+        }else if(tab==="master"){
+          await vendorMaster(box);
+        }else if(tab==="assignment"){
+          await vendorAssignments(box);
+        }else if(tab==="cost"){
+          await vendorCostSummary(box);
+        }else if(tab==="rating"){
+          await vendorRating(box);
+        }else if(tab==="import"){
+          await vendorImport(box);
+        }
+      }catch(error){
+        box.innerHTML=`
+          <div class="empty" style="color:var(--danger)">
+            ${esc(error.message||"Vendor module लोड हुन सकेन ।")}
+          </div>
+        `;
+        handleAdminApiError(error);
+      }
+    }
+
+
+    async function vendorOverview(box){
+      const dashboard=
+        await api(
+          "adminGetVendorDashboard",
+          {token:state.token}
+        );
+
+      const summary=
+        await api(
+          "adminGetVendorCostSummary",
+          {
+            token:state.token,
+            tripId:vendorTripId()
+          }
+        );
+
+      const totals=summary.totals||{};
+
+      box.innerHTML=`
+        <div class="stats">
+          <div class="stat"><small>Assignments</small><strong>${totals.assignments||0}</strong></div>
+          <div class="stat"><small>Agreed Cost</small><strong>रु. ${vendorMoney(totals.agreed||0)}</strong></div>
+          <div class="stat"><small>Paid</small><strong>रु. ${vendorMoney(totals.paid||0)}</strong></div>
+          <div class="stat"><small>Balance Due</small><strong>रु. ${vendorMoney(totals.due||0)}</strong></div>
+        </div>
+
+        <div class="grid-2" style="margin-top:14px">
+          <div class="panel">
+            <h3>Vendor Type</h3>
+            ${(dashboard.vendorTypeSummary||[]).length
+              ?dashboard.vendorTypeSummary.map(row=>`
+                <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line)">
+                  <span>${esc(row.label||"")}</span>
+                  <strong>${esc(row.count||0)}</strong>
+                </div>
+              `).join("")
+              :`<div class="empty">Vendor data छैन ।</div>`
+            }
+          </div>
+
+          <div class="panel">
+            <h3>Cost by Vendor Type</h3>
+            ${(summary.byVendorType||[]).length
+              ?summary.byVendorType.map(row=>`
+                <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line)">
+                  <span>${esc(row.label||"")}</span>
+                  <strong>रु. ${vendorMoney(row.amount||0)}</strong>
+                </div>
+              `).join("")
+              :`<div class="empty">Assignment cost छैन ।</div>`
+            }
+          </div>
+        </div>
+      `;
+    }
+
+
+    async function vendorMaster(box){
+      const d=
+        await api(
+          "adminListVendors",
+          {token:state.token}
+        );
+
+      box.innerHTML=`
+        <div class="panel">
+          <h3>Add / Update Vendor</h3>
+
+          <form id="vendorMasterForm" class="form-grid">
+            <input type="hidden" name="vendorId">
+
+            <div class="field">
+              <label>Vendor Type *</label>
+              <select name="vendorType" required>
+                <option value="BUS">Bus / Transport</option>
+                <option value="HOTEL">Hotel</option>
+                <option value="FOOD">Food / Catering</option>
+                <option value="INSURANCE">Insurance</option>
+                <option value="GUIDE">Guide</option>
+                <option value="STAFF">Staff Supplier</option>
+                <option value="MEDICAL">Medical</option>
+                <option value="EQUIPMENT">Equipment</option>
+                <option value="SUPPLIER">General Supplier</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Vendor Name *</label>
+              <input name="vendorName" required>
+            </div>
+
+            <div class="field">
+              <label>Company Name</label>
+              <input name="companyName">
+            </div>
+
+            <div class="field">
+              <label>Contact Person</label>
+              <input name="contactPerson">
+            </div>
+
+            <div class="field">
+              <label>Mobile *</label>
+              <input name="mobile" required>
+            </div>
+
+            <div class="field">
+              <label>Alternate Mobile</label>
+              <input name="alternateMobile">
+            </div>
+
+            <div class="field">
+              <label>Email</label>
+              <input name="email" type="email">
+            </div>
+
+            <div class="field">
+              <label>PAN / VAT</label>
+              <input name="panVatNumber">
+            </div>
+
+            <div class="field">
+              <label>Province / State</label>
+              <input name="provinceState">
+            </div>
+
+            <div class="field">
+              <label>District / City</label>
+              <input name="districtCity">
+            </div>
+
+            <div class="field full-span">
+              <label>Address</label>
+              <input name="address">
+            </div>
+
+            <div class="field">
+              <label>Bank Name</label>
+              <input name="bankName">
+            </div>
+
+            <div class="field">
+              <label>Bank Account Name</label>
+              <input name="bankAccountName">
+            </div>
+
+            <div class="field">
+              <label>Bank Account Number</label>
+              <input name="bankAccountNumber">
+            </div>
+
+            <div class="field">
+              <label>Wallet Provider</label>
+              <input name="walletProvider" placeholder="eSewa / Khalti / ...">
+            </div>
+
+            <div class="field">
+              <label>Wallet Number</label>
+              <input name="walletNumber">
+            </div>
+
+            <div class="field">
+              <label>Standard Rate</label>
+              <input name="standardRate" type="number" min="0" step="0.01">
+            </div>
+
+            <div class="field">
+              <label>Rate Unit</label>
+              <select name="rateUnit">
+                <option value="">Select</option>
+                <option value="PER_DAY">Per Day</option>
+                <option value="PER_TRIP">Per Trip</option>
+                <option value="PER_PERSON">Per Person</option>
+                <option value="PER_ROOM">Per Room</option>
+                <option value="PER_MEAL">Per Meal</option>
+                <option value="PER_KM">Per KM</option>
+                <option value="FIXED">Fixed</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Credit Days</label>
+              <input name="creditDays" type="number" min="0" value="0">
+            </div>
+
+            <div class="field">
+              <label>Watchlist</label>
+              <select name="watchlistStatus">
+                <option value="FALSE">NO</option>
+                <option value="TRUE">YES</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Blacklist</label>
+              <select name="blacklistStatus">
+                <option value="FALSE">NO</option>
+                <option value="TRUE">YES</option>
+              </select>
+            </div>
+
+            <div class="field full-span">
+              <label>Agreement URL</label>
+              <input name="agreementURL">
+            </div>
+
+            <div class="field full-span">
+              <label>Quotation URL</label>
+              <input name="quotationURL">
+            </div>
+
+            <div class="field full-span">
+              <label>QR Image URL</label>
+              <input name="qrImageURL">
+            </div>
+
+            <div class="field full-span">
+              <label>Remarks</label>
+              <textarea name="remarks" rows="3"></textarea>
+            </div>
+
+            <div class="full-span">
+              <button class="btn btn-primary" type="submit">
+                Save Vendor
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <h3>Vendor Master • ${d.total||0}</h3>
+            <strong>Outstanding: रु. ${vendorMoney(d.outstandingAmount||0)}</strong>
+          </div>
+
+          ${vendorMasterTable(d.items||[])}
+        </div>
+      `;
+
+      $("vendorMasterForm").onsubmit=async event=>{
+        event.preventDefault();
+
+        const button=event.submitter;
+        const p=formDataObject_(event.currentTarget);
+
+        setButtonBusy(button,true,"Saving...");
+
+        try{
+          await api(
+            "adminSaveVendor",
+            {
+              token:state.token,
+              vendor:p
+            },
+            "POST"
+          );
+
+          toast("Vendor save भयो ।");
+          await vendorMaster(box);
+        }catch(error){
+          handleAdminApiError(error);
+        }finally{
+          setButtonBusy(button,false);
+        }
+      };
+
+      document.querySelectorAll(".vendorEditBtn").forEach(button=>{
+        button.onclick=async()=>{
+          const data=
+            await api(
+              "adminGetVendorDetails",
+              {
+                token:state.token,
+                vendorId:button.dataset.id
+              }
+            );
+
+          const v=data.vendor||{};
+          const form=$("vendorMasterForm");
+
+          Object.entries(v).forEach(([key,value])=>{
+            const field=
+              form.querySelector(`[name="${vendorVendorKeyToFormKey(key)}"]`);
+
+            if(!field)return;
+
+            if(typeof value==="boolean"){
+              field.value=value?"TRUE":"FALSE";
+            }else{
+              field.value=value??"";
+            }
+          });
+
+          form.scrollIntoView({
+            behavior:"smooth",
+            block:"start"
+          });
+        };
+      });
+    }
+
+
+    function vendorVendorKeyToFormKey(key){
+      const map={
+        VendorID:"vendorId",
+        VendorType:"vendorType",
+        VendorName:"vendorName",
+        CompanyName:"companyName",
+        ContactPerson:"contactPerson",
+        Mobile:"mobile",
+        AlternateMobile:"alternateMobile",
+        Email:"email",
+        PANVATNumber:"panVatNumber",
+        ProvinceState:"provinceState",
+        DistrictCity:"districtCity",
+        Address:"address",
+        BankName:"bankName",
+        BankAccountName:"bankAccountName",
+        BankAccountNumber:"bankAccountNumber",
+        WalletProvider:"walletProvider",
+        WalletNumber:"walletNumber",
+        QRImageURL:"qrImageURL",
+        AgreementURL:"agreementURL",
+        QuotationURL:"quotationURL",
+        StandardRate:"standardRate",
+        RateUnit:"rateUnit",
+        CreditDays:"creditDays",
+        WatchlistStatus:"watchlistStatus",
+        BlacklistStatus:"blacklistStatus",
+        Remarks:"remarks"
+      };
+
+      return map[key]||key;
+    }
+
+
+    function vendorMasterTable(rows){
+      if(!rows.length){
+        return `<div class="empty">Vendor record छैन ।</div>`;
+      }
+
+      return `
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Vendor</th>
+                <th>Contact</th>
+                <th>Location</th>
+                <th>Rating</th>
+                <th>Trips</th>
+                <th>Business</th>
+                <th>Outstanding</th>
+                <th>Risk</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map(v=>`
+                <tr>
+                  <td>
+                    <strong>${esc(v.VendorName||"")}</strong><br>
+                    <small>${esc(v.VendorType||"")}</small>
+                  </td>
+                  <td>
+                    ${esc(v.Mobile||"")}<br>
+                    <small>${esc(v.ContactPerson||"")}</small>
+                  </td>
+                  <td>${esc(v.DistrictCity||v.Address||"")}</td>
+                  <td>${vendorMoney(v.AverageRating||0)} / 5</td>
+                  <td>${esc(v.TotalTrips||0)}</td>
+                  <td>रु. ${vendorMoney(v.TotalBusiness||0)}</td>
+                  <td>रु. ${vendorMoney(v.OutstandingAmount||0)}</td>
+                  <td>
+                    ${v.BlacklistStatus
+                      ?`<span class="chip" style="color:var(--danger)">BLACKLIST</span>`
+                      :v.WatchlistStatus
+                        ?`<span class="chip">WATCHLIST</span>`
+                        :`<span class="chip">OK</span>`
+                    }
+                  </td>
+                  <td>
+                    <button
+                      class="btn btn-soft vendorEditBtn"
+                      data-id="${esc(v.VendorID||"")}">
+                      Edit
+                    </button>
+                  </td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+
+    async function vendorAssignments(box){
+      const tripId=vendorTripId();
+
+      const [d,refs]=await Promise.all([
+        api(
+          "adminListTripVendorAssignments",
+          {
+            token:state.token,
+            tripId
+          }
+        ),
+        api(
+          "adminGetVendorReferenceData",
+          {token:state.token}
+        )
+      ]);
+
+      state.vendorRefs=refs;
+
+      box.innerHTML=`
+        <div class="panel">
+          <h3>Trip Vendor Assignment</h3>
+
+          <form id="vendorAssignmentForm" class="form-grid">
+            <div class="field">
+              <label>Trip *</label>
+              ${vendorTripSelectHtml(
+                "tripId",
+                tripId,
+                refs.trips||[]
+              )}
+            </div>
+
+            <div class="field">
+              <label>Vendor *</label>
+              <select
+                name="vendorId"
+                id="vendorAssignmentVendor"
+                required>
+                <option value="">Select Vendor</option>
+                ${(refs.vendors||[]).map(v=>`
+                  <option
+                    value="${esc(v.id||"")}"
+                    data-rate="${esc(v.standardRate||0)}"
+                    data-unit="${esc(v.rateUnit||"")}">
+                    ${esc(v.name||v.id||"")}
+                    ${v.type?` • ${esc(v.type)}`:""}
+                  </option>
+                `).join("")}
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Reference Module</label>
+              <select name="referenceModule">
+                <option value="">Manual</option>
+                <option value="BUS_RENTAL">Bus Rental</option>
+                <option value="HOTEL">Hotel</option>
+                <option value="MEAL_PLAN">Meal / Catering</option>
+                <option value="INSURANCE">Insurance</option>
+                <option value="GUIDE">Guide</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Reference ID</label>
+              <input name="referenceId">
+            </div>
+
+            <div class="field full-span">
+              <label>Service Description *</label>
+              <textarea
+                name="serviceDescription"
+                rows="3"
+                required></textarea>
+            </div>
+
+            <div class="field">
+              <label>Quantity</label>
+              <input
+                name="quantity"
+                id="vendorAssignmentQty"
+                type="number"
+                min="0"
+                step="0.01"
+                value="1">
+            </div>
+
+            <div class="field">
+              <label>Rate</label>
+              <input
+                name="rate"
+                id="vendorAssignmentRate"
+                type="number"
+                min="0"
+                step="0.01">
+            </div>
+
+            <div class="field">
+              <label>Rate Unit</label>
+              <input
+                name="rateUnit"
+                id="vendorAssignmentUnit">
+            </div>
+
+            <div class="field">
+              <label>Agreed Amount *</label>
+              <input
+                name="agreedAmount"
+                id="vendorAssignmentAgreed"
+                type="number"
+                min="0.01"
+                step="0.01"
+                required>
+            </div>
+
+            <div class="field">
+              <label>Advance Amount</label>
+              <input
+                name="advanceAmount"
+                type="number"
+                min="0"
+                step="0.01"
+                value="0">
+            </div>
+
+            <div class="field">
+              <label>Paid Amount</label>
+              <input
+                name="paidAmount"
+                type="number"
+                min="0"
+                step="0.01"
+                value="0">
+            </div>
+
+            <div class="field">
+              <label>Service Start</label>
+              <input name="serviceStartDate" type="date">
+            </div>
+
+            <div class="field">
+              <label>Service End</label>
+              <input name="serviceEndDate" type="date">
+            </div>
+
+            <div class="field">
+              <label>Due Date</label>
+              <input name="dueDate" type="date">
+            </div>
+
+            <div class="field">
+              <label>Operational Status</label>
+              <select name="operationalStatus">
+                <option value="PLANNED">PLANNED</option>
+                <option value="CONFIRMED">CONFIRMED</option>
+                <option value="ONGOING">ONGOING</option>
+                <option value="COMPLETED">COMPLETED</option>
+                <option value="CANCELLED">CANCELLED</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Sync Finance Payable?</label>
+              <select name="syncFinancePayable">
+                <option value="FALSE">NO</option>
+                <option value="TRUE">YES</option>
+              </select>
+            </div>
+
+            <div class="field full-span">
+              <label>Agreement URL</label>
+              <input name="agreementURL">
+            </div>
+
+            <div class="field full-span">
+              <label>Quotation URL</label>
+              <input name="quotationURL">
+            </div>
+
+            <div class="field full-span">
+              <label>Bill / Invoice URL</label>
+              <input name="billURL">
+            </div>
+
+            <div class="field">
+              <label>Bill / Invoice Number</label>
+              <input name="billInvoiceNumber">
+            </div>
+
+            <div class="field full-span">
+              <label>Remarks</label>
+              <textarea name="remarks" rows="3"></textarea>
+            </div>
+
+            <div class="full-span">
+              <button
+                class="btn btn-primary"
+                type="submit">
+                Save Assignment
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <h3>Assignments • ${d.total||0}</h3>
+            <strong>Due: रु. ${vendorMoney(d.balanceDue||0)}</strong>
+          </div>
+
+          ${vendorAssignmentTable(d.items||[])}
+        </div>
+      `;
+
+      const vendorSelect=$("vendorAssignmentVendor");
+
+      vendorSelect.onchange=()=>{
+        const option=
+          vendorSelect.selectedOptions[0];
+
+        const rate=
+          Number(option?.dataset.rate||0);
+
+        const unit=
+          option?.dataset.unit||"";
+
+        if(rate>0){
+          $("vendorAssignmentRate").value=rate;
+        }
+
+        if(unit){
+          $("vendorAssignmentUnit").value=unit;
+        }
+
+        vendorCalculateAgreement_();
+      };
+
+      ["vendorAssignmentQty","vendorAssignmentRate"]
+        .forEach(id=>{
+          $(id).addEventListener(
+            "input",
+            vendorCalculateAgreement_
+          );
+        });
+
+      $("vendorAssignmentForm").onsubmit=async event=>{
+        event.preventDefault();
+
+        const button=event.submitter;
+        const p=formDataObject_(event.currentTarget);
+
+        setButtonBusy(button,true,"Saving...");
+
+        try{
+          const result=
+            await api(
+              "adminSaveTripVendorAssignment",
+              {
+                token:state.token,
+                assignment:p
+              },
+              "POST"
+            );
+
+          toast(
+            `Vendor assignment save भयो । Due: रु. ${vendorMoney(result.balanceDue||0)}`
+          );
+
+          await vendorAssignments(box);
+        }catch(error){
+          handleAdminApiError(error);
+        }finally{
+          setButtonBusy(button,false);
+        }
+      };
+
+      document.querySelectorAll(".vendorFinanceSyncBtn").forEach(button=>{
+        button.onclick=async()=>{
+          setButtonBusy(button,true,"Syncing...");
+
+          try{
+            const result=
+              await api(
+                "adminSyncVendorAssignmentToFinance",
+                {
+                  token:state.token,
+                  assignmentId:button.dataset.id
+                },
+                "POST"
+              );
+
+            toast(
+              `Finance Payable synced: ${result.financePayableId||""}`
+            );
+
+            await vendorAssignments(box);
+          }catch(error){
+            handleAdminApiError(error);
+          }finally{
+            setButtonBusy(button,false);
+          }
+        };
+      });
+    }
+
+
+    function vendorCalculateAgreement_(){
+      const qty=
+        Number(
+          $("vendorAssignmentQty")?.value||0
+        );
+
+      const rate=
+        Number(
+          $("vendorAssignmentRate")?.value||0
+        );
+
+      if(qty>0&&rate>0){
+        $("vendorAssignmentAgreed").value=
+          Math.round(
+            qty*rate*100
+          )/100;
+      }
+    }
+
+
+    function vendorAssignmentTable(rows){
+      if(!rows.length){
+        return `<div class="empty">Vendor assignment छैन ।</div>`;
+      }
+
+      return `
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Trip</th>
+                <th>Vendor</th>
+                <th>Service</th>
+                <th>Agreed</th>
+                <th>Paid</th>
+                <th>Due</th>
+                <th>Status</th>
+                <th>Finance</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map(r=>`
+                <tr>
+                  <td>${esc(r.TripTitle||r.TripID||"")}</td>
+                  <td>
+                    <strong>${esc(r.VendorName||r.VendorID||"")}</strong><br>
+                    <small>${esc(r.VendorType||"")}</small>
+                  </td>
+                  <td>${esc(r.ServiceDescription||"")}</td>
+                  <td>रु. ${vendorMoney(r.AgreedAmount||0)}</td>
+                  <td>रु. ${vendorMoney(r.PaidAmount||0)}</td>
+                  <td>रु. ${vendorMoney(r.BalanceDue||0)}</td>
+                  <td>
+                    <span class="chip">
+                      ${esc(r.OperationalStatus||"")}
+                    </span>
+                  </td>
+                  <td>
+                    ${r.FinancePayableID
+                      ?`<span class="chip">${esc(r.FinancePayableID)}</span>`
+                      :`Not Synced`
+                    }
+                  </td>
+                  <td>
+                    <button
+                      class="btn btn-soft vendorFinanceSyncBtn"
+                      data-id="${esc(r.AssignmentID||"")}">
+                      Sync Finance
+                    </button>
+                  </td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+
+    async function vendorCostSummary(box){
+      const d=
+        await api(
+          "adminGetVendorCostSummary",
+          {
+            token:state.token,
+            tripId:vendorTripId()
+          }
+        );
+
+      const t=d.totals||{};
+
+      box.innerHTML=`
+        <div class="stats">
+          <div class="stat"><small>Assignments</small><strong>${t.assignments||0}</strong></div>
+          <div class="stat"><small>Agreed</small><strong>रु. ${vendorMoney(t.agreed||0)}</strong></div>
+          <div class="stat"><small>Paid</small><strong>रु. ${vendorMoney(t.paid||0)}</strong></div>
+          <div class="stat"><small>Due</small><strong>रु. ${vendorMoney(t.due||0)}</strong></div>
+        </div>
+
+        <div class="grid-2" style="margin-top:14px">
+          <div class="panel">
+            <h3>Cost by Vendor Type</h3>
+            ${(d.byVendorType||[]).length
+              ?d.byVendorType.map(r=>`
+                <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line)">
+                  <span>${esc(r.label||"")}</span>
+                  <strong>रु. ${vendorMoney(r.amount||0)}</strong>
+                </div>
+              `).join("")
+              :`<div class="empty">No data</div>`
+            }
+          </div>
+
+          <div class="panel">
+            <h3>Cost by Trip</h3>
+            ${(d.byTrip||[]).length
+              ?d.byTrip.map(r=>`
+                <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line)">
+                  <span>${esc(r.label||"")}</span>
+                  <strong>रु. ${vendorMoney(r.amount||0)}</strong>
+                </div>
+              `).join("")
+              :`<div class="empty">No data</div>`
+            }
+          </div>
+        </div>
+
+        <div class="panel" style="margin-top:14px">
+          <h3>Cost Detail</h3>
+          ${vendorAssignmentTable(d.items||[])}
+        </div>
+      `;
+
+      document.querySelectorAll(".vendorFinanceSyncBtn").forEach(button=>{
+        button.onclick=async()=>{
+          try{
+            await api(
+              "adminSyncVendorAssignmentToFinance",
+              {
+                token:state.token,
+                assignmentId:button.dataset.id
+              },
+              "POST"
+            );
+
+            toast("Finance sync भयो ।");
+            await vendorCostSummary(box);
+          }catch(error){
+            handleAdminApiError(error);
+          }
+        };
+      });
+    }
+
+
+    async function vendorRating(box){
+      const refs=
+        await api(
+          "adminGetVendorReferenceData",
+          {token:state.token}
+        );
+
+      box.innerHTML=`
+        <div class="panel">
+          <h3>Vendor Performance Rating</h3>
+
+          <form id="vendorRatingForm" class="form-grid">
+            <div class="field">
+              <label>Trip *</label>
+              ${vendorTripSelectHtml(
+                "tripId",
+                vendorTripId(),
+                refs.trips||[]
+              )}
+            </div>
+
+            <div class="field">
+              <label>Vendor *</label>
+              <select name="vendorId" required>
+                <option value="">Select Vendor</option>
+                ${(refs.vendors||[]).map(v=>`
+                  <option value="${esc(v.id||"")}">
+                    ${esc(v.name||v.id||"")}
+                  </option>
+                `).join("")}
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Assignment ID</label>
+              <input name="assignmentId">
+            </div>
+
+            <div class="field">
+              <label>Overall Rating *</label>
+              ${vendorRatingSelectHtml("overallRating",true)}
+            </div>
+
+            <div class="field">
+              <label>Quality</label>
+              ${vendorRatingSelectHtml("qualityRating",false)}
+            </div>
+
+            <div class="field">
+              <label>Timeliness</label>
+              ${vendorRatingSelectHtml("timelinessRating",false)}
+            </div>
+
+            <div class="field">
+              <label>Communication</label>
+              ${vendorRatingSelectHtml("communicationRating",false)}
+            </div>
+
+            <div class="field">
+              <label>Safety</label>
+              ${vendorRatingSelectHtml("safetyRating",false)}
+            </div>
+
+            <div class="field">
+              <label>Value</label>
+              ${vendorRatingSelectHtml("valueRating",false)}
+            </div>
+
+            <div class="field">
+              <label>Would Use Again?</label>
+              <select name="wouldUseAgain">
+                <option value="TRUE">YES</option>
+                <option value="FALSE">NO</option>
+              </select>
+            </div>
+
+            <div class="field full-span">
+              <label>Positive Note</label>
+              <textarea name="positiveNote" rows="3"></textarea>
+            </div>
+
+            <div class="field full-span">
+              <label>Complaint / Improvement</label>
+              <textarea name="complaintNote" rows="3"></textarea>
+            </div>
+
+            <div class="full-span">
+              <button class="btn btn-primary" type="submit">
+                Save Rating
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div class="empty">
+          Rating save भएपछि Vendor Master मा Average Rating र Total Ratings स्वतः update हुन्छ ।
+        </div>
+      `;
+
+      $("vendorRatingForm").onsubmit=async event=>{
+        event.preventDefault();
+
+        const button=event.submitter;
+        const p=formDataObject_(event.currentTarget);
+
+        setButtonBusy(button,true,"Saving...");
+
+        try{
+          await api(
+            "adminSaveVendorRating",
+            {
+              token:state.token,
+              ...p
+            },
+            "POST"
+          );
+
+          toast("Vendor rating save भयो ।");
+          event.currentTarget.reset();
+        }catch(error){
+          handleAdminApiError(error);
+        }finally{
+          setButtonBusy(button,false);
+        }
+      };
+    }
+
+
+    function vendorRatingSelectHtml(name,required){
+      return `
+        <select name="${esc(name)}" ${required?"required":""}>
+          <option value="">${required?"Select":"Not Rated"}</option>
+          <option value="5">5 / 5</option>
+          <option value="4">4 / 5</option>
+          <option value="3">3 / 5</option>
+          <option value="2">2 / 5</option>
+          <option value="1">1 / 5</option>
+        </select>
+      `;
+    }
+
+
+    async function vendorImport(box){
+      box.innerHTML=`
+        <div class="panel">
+          <h3>Import Existing Operations</h3>
+
+          <p style="color:var(--muted)">
+            Existing Bus Rental, Hotel Room Allocation र Meal Plan लाई Vendor Assignment
+            structure मा जोड्ने migration helper हो । पुरानो data delete/change हुँदैन ।
+          </p>
+
+          <div class="empty" style="text-align:left">
+            <strong>Safety Rule:</strong><br>
+            Bus Rental मा भएको amount import हुन्छ ।<br>
+            Hotel/Meal records मा पुरानो cost amount नभए Assignment 0 amount मा create हुन्छ,
+            त्यसलाई review/update नगरी Finance sync गर्नु हुँदैन ।
+          </div>
+
+          <div class="toolbar" style="margin-top:14px">
+            <button id="vendorImportBtn" class="btn btn-primary">
+              Import Existing Vendor Links
+            </button>
+          </div>
+
+          <div id="vendorImportResult"></div>
+        </div>
+      `;
+
+      $("vendorImportBtn").onclick=async()=>{
+        const button=$("vendorImportBtn");
+
+        const ok=confirm(
+          "Existing operational records लाई Vendor Management मा link गर्ने? पुरानो data परिवर्तन हुँदैन ।"
+        );
+
+        if(!ok)return;
+
+        setButtonBusy(button,true,"Importing...");
+
+        try{
+          const r=
+            await api(
+              "adminImportExistingVendorCosts",
+              {
+                token:state.token,
+                tripId:vendorTripId()
+              },
+              "POST"
+            );
+
+          $("vendorImportResult").innerHTML=`
+            <div class="empty" style="margin-top:12px">
+              Created: <strong>${r.created||0}</strong> •
+              Skipped: <strong>${r.skipped||0}</strong><br>
+              ${esc(r.message||"")}
+            </div>
+          `;
+
+          toast("Vendor import complete भयो ।");
+        }catch(error){
+          handleAdminApiError(error);
+        }finally{
+          setButtonBusy(button,false);
+        }
+      };
+    }
+
+
+    function vendorTripSelectHtml(name,current,rows){
+      return `
+        <select name="${esc(name)}" required>
+          <option value="">Select Trip</option>
+          ${(rows||[]).map(t=>`
+            <option
+              value="${esc(t.id||t.TripID||"")}"
+              ${String(t.id||t.TripID||"")===String(current||"")?"selected":""}>
+              ${esc(t.name||t.TripTitle||t.TripCode||t.id||"")}
+            </option>
+          `).join("")}
+        </select>
+      `;
+    }
+
+
+    function vendorMoney(value){
+      return new Intl.NumberFormat(
+        "en-IN",
+        {maximumFractionDigits:2}
+      ).format(
+        Number(value||0)
+      );
+    }
 
 
     /* =========================================================
