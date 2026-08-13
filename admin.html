@@ -792,7 +792,7 @@
 
   <div id="adminApp" class="admin-layout hidden">
     <aside id="sidebar" class="sidebar">
-      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v3.8.0 • Final Integrated</small></div>
+      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v3.9.0 • Travel Management</small></div>
       <nav class="nav">
         <button data-view="dashboard" class="active">▦ Dashboard</button>
         <button data-view="launcher">🔗 System Launcher</button>
@@ -803,6 +803,7 @@
         <button data-view="sliders">▣ Slider Manager</button>
         <button data-view="destinations">⌖ Destination Manager</button>
         <button data-view="trips">🚌 Trip Manager</button>
+        <button data-view="travelmgmt">🧳 Travel Management</button>
         <button data-view="bookings">📋 Booking Manager</button>
         <button data-view="payments">💳 Payment Manager</button>
         <button data-view="tickets">🎫 Ticket & Check-In</button>
@@ -1397,10 +1398,10 @@ toast("Login सफल भयो ।");
     async function openView(view){
       state.view=view;
       document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.view===view));
-      $("pageTitle").textContent=view==="dashboard"?"Dashboard":view==="finalops"?"Final Operations":MODULES[view]?.title||view;
+      $("pageTitle").textContent=view==="dashboard"?"Dashboard":view==="finalops"?"Final Operations":view==="travelmgmt"?"Travel Management":MODULES[view]?.title||view;
       showLoading();
       try{
-        if(view==="dashboard")await renderDashboard();else if(view==="launcher")await renderSystemLauncher();else if(view==="members")await renderMemberRewardsManager();else if(view==="rewardengine")await renderRewardEngineManager();else if(view==="identity")await renderIdentityManager();else if(view==="cleanup")await renderCleanupManager();else if(view==="trips")await renderTripManager();else if(view==="bookings")await renderBookingManager();else if(view==="payments")await renderPaymentManager();else if(view==="tickets")await renderTicketManager();else if(view==="fleet")await renderFleetManager();else if(view==="opshub")await renderOperationsHub();else if(view==="finalops")await renderFinalOperations();else if(view==="fieldops")await renderFieldOpsManager();else await renderModule(view);
+        if(view==="dashboard")await renderDashboard();else if(view==="launcher")await renderSystemLauncher();else if(view==="members")await renderMemberRewardsManager();else if(view==="rewardengine")await renderRewardEngineManager();else if(view==="identity")await renderIdentityManager();else if(view==="cleanup")await renderCleanupManager();else if(view==="trips")await renderTripManager();else if(view==="bookings")await renderBookingManager();else if(view==="payments")await renderPaymentManager();else if(view==="tickets")await renderTicketManager();else if(view==="fleet")await renderFleetManager();else if(view==="opshub")await renderOperationsHub();else if(view==="finalops")await renderFinalOperations();else if(view==="travelmgmt")await renderTravelManagement();else if(view==="fieldops")await renderFieldOpsManager();else await renderModule(view);
       } catch (e) {
         handleAdminApiError(e);
       } finally {
@@ -8165,6 +8166,1276 @@ toast("Login सफल भयो ।");
           false
         );
       }
+    }
+
+
+
+    /* =========================================================
+       GTYMS v3.9.0 TRAVEL MANAGEMENT — ADDITIVE ADMIN MODULE
+       ========================================================= */
+
+    const TRAVEL_TABS=[
+      ["overview","▦ Overview"],
+      ["itinerary","🗺 Itinerary"],
+      ["team","👥 Tour Team"],
+      ["rooms","🏨 Hotel / Room"],
+      ["meals","🍲 Meal Plan"],
+      ["checklist","✅ Checklist"]
+    ];
+
+    async function renderTravelManagement(){
+      const dashboard=await api(
+        "adminGetTravelManagementDashboard",
+        {token:state.token}
+      );
+
+      const cards=dashboard.cards||{};
+      const trips=dashboard.trips||[];
+
+      $("content").innerHTML=`
+        <div class="stats">
+          <div class="stat"><small>Active Trips</small><strong>${cards.activeTrips||0}</strong></div>
+          <div class="stat"><small>Ongoing</small><strong>${cards.ongoingTrips||0}</strong></div>
+          <div class="stat"><small>Registration Open</small><strong>${cards.registrationOpen||0}</strong></div>
+          <div class="stat"><small>Itinerary Items</small><strong>${cards.itineraryItems||0}</strong></div>
+          <div class="stat"><small>Team Assignments</small><strong>${cards.staffAssignments||0}</strong></div>
+          <div class="stat"><small>Meal Plans</small><strong>${cards.mealPlans||0}</strong></div>
+          <div class="stat"><small>Room Allocations</small><strong>${cards.roomAllocations||0}</strong></div>
+          <div class="stat"><small>Checklist Pending</small><strong>${cards.checklistPending||0}</strong></div>
+        </div>
+
+        <div class="panel" style="margin-top:16px">
+          <div class="panel-head">
+            <div>
+              <h3>Trip-wise Travel Operations Workspace</h3>
+              <small>
+                Existing Booking • Passenger • Payment • Seat • Check-In • Insurance data reuse हुन्छ ।
+              </small>
+            </div>
+
+            <div class="toolbar">
+              <select id="travelTripSelect">
+                <option value="">Trip छान्नुहोस्</option>
+                ${trips.map(trip=>`
+                  <option value="${esc(trip.TripID||"")}">
+                    ${esc(trip.TripTitle||trip.TripCode||trip.TripID||"")}
+                    ${trip.StartDate?` • ${esc(trip.StartDate)}`:""}
+                  </option>
+                `).join("")}
+              </select>
+
+              <button
+                id="travelLoadBtn"
+                class="btn btn-primary">
+                Load Travel Plan
+              </button>
+            </div>
+          </div>
+
+          <div id="travelWorkspace">
+            <div class="empty">
+              Travel Management सुरु गर्न एउटा Trip छान्नुहोस् ।
+            </div>
+          </div>
+        </div>
+      `;
+
+      $("travelLoadBtn").onclick=async()=>{
+        const tripId=$("travelTripSelect").value;
+
+        if(!tripId){
+          toast(
+            "पहिले Trip छान्नुहोस् ।",
+            "error"
+          );
+          return;
+        }
+
+        await loadTravelWorkspace(
+          tripId,
+          "overview"
+        );
+      };
+
+      $("travelTripSelect").onchange=()=>{
+        if($("travelTripSelect").value){
+          $("travelLoadBtn").click();
+        }
+      };
+    }
+
+
+    async function loadTravelWorkspace(
+      tripId,
+      activeTab="overview"
+    ){
+      const box=$("travelWorkspace");
+
+      box.innerHTML=`
+        <div class="empty">Travel Plan लोड हुँदैछ...</div>
+      `;
+
+      try{
+        const [data,refs]=await Promise.all([
+          api(
+            "adminGetTravelWorkspace",
+            {
+              token:state.token,
+              tripId
+            }
+          ),
+          api(
+            "adminGetTravelReferenceData",
+            {
+              token:state.token,
+              tripId
+            }
+          )
+        ]);
+
+        state.travelWorkspace=data;
+        state.travelReference=refs;
+        state.travelTripId=tripId;
+
+        const trip=data.trip||{};
+
+        box.innerHTML=`
+          <div class="panel" style="margin-top:14px">
+            <div class="panel-head">
+              <div>
+                <h3>${esc(trip.TripTitle||"Trip")}</h3>
+                <small>
+                  ${esc(trip.TripCode||"")}
+                  ${trip.StartDate?` • ${esc(trip.StartDate)}`:""}
+                  ${trip.EndDate?` → ${esc(trip.EndDate)}`:""}
+                  ${trip.TripStatus?` • ${esc(trip.TripStatus)}`:""}
+                </small>
+              </div>
+            </div>
+
+            <div id="travelSummaryStats"></div>
+
+            <div
+              id="travelTabs"
+              class="toolbar"
+              style="margin:16px 0;flex-wrap:wrap">
+              ${TRAVEL_TABS.map(tab=>`
+                <button
+                  class="btn ${tab[0]===activeTab?"btn-primary":"btn-soft"} travelTabBtn"
+                  data-tab="${esc(tab[0])}">
+                  ${esc(tab[1])}
+                </button>
+              `).join("")}
+            </div>
+
+            <div id="travelTabBody"></div>
+          </div>
+        `;
+
+        renderTravelSummary(
+          data.summary||{}
+        );
+
+        document
+          .querySelectorAll(
+            ".travelTabBtn"
+          )
+          .forEach(button=>{
+            button.onclick=()=>{
+              document
+                .querySelectorAll(
+                  ".travelTabBtn"
+                )
+                .forEach(b=>{
+                  b.classList.toggle(
+                    "btn-primary",
+                    b===button
+                  );
+
+                  b.classList.toggle(
+                    "btn-soft",
+                    b!==button
+                  );
+                });
+
+              renderTravelTab(
+                button.dataset.tab
+              );
+            };
+          });
+
+        renderTravelTab(
+          activeTab
+        );
+
+      }catch(error){
+        box.innerHTML=`
+          <div class="empty" style="color:var(--danger)">
+            ${esc(error.message||"Travel Management लोड हुन सकेन ।")}
+          </div>
+        `;
+
+        handleAdminApiError(error);
+      }
+    }
+
+
+    function renderTravelSummary(s){
+      $("travelSummaryStats").innerHTML=`
+        <div class="stats">
+          <div class="stat"><small>Bookings</small><strong>${s.bookings||0}</strong></div>
+          <div class="stat"><small>Paid / Unpaid</small><strong>${s.paidBookings||0} / ${s.unpaidBookings||0}</strong></div>
+          <div class="stat"><small>Passengers</small><strong>${s.passengers||0}</strong></div>
+          <div class="stat"><small>Checked-In</small><strong>${s.checkedIn||0}</strong></div>
+          <div class="stat"><small>Bus Pending</small><strong>${s.busPending||0}</strong></div>
+          <div class="stat"><small>Seat Pending</small><strong>${s.seatPending||0}</strong></div>
+          <div class="stat"><small>Insurance Pending</small><strong>${s.insurancePending||0}</strong></div>
+          <div class="stat"><small>Checklist Pending</small><strong>${s.checklistPending||0}</strong></div>
+        </div>
+      `;
+    }
+
+
+    function renderTravelTab(tab){
+      const data=state.travelWorkspace||{};
+      const refs=state.travelReference||{};
+      const box=$("travelTabBody");
+
+      if(!box)return;
+
+      if(tab==="overview"){
+        box.innerHTML=travelOverviewHtml(data);
+      }else if(tab==="itinerary"){
+        box.innerHTML=travelItineraryHtml(
+          data.itinerary||[],
+          refs.hotels||[]
+        );
+        wireTravelItinerary();
+      }else if(tab==="team"){
+        box.innerHTML=travelTeamHtml(
+          data.staffAssignments||[],
+          refs.staff||[]
+        );
+        wireTravelTeam();
+      }else if(tab==="rooms"){
+        box.innerHTML=travelRoomsHtml(
+          data.roomAllocations||[],
+          refs.hotels||[],
+          refs.rooms||[],
+          refs.passengers||[]
+        );
+        wireTravelRooms();
+      }else if(tab==="meals"){
+        box.innerHTML=travelMealsHtml(
+          data.mealPlans||[],
+          refs.staff||[]
+        );
+        wireTravelMeals();
+      }else if(tab==="checklist"){
+        box.innerHTML=travelChecklistHtml(
+          data.checklist||[]
+        );
+        wireTravelChecklist();
+      }
+    }
+
+
+    function travelOverviewHtml(data){
+      const itinerary=data.itinerary||[];
+      const team=data.staffAssignments||[];
+      const rooms=data.roomAllocations||[];
+      const meals=data.mealPlans||[];
+      const checklist=data.checklist||[];
+
+      const pending=
+        checklist.filter(row=>
+          String(row.IsRequired).toLowerCase()==="true" &&
+          String(row.IsCompleted).toLowerCase()!=="true"
+        );
+
+      return `
+        <div class="panel">
+          <h3>Travel Plan Snapshot</h3>
+
+          <div class="stats">
+            <div class="stat"><small>Itinerary Items</small><strong>${itinerary.length}</strong></div>
+            <div class="stat"><small>Tour Team</small><strong>${team.length}</strong></div>
+            <div class="stat"><small>Room Allocations</small><strong>${rooms.length}</strong></div>
+            <div class="stat"><small>Meal Plans</small><strong>${meals.length}</strong></div>
+          </div>
+
+          <div style="margin-top:16px">
+            <strong>Priority Attention</strong>
+
+            ${pending.length
+              ?`
+                <div class="table-wrap" style="margin-top:8px">
+                  <table class="table">
+                    <thead>
+                      <tr>
+                        <th>Priority</th>
+                        <th>Category</th>
+                        <th>Pending Checklist</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${pending.slice(0,10).map(row=>`
+                        <tr>
+                          <td>${esc(row.Priority||"MEDIUM")}</td>
+                          <td>${esc(row.ChecklistCategory||"")}</td>
+                          <td>${esc(row.ChecklistItem||"")}</td>
+                        </tr>
+                      `).join("")}
+                    </tbody>
+                  </table>
+                </div>
+              `
+              :`
+                <div class="empty" style="margin-top:8px">
+                  Required checklist मा pending item छैन ।
+                </div>
+              `
+            }
+          </div>
+        </div>
+      `;
+    }
+
+
+    function travelItineraryHtml(rows,hotels){
+      return `
+        <div class="panel">
+          <h3>Day-wise Itinerary</h3>
+
+          <form
+            id="travelItineraryForm"
+            class="form-grid">
+
+            <div class="field">
+              <label>Day Number *</label>
+              <input name="dayNumber" type="number" min="1" value="1" required>
+            </div>
+
+            <div class="field">
+              <label>Date</label>
+              <input name="itineraryDate" type="date">
+            </div>
+
+            <div class="field full-span">
+              <label>Title *</label>
+              <input name="title" required>
+            </div>
+
+            <div class="field">
+              <label>Start Location</label>
+              <input name="startLocation">
+            </div>
+
+            <div class="field">
+              <label>End Location</label>
+              <input name="endLocation">
+            </div>
+
+            <div class="field">
+              <label>Meals Included</label>
+              <input name="mealsIncluded">
+            </div>
+
+            <div class="field">
+              <label>Hotel</label>
+              <select name="hotelId">
+                <option value="">Not Assigned</option>
+                ${hotels.map(h=>`
+                  <option value="${esc(h.HotelID||"")}">
+                    ${esc(h.HotelName||h.HotelID||"")}
+                  </option>
+                `).join("")}
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Distance KM</label>
+              <input name="estimatedDistanceKM" type="number" min="0" step="0.1">
+            </div>
+
+            <div class="field">
+              <label>Travel Hours</label>
+              <input name="estimatedTravelHours" type="number" min="0" step="0.1">
+            </div>
+
+            <div class="field full-span">
+              <label>Description</label>
+              <textarea name="descriptionHTML" rows="4"></textarea>
+            </div>
+
+            <div class="full-span">
+              <button class="btn btn-primary" type="submit">
+                Save Itinerary
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div class="panel">
+          <h3>Saved Itinerary</h3>
+          ${rows.length
+            ?`
+              <div class="table-wrap">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Day</th>
+                      <th>Date</th>
+                      <th>Plan</th>
+                      <th>Route</th>
+                      <th>Meals</th>
+                      <th>Hotel</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${rows.map(row=>`
+                      <tr>
+                        <td>${esc(row.DayNumber||"")}</td>
+                        <td>${esc(row.ItineraryDate||"")}</td>
+                        <td><strong>${esc(row.Title||"")}</strong></td>
+                        <td>${esc(row.StartLocation||"")} → ${esc(row.EndLocation||"")}</td>
+                        <td>${esc(row.MealsIncluded||"")}</td>
+                        <td>${esc(row.HotelID||"-")}</td>
+                        <td>
+                          <button
+                            class="btn btn-soft travelArchiveBtn"
+                            data-module="itinerary"
+                            data-id="${esc(row.ItineraryID||"")}">
+                            Archive
+                          </button>
+                        </td>
+                      </tr>
+                    `).join("")}
+                  </tbody>
+                </table>
+              </div>
+            `
+            :`<div class="empty">Itinerary अझै तयार गरिएको छैन ।</div>`
+          }
+        </div>
+      `;
+    }
+
+
+    function wireTravelItinerary(){
+      $("travelItineraryForm").onsubmit=async event=>{
+        event.preventDefault();
+        const button=event.submitter;
+        const record=formDataObject_(event.currentTarget);
+
+        setButtonBusy(button,true,"Saving...");
+
+        try{
+          await api(
+            "adminSaveTravelItinerary",
+            {
+              token:state.token,
+              itinerary:{
+                tripId:state.travelTripId,
+                ...record
+              }
+            },
+            "POST"
+          );
+
+          toast("Itinerary save भयो ।");
+
+          await loadTravelWorkspace(
+            state.travelTripId,
+            "itinerary"
+          );
+        }catch(error){
+          handleAdminApiError(error);
+        }finally{
+          setButtonBusy(button,false);
+        }
+      };
+
+      wireTravelArchiveButtons();
+    }
+
+
+    function travelTeamHtml(rows,staff){
+      return `
+        <div class="panel">
+          <h3>Tour Team Assignment</h3>
+
+          <form id="travelTeamForm" class="form-grid">
+            <div class="field">
+              <label>Staff *</label>
+              <select name="staffId" required>
+                <option value="">Select Staff</option>
+                ${staff.map(s=>`
+                  <option value="${esc(s.StaffID||"")}">
+                    ${esc(s.FullName||s.StaffID||"")}
+                    ${s.StaffType?` • ${esc(s.StaffType)}`:""}
+                  </option>
+                `).join("")}
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Role During Trip *</label>
+              <select name="roleDuringTrip" required>
+                <option value="">Select Role</option>
+                <option value="TOUR_MANAGER">Tour Manager</option>
+                <option value="COORDINATOR">Coordinator</option>
+                <option value="GUIDE">Guide</option>
+                <option value="COOK">Cook</option>
+                <option value="HEALTH_SUPPORT">Health Support</option>
+                <option value="HELPER">Helper</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Bus ID (optional)</label>
+              <input name="busId">
+            </div>
+
+            <div class="field">
+              <label>Emergency Contact Visible</label>
+              <select name="emergencyContactVisible">
+                <option value="TRUE">YES</option>
+                <option value="FALSE">NO</option>
+              </select>
+            </div>
+
+            <div class="field full-span">
+              <label>Responsibility</label>
+              <textarea name="responsibility" rows="3"></textarea>
+            </div>
+
+            <div class="full-span">
+              <button class="btn btn-primary" type="submit">
+                Assign Team Member
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div class="panel">
+          <h3>Assigned Team</h3>
+          ${rows.length
+            ?`
+              <div class="table-wrap">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Role</th>
+                      <th>Bus</th>
+                      <th>Mobile</th>
+                      <th>Responsibility</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${rows.map(row=>`
+                      <tr>
+                        <td>
+                          <strong>${esc(row.StaffName||row.StaffID||"")}</strong><br>
+                          <small>${esc(row.StaffType||"")}</small>
+                        </td>
+                        <td>${esc(row.RoleDuringTrip||"")}</td>
+                        <td>${esc(row.BusID||"-")}</td>
+                        <td>${esc(row.StaffMobile||"")}</td>
+                        <td>${esc(row.Responsibility||"")}</td>
+                        <td>
+                          <button
+                            class="btn btn-soft travelArchiveBtn"
+                            data-module="staff"
+                            data-id="${esc(row.TripStaffID||"")}">
+                            Archive
+                          </button>
+                        </td>
+                      </tr>
+                    `).join("")}
+                  </tbody>
+                </table>
+              </div>
+            `
+            :`<div class="empty">Tour Team assignment छैन ।</div>`
+          }
+        </div>
+      `;
+    }
+
+
+    function wireTravelTeam(){
+      $("travelTeamForm").onsubmit=async event=>{
+        event.preventDefault();
+        const button=event.submitter;
+        const record=formDataObject_(event.currentTarget);
+
+        setButtonBusy(button,true,"Assigning...");
+
+        try{
+          await api(
+            "adminSaveTravelStaffAssignment",
+            {
+              token:state.token,
+              assignment:{
+                tripId:state.travelTripId,
+                ...record
+              }
+            },
+            "POST"
+          );
+
+          toast("Tour Team assignment save भयो ।");
+
+          await loadTravelWorkspace(
+            state.travelTripId,
+            "team"
+          );
+        }catch(error){
+          handleAdminApiError(error);
+        }finally{
+          setButtonBusy(button,false);
+        }
+      };
+
+      wireTravelArchiveButtons();
+    }
+
+
+    function travelRoomsHtml(rows,hotels,rooms,passengers){
+      return `
+        <div class="panel">
+          <h3>Hotel / Room Allocation</h3>
+
+          <form id="travelRoomForm" class="form-grid">
+            <div class="field">
+              <label>Passenger *</label>
+              <select name="bookingPassengerId" required>
+                <option value="">Select Passenger</option>
+                ${passengers.map(p=>`
+                  <option value="${esc(p.BookingPassengerID||"")}">
+                    ${esc(p.PassengerName||p.BookingPassengerID||"")}
+                    ${p.BusID?` • Bus ${esc(p.BusID)}`:""}
+                    ${p.SeatID?` • Seat ${esc(p.SeatID)}`:""}
+                  </option>
+                `).join("")}
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Hotel *</label>
+              <select name="hotelId" id="travelHotelSelect" required>
+                <option value="">Select Hotel</option>
+                ${hotels.map(h=>`
+                  <option value="${esc(h.HotelID||"")}">
+                    ${esc(h.HotelName||h.HotelID||"")}
+                  </option>
+                `).join("")}
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Room *</label>
+              <select name="roomId" id="travelRoomSelect" required>
+                <option value="">Select Room</option>
+                ${rooms.map(r=>`
+                  <option
+                    value="${esc(r.RoomID||"")}"
+                    data-hotel="${esc(r.HotelID||"")}">
+                    ${esc(r.RoomNumber||r.RoomID||"")}
+                    ${r.RoomType?` • ${esc(r.RoomType)}`:""}
+                    ${r.BedCapacity?` • ${esc(r.BedCapacity)} Beds`:""}
+                  </option>
+                `).join("")}
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Status</label>
+              <select name="allocationStatus">
+                <option value="ALLOCATED">ALLOCATED</option>
+                <option value="CHECKED_IN">CHECKED IN</option>
+                <option value="CHECKED_OUT">CHECKED OUT</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Check-In Date</label>
+              <input name="checkInDate" type="date">
+            </div>
+
+            <div class="field">
+              <label>Check-Out Date</label>
+              <input name="checkOutDate" type="date">
+            </div>
+
+            <div class="field full-span">
+              <label>Remarks</label>
+              <textarea name="remarks" rows="3"></textarea>
+            </div>
+
+            <div class="full-span">
+              <button class="btn btn-primary" type="submit">
+                Assign Room
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div class="panel">
+          <h3>Room Allocation List</h3>
+          ${rows.length
+            ?`
+              <div class="table-wrap">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Passenger</th>
+                      <th>Hotel</th>
+                      <th>Room</th>
+                      <th>Stay</th>
+                      <th>Status</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${rows.map(row=>`
+                      <tr>
+                        <td>${esc(row.PassengerName||row.BookingPassengerID||"")}</td>
+                        <td>${esc(row.HotelName||row.HotelID||"")}</td>
+                        <td>
+                          ${esc(row.RoomNumber||row.RoomID||"")}
+                          ${row.RoomType?`<br><small>${esc(row.RoomType)}</small>`:""}
+                        </td>
+                        <td>
+                          ${esc(row.CheckInDate||"-")}
+                          →
+                          ${esc(row.CheckOutDate||"-")}
+                        </td>
+                        <td>${esc(row.AllocationStatus||"")}</td>
+                        <td>
+                          <button
+                            class="btn btn-soft travelArchiveBtn"
+                            data-module="room"
+                            data-status="CANCELLED"
+                            data-id="${esc(row.RoomAllocationID||"")}">
+                            Cancel Allocation
+                          </button>
+                        </td>
+                      </tr>
+                    `).join("")}
+                  </tbody>
+                </table>
+              </div>
+            `
+            :`<div class="empty">Room allocation छैन ।</div>`
+          }
+        </div>
+      `;
+    }
+
+
+    function wireTravelRooms(){
+      const hotel=$("travelHotelSelect");
+      const room=$("travelRoomSelect");
+
+      if(hotel&&room){
+        hotel.onchange=()=>{
+          const hotelId=hotel.value;
+
+          Array.from(room.options).forEach(option=>{
+            if(!option.dataset.hotel){
+              option.hidden=false;
+              return;
+            }
+
+            option.hidden=
+              !!hotelId &&
+              option.dataset.hotel!==hotelId;
+          });
+
+          room.value="";
+        };
+      }
+
+      $("travelRoomForm").onsubmit=async event=>{
+        event.preventDefault();
+        const button=event.submitter;
+        const record=formDataObject_(event.currentTarget);
+
+        setButtonBusy(button,true,"Assigning...");
+
+        try{
+          await api(
+            "adminSaveTravelRoomAllocation",
+            {
+              token:state.token,
+              allocation:{
+                tripId:state.travelTripId,
+                ...record
+              }
+            },
+            "POST"
+          );
+
+          toast("Room allocation save भयो ।");
+
+          await loadTravelWorkspace(
+            state.travelTripId,
+            "rooms"
+          );
+        }catch(error){
+          handleAdminApiError(error);
+        }finally{
+          setButtonBusy(button,false);
+        }
+      };
+
+      wireTravelArchiveButtons();
+    }
+
+
+    function travelMealsHtml(rows,staff){
+      const cooks=
+        staff.filter(s=>
+          ["cook","chef","kitchen"].some(word=>
+            String(
+              `${s.StaffType||""} ${s.Specialization||""}`
+            )
+              .toLowerCase()
+              .includes(word)
+          )
+        );
+
+      return `
+        <div class="panel">
+          <h3>Daily Meal Plan</h3>
+
+          <form id="travelMealForm" class="form-grid">
+            <div class="field">
+              <label>Day Number *</label>
+              <input name="dayNumber" type="number" min="1" value="1" required>
+            </div>
+
+            <div class="field">
+              <label>Meal Date</label>
+              <input name="mealDate" type="date">
+            </div>
+
+            <div class="field">
+              <label>Meal Type *</label>
+              <select name="mealType" required>
+                <option value="">Select</option>
+                <option value="TEA">Tea / Coffee</option>
+                <option value="BREAKFAST">Breakfast</option>
+                <option value="LUNCH">Lunch</option>
+                <option value="SNACK">Snack</option>
+                <option value="DINNER">Dinner</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Serving Time</label>
+              <input name="servingTime" type="time">
+            </div>
+
+            <div class="field full-span">
+              <label>Menu</label>
+              <textarea name="menu" rows="3"></textarea>
+            </div>
+
+            <div class="field">
+              <label>Serving Location</label>
+              <input name="servingLocation">
+            </div>
+
+            <div class="field">
+              <label>Estimated Persons</label>
+              <input name="estimatedPersons" type="number" min="0">
+            </div>
+
+            <div class="field">
+              <label>Cook</label>
+              <select name="cookStaffId">
+                <option value="">Not Assigned</option>
+                ${cooks.map(s=>`
+                  <option value="${esc(s.StaffID||"")}">
+                    ${esc(s.FullName||s.StaffID||"")}
+                  </option>
+                `).join("")}
+              </select>
+            </div>
+
+            <div class="field full-span">
+              <label>Special Diet Notes</label>
+              <textarea name="specialDietNotes" rows="3"></textarea>
+            </div>
+
+            <div class="full-span">
+              <button class="btn btn-primary" type="submit">
+                Save Meal Plan
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div class="panel">
+          <h3>Meal Schedule</h3>
+          ${rows.length
+            ?`
+              <div class="table-wrap">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Day</th>
+                      <th>Date / Time</th>
+                      <th>Meal</th>
+                      <th>Menu</th>
+                      <th>Location</th>
+                      <th>Persons</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${rows.map(row=>`
+                      <tr>
+                        <td>${esc(row.DayNumber||"")}</td>
+                        <td>${esc(row.MealDate||"")}<br><small>${esc(row.ServingTime||"")}</small></td>
+                        <td>${esc(row.MealType||"")}</td>
+                        <td>${esc(row.Menu||"")}</td>
+                        <td>${esc(row.ServingLocation||"")}</td>
+                        <td>${esc(row.EstimatedPersons||0)}</td>
+                        <td>
+                          <button
+                            class="btn btn-soft travelArchiveBtn"
+                            data-module="meal"
+                            data-id="${esc(row.MealPlanID||"")}">
+                            Archive
+                          </button>
+                        </td>
+                      </tr>
+                    `).join("")}
+                  </tbody>
+                </table>
+              </div>
+            `
+            :`<div class="empty">Meal plan छैन ।</div>`
+          }
+        </div>
+      `;
+    }
+
+
+    function wireTravelMeals(){
+      $("travelMealForm").onsubmit=async event=>{
+        event.preventDefault();
+        const button=event.submitter;
+        const record=formDataObject_(event.currentTarget);
+
+        setButtonBusy(button,true,"Saving...");
+
+        try{
+          await api(
+            "adminSaveTravelMealPlan",
+            {
+              token:state.token,
+              meal:{
+                tripId:state.travelTripId,
+                ...record
+              }
+            },
+            "POST"
+          );
+
+          toast("Meal plan save भयो ।");
+
+          await loadTravelWorkspace(
+            state.travelTripId,
+            "meals"
+          );
+        }catch(error){
+          handleAdminApiError(error);
+        }finally{
+          setButtonBusy(button,false);
+        }
+      };
+
+      wireTravelArchiveButtons();
+    }
+
+
+    function travelChecklistHtml(rows){
+      return `
+        <div class="panel">
+          <h3>Departure / Journey / Closing Checklist</h3>
+
+          <form id="travelChecklistForm" class="form-grid">
+            <div class="field">
+              <label>Category *</label>
+              <select name="checklistCategory" required>
+                <option value="DEPARTURE">Departure</option>
+                <option value="HEALTH">Health</option>
+                <option value="BUS">Bus / Vehicle</option>
+                <option value="HOTEL">Hotel</option>
+                <option value="FOOD">Food</option>
+                <option value="DOCUMENT">Document</option>
+                <option value="EMERGENCY">Emergency</option>
+                <option value="RETURN">Return / Closing</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Priority</label>
+              <select name="priority">
+                <option value="CRITICAL">CRITICAL</option>
+                <option value="HIGH">HIGH</option>
+                <option value="MEDIUM" selected>MEDIUM</option>
+                <option value="LOW">LOW</option>
+              </select>
+            </div>
+
+            <div class="field full-span">
+              <label>Checklist Item *</label>
+              <input name="checklistItem" required>
+            </div>
+
+            <div class="field">
+              <label>Required?</label>
+              <select name="isRequired">
+                <option value="TRUE">YES</option>
+                <option value="FALSE">NO</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Completed?</label>
+              <select name="isCompleted">
+                <option value="FALSE">NO</option>
+                <option value="TRUE">YES</option>
+              </select>
+            </div>
+
+            <div class="field full-span">
+              <label>Evidence URL</label>
+              <input name="evidenceURL">
+            </div>
+
+            <div class="field full-span">
+              <label>Remarks</label>
+              <textarea name="remarks" rows="3"></textarea>
+            </div>
+
+            <div class="full-span">
+              <button class="btn btn-primary" type="submit">
+                Add Checklist
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div class="panel">
+          <h3>Checklist Status</h3>
+          ${rows.length
+            ?`
+              <div class="table-wrap">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Done</th>
+                      <th>Priority</th>
+                      <th>Category</th>
+                      <th>Item</th>
+                      <th>Completed By / At</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${rows.map(row=>{
+                      const done=
+                        String(row.IsCompleted)
+                          .toLowerCase()==="true";
+
+                      return `
+                        <tr>
+                          <td>
+                            <button
+                              class="btn ${done?"btn-primary":"btn-soft"} travelChecklistToggle"
+                              data-id="${esc(row.ChecklistID||"")}"
+                              data-done="${done?"TRUE":"FALSE"}">
+                              ${done?"✓ DONE":"Mark Done"}
+                            </button>
+                          </td>
+
+                          <td>${esc(row.Priority||"")}</td>
+                          <td>${esc(row.ChecklistCategory||"")}</td>
+
+                          <td>
+                            <strong>${esc(row.ChecklistItem||"")}</strong>
+                            ${String(row.IsRequired).toLowerCase()==="true"
+                              ?`<br><small style="color:var(--danger)">REQUIRED</small>`
+                              :""
+                            }
+                          </td>
+
+                          <td>
+                            ${esc(row.CompletedBy||"-")}
+                            <br>
+                            <small>${esc(row.CompletedAt||"")}</small>
+                          </td>
+
+                          <td>
+                            <button
+                              class="btn btn-soft travelArchiveBtn"
+                              data-module="checklist"
+                              data-id="${esc(row.ChecklistID||"")}">
+                              Archive
+                            </button>
+                          </td>
+                        </tr>
+                      `;
+                    }).join("")}
+                  </tbody>
+                </table>
+              </div>
+            `
+            :`<div class="empty">Checklist item छैन ।</div>`
+          }
+        </div>
+      `;
+    }
+
+
+    function wireTravelChecklist(){
+      $("travelChecklistForm").onsubmit=async event=>{
+        event.preventDefault();
+        const button=event.submitter;
+        const record=formDataObject_(event.currentTarget);
+
+        setButtonBusy(button,true,"Saving...");
+
+        try{
+          await api(
+            "adminSaveTravelChecklist",
+            {
+              token:state.token,
+              checklist:{
+                tripId:state.travelTripId,
+                ...record
+              }
+            },
+            "POST"
+          );
+
+          toast("Checklist item save भयो ।");
+
+          await loadTravelWorkspace(
+            state.travelTripId,
+            "checklist"
+          );
+        }catch(error){
+          handleAdminApiError(error);
+        }finally{
+          setButtonBusy(button,false);
+        }
+      };
+
+      document
+        .querySelectorAll(".travelChecklistToggle")
+        .forEach(button=>{
+          button.onclick=async()=>{
+            setButtonBusy(button,true,"Updating...");
+
+            try{
+              await api(
+                "adminToggleTravelChecklist",
+                {
+                  token:state.token,
+                  checklistId:button.dataset.id,
+                  completed:button.dataset.done!=="TRUE"
+                },
+                "POST"
+              );
+
+              await loadTravelWorkspace(
+                state.travelTripId,
+                "checklist"
+              );
+            }catch(error){
+              handleAdminApiError(error);
+            }finally{
+              setButtonBusy(button,false);
+            }
+          };
+        });
+
+      wireTravelArchiveButtons();
+    }
+
+
+    function wireTravelArchiveButtons(){
+      document
+        .querySelectorAll(".travelArchiveBtn")
+        .forEach(button=>{
+          button.onclick=async()=>{
+            const status=
+              button.dataset.status||
+              "ARCHIVED";
+
+            const ok=confirm(
+              status==="CANCELLED"
+                ?"यो allocation Cancel गर्ने हो?"
+                :"यो record Archive गर्ने हो?"
+            );
+
+            if(!ok)return;
+
+            setButtonBusy(button,true,"Updating...");
+
+            try{
+              await api(
+                "adminSetTravelRecordStatus",
+                {
+                  token:state.token,
+                  module:button.dataset.module,
+                  id:button.dataset.id,
+                  status:status
+                },
+                "POST"
+              );
+
+              toast(
+                status==="CANCELLED"
+                  ?"Allocation Cancel भयो ।"
+                  :"Record Archive भयो ।"
+              );
+
+              const tab=
+                button.dataset.module==="itinerary"
+                  ?"itinerary"
+                  :button.dataset.module==="staff"
+                    ?"team"
+                    :button.dataset.module==="meal"
+                      ?"meals"
+                      :button.dataset.module==="checklist"
+                        ?"checklist"
+                        :"rooms";
+
+              await loadTravelWorkspace(
+                state.travelTripId,
+                tab
+              );
+            }catch(error){
+              handleAdminApiError(error);
+            }finally{
+              setButtonBusy(button,false);
+            }
+          };
+        });
     }
 
 
