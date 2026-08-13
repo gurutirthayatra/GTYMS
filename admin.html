@@ -792,7 +792,7 @@
 
   <div id="adminApp" class="admin-layout hidden">
     <aside id="sidebar" class="sidebar">
-      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v4.2.0 • Executive Reports</small></div>
+      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v4.2.1 • Executive Fix</small></div>
       <nav class="nav">
         <button data-view="dashboard" class="active">▦ Dashboard</button>
         <button data-view="launcher">🔗 System Launcher</button>
@@ -8324,6 +8324,10 @@ toast("Login सफल भयो ।");
               <button id="execReadinessBtn" class="btn btn-soft">
                 Trip Readiness
               </button>
+
+              <button id="execDiagnosticsBtn" class="btn btn-soft">
+                Data Check
+              </button>
             </div>
 
             <div id="execReportResult"></div>
@@ -8340,6 +8344,7 @@ toast("Login सफल भयो ।");
 
         $("execGenerateReport").onclick=generateExecutiveReport;
         $("execReadinessBtn").onclick=showExecutiveReadiness;
+        $("execDiagnosticsBtn").onclick=showExecutiveDiagnostics;
 
       }catch(error){
         box.innerHTML=`
@@ -8440,22 +8445,234 @@ toast("Login सफल भयो ।");
           }
         );
 
-        $("execReportResult").innerHTML=`
-          <div class="panel" style="margin-top:14px">
-            <div class="panel-head">
-              <div>
-                <h3>${esc(r.reportType||"Report")}</h3>
-                <small>${esc(r.generatedAt||"")}</small>
-              </div>
-              <button id="execReportPrintBtn" class="btn btn-soft">Print / PDF</button>
-            </div>
-
-            <pre style="white-space:pre-wrap;word-break:break-word;background:#faf7f2;padding:14px;border-radius:12px;max-height:520px;overflow:auto">${esc(JSON.stringify(r.data,null,2))}</pre>
-          </div>
-        `;
+        $("execReportResult").innerHTML=
+          renderExecutiveProfessionalReport(
+            r.reportType,
+            r.data,
+            r.generatedAt
+          );
 
         $("execReportPrintBtn").onclick=()=>window.print();
 
+      }catch(error){
+        handleAdminApiError(error);
+      }
+    }
+
+
+
+    function renderExecutiveProfessionalReport(reportType,data,generatedAt){
+      const titleMap={
+        MANAGEMENT_SUMMARY:"Management Summary",
+        TRIP_FINANCE:"Trip Finance Report",
+        VENDOR_COST:"Vendor Cost Report",
+        PASSENGER_MANIFEST:"Passenger Manifest",
+        FINANCE_LEDGER:"Finance Ledger"
+      };
+
+      const title=titleMap[reportType]||reportType||"Report";
+
+      let body="";
+
+      if(reportType==="MANAGEMENT_SUMMARY"){
+        const s=data?.summary||{};
+        body=`
+          <div class="stats">
+            <div class="stat"><small>Trips</small><strong>${(s.activeTrips||0)+(s.completedTrips||0)}</strong></div>
+            <div class="stat"><small>Bookings</small><strong>${s.bookings||0}</strong></div>
+            <div class="stat"><small>Passengers</small><strong>${s.passengers||0}</strong></div>
+            <div class="stat"><small>Income</small><strong>रु. ${execMoney(s.totalIncome||0)}</strong></div>
+            <div class="stat"><small>Expense</small><strong>रु. ${execMoney(s.totalExpense||0)}</strong></div>
+            <div class="stat"><small>Net Profit</small><strong>रु. ${execMoney(s.netProfit||0)}</strong></div>
+            <div class="stat"><small>Booking Due</small><strong>रु. ${execMoney(s.bookingDue||0)}</strong></div>
+            <div class="stat"><small>Vendor Due</small><strong>रु. ${execMoney(s.vendorDue||0)}</strong></div>
+          </div>
+
+          <div class="grid-2" style="margin-top:14px">
+            <div class="panel">
+              <h3>Income by Category</h3>
+              ${execSummaryList(data?.charts?.incomeByCategory||[],"amount")}
+            </div>
+            <div class="panel">
+              <h3>Expense by Category</h3>
+              ${execSummaryList(data?.charts?.expenseByCategory||[],"amount")}
+            </div>
+          </div>
+
+          <div class="panel" style="margin-top:14px">
+            <h3>Trip Performance</h3>
+            ${execTripTable(data?.trips||[])}
+          </div>
+        `;
+      }else if(reportType==="TRIP_FINANCE"){
+        const s=data?.summary||{};
+        body=`
+          <div class="stats">
+            <div class="stat"><small>Total Income</small><strong>रु. ${execMoney(s.totalIncome||0)}</strong></div>
+            <div class="stat"><small>Approved Expense</small><strong>रु. ${execMoney(s.approvedExpense||0)}</strong></div>
+            <div class="stat"><small>Pending Expense</small><strong>रु. ${execMoney(s.pendingExpense||0)}</strong></div>
+            <div class="stat"><small>Vendor Due</small><strong>रु. ${execMoney(s.vendorPayableDue||0)}</strong></div>
+            <div class="stat"><small>Net Profit</small><strong>रु. ${execMoney(s.netProfit||0)}</strong></div>
+            <div class="stat"><small>Margin</small><strong>${execMoney(s.marginPercent||0)}%</strong></div>
+          </div>
+          ${financeCategorySummaryHtml(
+            data?.incomeByCategory||[],
+            data?.expenseByCategory||[]
+          )}
+        `;
+      }else if(reportType==="VENDOR_COST"){
+        const t=data?.totals||{};
+        body=`
+          <div class="stats">
+            <div class="stat"><small>Assignments</small><strong>${t.assignments||0}</strong></div>
+            <div class="stat"><small>Agreed</small><strong>रु. ${execMoney(t.agreed||0)}</strong></div>
+            <div class="stat"><small>Paid</small><strong>रु. ${execMoney(t.paid||0)}</strong></div>
+            <div class="stat"><small>Due</small><strong>रु. ${execMoney(t.due||0)}</strong></div>
+          </div>
+          <div class="grid-2" style="margin-top:14px">
+            <div class="panel">
+              <h3>By Vendor Type</h3>
+              ${execSummaryList(data?.byVendorType||[],"amount")}
+            </div>
+            <div class="panel">
+              <h3>By Trip</h3>
+              ${execSummaryList(data?.byTrip||[],"amount")}
+            </div>
+          </div>
+          <div class="panel" style="margin-top:14px">
+            ${vendorAssignmentTable(data?.items||[])}
+          </div>
+        `;
+      }else if(reportType==="PASSENGER_MANIFEST"){
+        const rows=data?.items||[];
+        body=`
+          <div class="panel">
+            <h3>Total Passengers: ${rows.length}</h3>
+            <div class="table-wrap">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Passenger</th>
+                    <th>Booking</th>
+                    <th>Mobile</th>
+                    <th>Bus</th>
+                    <th>Seat</th>
+                    <th>Check-In</th>
+                    <th>Ticket</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${rows.map(r=>`
+                    <tr>
+                      <td>${esc(r.PassengerName||"")}</td>
+                      <td>${esc(r.BookingCode||"")}</td>
+                      <td>${esc(r.Mobile||"")}</td>
+                      <td>${esc(r.BusID||"")}</td>
+                      <td>${esc(r.SeatID||"")}</td>
+                      <td>${esc(r.CheckInStatus||"")}</td>
+                      <td>${esc(r.TicketStatus||"")}</td>
+                    </tr>
+                  `).join("")}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      }else if(reportType==="FINANCE_LEDGER"){
+        body=`
+          <div class="stats">
+            <div class="stat"><small>Debit</small><strong>रु. ${execMoney(data?.debit||0)}</strong></div>
+            <div class="stat"><small>Credit</small><strong>रु. ${execMoney(data?.credit||0)}</strong></div>
+            <div class="stat"><small>Net</small><strong>रु. ${execMoney(data?.net||0)}</strong></div>
+            <div class="stat"><small>Entries</small><strong>${data?.total||0}</strong></div>
+          </div>
+          <div class="panel" style="margin-top:14px">
+            <div class="table-wrap">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Account</th>
+                    <th>Type</th>
+                    <th>Category</th>
+                    <th>Description</th>
+                    <th>Debit</th>
+                    <th>Credit</th>
+                    <th>Balance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${(data?.items||[]).map(r=>`
+                    <tr>
+                      <td>${esc(r.LedgerDate||"")}</td>
+                      <td>${esc(r.AccountID||"")}</td>
+                      <td>${esc(r.EntryType||"")}</td>
+                      <td>${esc(r.Category||"")}</td>
+                      <td>${esc(r.Description||"")}</td>
+                      <td>${Number(r.Debit||0)>0?`रु. ${execMoney(r.Debit)}`:"-"}</td>
+                      <td>${Number(r.Credit||0)>0?`रु. ${execMoney(r.Credit)}`:"-"}</td>
+                      <td>रु. ${execMoney(r.RunningBalance||0)}</td>
+                    </tr>
+                  `).join("")}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      }
+
+      return `
+        <div class="panel" style="margin-top:14px">
+          <div class="panel-head">
+            <div>
+              <h3>${esc(title)}</h3>
+              <small>${esc(generatedAt||"")}</small>
+            </div>
+            <button id="execReportPrintBtn" class="btn btn-soft">
+              Print / PDF
+            </button>
+          </div>
+
+          ${body}
+        </div>
+      `;
+    }
+
+
+    async function showExecutiveDiagnostics(){
+      try{
+        const r=await api(
+          "adminGetExecutiveDataDiagnostics",
+          {token:state.token}
+        );
+
+        $("execReportResult").innerHTML=`
+          <div class="panel" style="margin-top:14px">
+            <h3>Executive Data Check</h3>
+            <div class="table-wrap">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Sheet</th>
+                    <th>Exists</th>
+                    <th>Rows</th>
+                    <th>Key Headers</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${(r.items||[]).map(row=>`
+                    <tr>
+                      <td>${esc(row.sheet||"")}</td>
+                      <td>${row.exists?"✅ YES":"❌ NO"}</td>
+                      <td>${esc(row.rows||0)}</td>
+                      <td>${esc((row.headers||[]).slice(0,8).join(", "))}</td>
+                    </tr>
+                  `).join("")}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
       }catch(error){
         handleAdminApiError(error);
       }
