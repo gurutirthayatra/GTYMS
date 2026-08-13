@@ -792,7 +792,7 @@
 
   <div id="adminApp" class="admin-layout hidden">
     <aside id="sidebar" class="sidebar">
-      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v3.9.0 • Travel Management</small></div>
+      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v4.0.0 • Finance Management</small></div>
       <nav class="nav">
         <button data-view="dashboard" class="active">▦ Dashboard</button>
         <button data-view="launcher">🔗 System Launcher</button>
@@ -806,6 +806,7 @@
         <button data-view="travelmgmt">🧳 Travel Management</button>
         <button data-view="bookings">📋 Booking Manager</button>
         <button data-view="payments">💳 Payment Manager</button>
+        <button data-view="financemgmt">💰 Finance Management</button>
         <button data-view="tickets">🎫 Ticket & Check-In</button>
         <button data-view="fleet">📍 Fleet & Tracking</button>
         <button data-view="opshub">📣 Ops, Family & Analytics</button>
@@ -1398,10 +1399,10 @@ toast("Login सफल भयो ।");
     async function openView(view){
       state.view=view;
       document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.view===view));
-      $("pageTitle").textContent=view==="dashboard"?"Dashboard":view==="finalops"?"Final Operations":view==="travelmgmt"?"Travel Management":MODULES[view]?.title||view;
+      $("pageTitle").textContent=view==="dashboard"?"Dashboard":view==="finalops"?"Final Operations":view==="travelmgmt"?"Travel Management":view==="financemgmt"?"Finance Management":MODULES[view]?.title||view;
       showLoading();
       try{
-        if(view==="dashboard")await renderDashboard();else if(view==="launcher")await renderSystemLauncher();else if(view==="members")await renderMemberRewardsManager();else if(view==="rewardengine")await renderRewardEngineManager();else if(view==="identity")await renderIdentityManager();else if(view==="cleanup")await renderCleanupManager();else if(view==="trips")await renderTripManager();else if(view==="bookings")await renderBookingManager();else if(view==="payments")await renderPaymentManager();else if(view==="tickets")await renderTicketManager();else if(view==="fleet")await renderFleetManager();else if(view==="opshub")await renderOperationsHub();else if(view==="finalops")await renderFinalOperations();else if(view==="travelmgmt")await renderTravelManagement();else if(view==="fieldops")await renderFieldOpsManager();else await renderModule(view);
+        if(view==="dashboard")await renderDashboard();else if(view==="launcher")await renderSystemLauncher();else if(view==="members")await renderMemberRewardsManager();else if(view==="rewardengine")await renderRewardEngineManager();else if(view==="identity")await renderIdentityManager();else if(view==="cleanup")await renderCleanupManager();else if(view==="trips")await renderTripManager();else if(view==="bookings")await renderBookingManager();else if(view==="payments")await renderPaymentManager();else if(view==="tickets")await renderTicketManager();else if(view==="fleet")await renderFleetManager();else if(view==="opshub")await renderOperationsHub();else if(view==="finalops")await renderFinalOperations();else if(view==="travelmgmt")await renderTravelManagement();else if(view==="financemgmt")await renderFinanceManagement();else if(view==="fieldops")await renderFieldOpsManager();else await renderModule(view);
       } catch (e) {
         handleAdminApiError(e);
       } finally {
@@ -8169,6 +8170,119 @@ toast("Login सफल भयो ।");
     }
 
 
+
+
+    /* =========================================================
+       GTYMS v4.0.0 FINANCE MANAGEMENT — ADDITIVE ADMIN MODULE
+       ========================================================= */
+    const FINANCE_TABS=[
+      ["overview","▦ Overview"],["profit","📊 Trip P/L"],["income","💵 Income"],
+      ["expense","🧾 Expense"],["vendor","🏪 Vendor Payable"],["refund","↩ Refund"],
+      ["accounts","🏦 Accounts"],["ledger","📒 Ledger"]
+    ];
+
+    async function renderFinanceManagement(){
+      const d=await api("adminGetFinanceDashboard",{token:state.token});
+      state.financeDashboard=d;
+      const c=d.cards||{};
+      $("content").innerHTML=`
+        <div class="stats">
+          <div class="stat"><small>Total Income</small><strong>रु. ${financeMoney(c.totalIncome||0)}</strong></div>
+          <div class="stat"><small>Approved Expense</small><strong>रु. ${financeMoney(c.approvedExpense||0)}</strong></div>
+          <div class="stat"><small>Pending Expense</small><strong>रु. ${financeMoney(c.pendingExpense||0)}</strong></div>
+          <div class="stat"><small>Net Profit</small><strong>रु. ${financeMoney(c.netProfit||0)}</strong></div>
+          <div class="stat"><small>Vendor Due</small><strong>रु. ${financeMoney(c.vendorPayableDue||0)}</strong></div>
+          <div class="stat"><small>Ledger Entries</small><strong>${c.ledgerEntries||0}</strong></div>
+          <div class="stat"><small>Accounts</small><strong>${c.accounts||0}</strong></div>
+        </div>
+        <div class="panel" style="margin-top:16px">
+          <div class="panel-head">
+            <div><h3>Payment & Finance Management</h3><small>Existing Payment Manager सुरक्षित राखेर Finance layer चल्छ ।</small></div>
+            <div class="toolbar">
+              <select id="financeTripFilter"><option value="">All Trips</option>${(d.trips||[]).map(t=>`<option value="${esc(t.TripID||"")}">${esc(t.TripTitle||t.TripCode||t.TripID||"")}</option>`).join("")}</select>
+              <button id="financeSyncBtn" class="btn btn-soft">Sync Approved Payments</button>
+            </div>
+          </div>
+          <div class="toolbar" style="margin:14px 0;flex-wrap:wrap">${FINANCE_TABS.map((t,i)=>`<button class="btn ${i===0?"btn-primary":"btn-soft"} financeTab" data-tab="${esc(t[0])}">${esc(t[1])}</button>`).join("")}</div>
+          <div id="financeBody"><div class="empty">Finance लोड हुँदैछ...</div></div>
+        </div>`;
+      document.querySelectorAll('.financeTab').forEach(b=>b.onclick=async()=>{
+        document.querySelectorAll('.financeTab').forEach(x=>{x.classList.toggle('btn-primary',x===b);x.classList.toggle('btn-soft',x!==b)});
+        await loadFinanceTab(b.dataset.tab||'overview');
+      });
+      $("financeTripFilter").onchange=()=>loadFinanceTab(document.querySelector('.financeTab.btn-primary')?.dataset.tab||'overview');
+      $("financeSyncBtn").onclick=async()=>{
+        try{const r=await api("adminSyncApprovedPaymentsToFinance",{token:state.token},"POST");toast(`Sync: ${r.createdIncome||0} income, ${r.createdLedger||0} ledger`);await renderFinanceManagement()}catch(e){handleAdminApiError(e)}
+      };
+      await loadFinanceTab('overview');
+    }
+
+    function financeTripId(){return $("financeTripFilter")?.value||""}
+    function financeMoney(v){return new Intl.NumberFormat("en-IN",{maximumFractionDigits:2}).format(Number(v||0))}
+    function financeTripSelect(name,current){const trips=state.financeDashboard?.trips||[];return `<select name="${esc(name)}" required><option value="">Select Trip</option>${trips.map(t=>`<option value="${esc(t.TripID||"")}" ${String(t.TripID||"")===String(current||"")?"selected":""}>${esc(t.TripTitle||t.TripCode||t.TripID||"")}</option>`).join("")}</select>`}
+
+    async function loadFinanceTab(tab){
+      const box=$("financeBody");if(!box)return;box.innerHTML=`<div class="empty">लोड हुँदैछ...</div>`;
+      try{
+        if(tab==='overview'||tab==='profit')await financeOverview(box,tab==='profit');
+        else if(tab==='income')await financeIncome(box);
+        else if(tab==='expense')await financeExpense(box);
+        else if(tab==='vendor')await financeVendor(box);
+        else if(tab==='refund')await financeRefund(box);
+        else if(tab==='accounts')await financeAccounts(box);
+        else if(tab==='ledger')await financeLedger(box);
+      }catch(e){box.innerHTML=`<div class="empty" style="color:var(--danger)">${esc(e.message||'Finance error')}</div>`;handleAdminApiError(e)}
+    }
+
+    async function financeOverview(box,profitOnly){
+      const tripId=financeTripId();
+      if(!tripId){
+        const d=await api("adminGetFinanceDashboard",{token:state.token});const c=d.cards||{};
+        box.innerHTML=`<div class="panel"><h3>Company Finance Snapshot</h3><div class="stats"><div class="stat"><small>Income</small><strong>रु. ${financeMoney(c.totalIncome)}</strong></div><div class="stat"><small>Expense</small><strong>रु. ${financeMoney(c.approvedExpense)}</strong></div><div class="stat"><small>Net</small><strong>रु. ${financeMoney(c.netProfit)}</strong></div><div class="stat"><small>Vendor Due</small><strong>रु. ${financeMoney(c.vendorPayableDue)}</strong></div></div><div class="empty" style="margin-top:12px">Trip-wise P/L हेर्न Trip छान्नुहोस् ।</div></div>`;return;
+      }
+      const d=await api("adminGetTripFinanceSummary",{token:state.token,tripId});const s=d.summary||{};
+      box.innerHTML=`<div class="panel"><h3>${esc(d.trip?.TripTitle||'Trip Finance')}</h3><div class="stats"><div class="stat"><small>Income</small><strong>रु. ${financeMoney(s.totalIncome)}</strong></div><div class="stat"><small>Approved Expense</small><strong>रु. ${financeMoney(s.approvedExpense)}</strong></div><div class="stat"><small>Pending Expense</small><strong>रु. ${financeMoney(s.pendingExpense)}</strong></div><div class="stat"><small>Vendor Due</small><strong>रु. ${financeMoney(s.vendorPayableDue)}</strong></div><div class="stat"><small>Net Profit/Loss</small><strong>रु. ${financeMoney(s.netProfit)}</strong></div><div class="stat"><small>Margin</small><strong>${financeMoney(s.marginPercent)}%</strong></div></div></div>
+      <div class="grid-2" style="margin-top:14px"><div class="panel"><h3>Income by Category</h3>${(d.incomeByCategory||[]).map(r=>`<div style="display:flex;justify-content:space-between;padding:6px 0"><span>${esc(r.category)}</span><strong>रु. ${financeMoney(r.amount)}</strong></div>`).join("")||'<div class="empty">No income</div>'}</div><div class="panel"><h3>Expense by Category</h3>${(d.expenseByCategory||[]).map(r=>`<div style="display:flex;justify-content:space-between;padding:6px 0"><span>${esc(r.category)}</span><strong>रु. ${financeMoney(r.amount)}</strong></div>`).join("")||'<div class="empty">No expense</div>'}</div></div>`;
+    }
+
+    async function financeIncome(box){
+      const tripId=financeTripId();const d=await api("adminListFinanceIncome",{token:state.token,tripId});
+      box.innerHTML=`<div class="panel"><h3>Add Manual Income</h3><form id="finIncomeForm" class="form-grid"><div class="field"><label>Trip *</label>${financeTripSelect('tripId',tripId)}</div><div class="field"><label>Category *</label><select name="incomeCategory"><option>OTHER_INCOME</option><option>DONATION</option><option>SPONSORSHIP</option><option>SERVICE_CHARGE</option></select></div><div class="field"><label>Amount *</label><input name="amount" type="number" min="0.01" required></div><div class="field"><label>Method</label><select name="paymentMethod"><option>CASH</option><option>BANK_TRANSFER</option><option>QR</option></select></div><div class="field"><label>Reference</label><input name="referenceNumber"></div><div class="field full-span"><label>Remarks</label><textarea name="remarks"></textarea></div><div class="full-span"><button class="btn btn-primary">Save Income</button></div></form></div><div class="panel"><h3>Income • रु. ${financeMoney(d.amount)}</h3><div class="table-wrap"><table class="table"><thead><tr><th>Date</th><th>Trip</th><th>Category</th><th>Method</th><th>Amount</th></tr></thead><tbody>${(d.items||[]).map(r=>`<tr><td>${esc(r.IncomeDate||'')}</td><td>${esc(r.TripID||'')}</td><td>${esc(r.IncomeCategory||'')}</td><td>${esc(r.PaymentMethod||'')}</td><td>रु. ${financeMoney(r.Amount)}</td></tr>`).join('')}</tbody></table></div></div>`;
+      $("finIncomeForm").onsubmit=async e=>{e.preventDefault();try{await api("adminSaveManualIncome",{token:state.token,...formDataObject_(e.currentTarget)},"POST");toast('Income save भयो ।');await financeIncome(box)}catch(x){handleAdminApiError(x)}};
+    }
+
+    async function financeExpense(box){
+      const tripId=financeTripId();const d=await api("adminListFinanceExpenses",{token:state.token,tripId});
+      box.innerHTML=`<div class="panel"><h3>Add Expense</h3><form id="finExpenseForm" class="form-grid"><div class="field"><label>Trip *</label>${financeTripSelect('tripId',tripId)}</div><div class="field"><label>Category *</label><select name="expenseCategory"><option>BUS_RENT</option><option>HOTEL</option><option>FOOD</option><option>FUEL</option><option>TOLL_PARKING</option><option>INSURANCE</option><option>STAFF_ALLOWANCE</option><option>OTHER</option></select></div><div class="field"><label>Amount *</label><input name="amount" type="number" min="0.01" required></div><div class="field"><label>Vendor</label><input name="vendorName"></div><div class="field"><label>Method</label><select name="paymentMethod"><option>CASH</option><option>BANK_TRANSFER</option><option>QR</option></select></div><div class="field full-span"><label>Description *</label><textarea name="description" required></textarea></div><div class="field full-span"><label>Bill URL</label><input name="voucherBillURL"></div><div class="full-span"><button class="btn btn-primary">Save Pending Expense</button></div></form></div><div class="panel"><h3>Expense Records</h3><div class="table-wrap"><table class="table"><thead><tr><th>Date</th><th>Category</th><th>Vendor</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead><tbody>${(d.items||[]).map(r=>`<tr><td>${esc(r.ExpenseDate||'')}</td><td>${esc(r.ExpenseCategory||'')}</td><td>${esc(r.VendorName||'')}</td><td>रु. ${financeMoney(r.Amount)}</td><td>${esc(r.ApprovalStatus||'PENDING')}</td><td>${['','pending'].includes(String(r.ApprovalStatus||'').toLowerCase())?`<button class="btn btn-primary finExpDecision" data-id="${esc(r.ExpenseID)}" data-d="APPROVED">Approve</button> <button class="btn btn-soft finExpDecision" data-id="${esc(r.ExpenseID)}" data-d="REJECTED">Reject</button>`:''}</td></tr>`).join('')}</tbody></table></div></div>`;
+      $("finExpenseForm").onsubmit=async e=>{e.preventDefault();try{await api("adminSaveFinanceExpense",{token:state.token,...formDataObject_(e.currentTarget)},"POST");toast('Expense pending मा save भयो ।');await financeExpense(box)}catch(x){handleAdminApiError(x)}};
+      document.querySelectorAll('.finExpDecision').forEach(b=>b.onclick=async()=>{if(!confirm(`Expense ${b.dataset.d} गर्ने?`))return;try{await api("adminApproveFinanceExpense",{token:state.token,expenseId:b.dataset.id,decision:b.dataset.d},"POST");await financeExpense(box)}catch(x){handleAdminApiError(x)}});
+    }
+
+    async function financeVendor(box){
+      const tripId=financeTripId();const d=await api("adminListVendorPayables",{token:state.token,tripId});
+      box.innerHTML=`<div class="panel"><h3>Vendor Payable</h3><form id="finVendorForm" class="form-grid"><div class="field"><label>Trip *</label>${financeTripSelect('tripId',tripId)}</div><div class="field"><label>Vendor Type</label><select name="vendorType"><option>BUS</option><option>HOTEL</option><option>FOOD</option><option>INSURANCE</option><option>SUPPLIER</option><option>OTHER</option></select></div><div class="field"><label>Vendor Name *</label><input name="vendorName" required></div><div class="field"><label>Gross Amount *</label><input name="grossAmount" type="number" min="0.01" required></div><div class="field"><label>Already Paid</label><input name="paidAmount" type="number" value="0"></div><div class="field"><label>Due Date</label><input name="dueDate" type="date"></div><div class="full-span"><button class="btn btn-primary">Save Payable</button></div></form></div><div class="panel"><h3>Vendor Due • रु. ${financeMoney(d.totalDue)}</h3><div class="table-wrap"><table class="table"><thead><tr><th>Vendor</th><th>Trip</th><th>Gross</th><th>Paid</th><th>Due</th><th>Status</th><th>Action</th></tr></thead><tbody>${(d.items||[]).map(r=>`<tr><td>${esc(r.VendorName||'')}</td><td>${esc(r.TripID||'')}</td><td>रु. ${financeMoney(r.GrossAmount)}</td><td>रु. ${financeMoney(r.PaidAmount)}</td><td>रु. ${financeMoney(r.BalanceDue)}</td><td>${esc(r.PaymentStatus||'')}</td><td>${Number(r.BalanceDue||0)>0?`<button class="btn btn-primary finVendorPay" data-id="${esc(r.VendorPayableID)}" data-due="${esc(r.BalanceDue)}">Pay</button>`:''}</td></tr>`).join('')}</tbody></table></div></div>`;
+      $("finVendorForm").onsubmit=async e=>{e.preventDefault();try{await api("adminSaveVendorPayable",{token:state.token,...formDataObject_(e.currentTarget)},"POST");toast('Vendor payable save भयो ।');await financeVendor(box)}catch(x){handleAdminApiError(x)}};
+      document.querySelectorAll('.finVendorPay').forEach(b=>b.onclick=async()=>{const amount=prompt('Payment Amount',b.dataset.due);if(amount===null)return;try{await api("adminPayVendorPayable",{token:state.token,vendorPayableId:b.dataset.id,amount:Number(amount)},"POST");toast('Vendor payment save भयो ।');await financeVendor(box)}catch(x){handleAdminApiError(x)}});
+    }
+
+    async function financeRefund(box){
+      const d=await api("adminListFinanceRefunds",{token:state.token});
+      box.innerHTML=`<div class="panel"><h3>Refund Request</h3><form id="finRefundForm" class="form-grid"><div class="field"><label>Booking ID *</label><input name="bookingId" required></div><div class="field"><label>Payment ID</label><input name="paymentId"></div><div class="field"><label>Amount *</label><input name="requestedAmount" type="number" min="0.01" required></div><div class="field"><label>Method</label><select name="refundMethod"><option>BANK_TRANSFER</option><option>CASH</option><option>WALLET</option></select></div><div class="field full-span"><label>Reason *</label><textarea name="reason" required></textarea></div><div class="full-span"><button class="btn btn-primary">Create Refund</button></div></form></div><div class="panel"><h3>Refund Records</h3><div class="table-wrap"><table class="table"><thead><tr><th>Booking</th><th>Requested</th><th>Approved</th><th>Status</th><th>Reason</th><th>Action</th></tr></thead><tbody>${(d.items||[]).map(r=>`<tr><td>${esc(r.BookingID||'')}</td><td>रु. ${financeMoney(r.RequestedAmount)}</td><td>रु. ${financeMoney(r.ApprovedAmount)}</td><td>${esc(r.ApprovalStatus||'PENDING')}</td><td>${esc(r.Reason||'')}</td><td>${String(r.ApprovalStatus||'').toUpperCase()==='PENDING'?`<button class="btn btn-primary finRefApprove" data-id="${esc(r.RefundID)}" data-amt="${esc(r.RequestedAmount)}">Approve</button>`:''}${String(r.ApprovalStatus||'').toUpperCase()==='APPROVED'&&!r.ProcessedAt?` <button class="btn btn-soft finRefProcess" data-id="${esc(r.RefundID)}">Process</button>`:''}</td></tr>`).join('')}</tbody></table></div></div>`;
+      $("finRefundForm").onsubmit=async e=>{e.preventDefault();try{await api("adminCreateFinanceRefund",{token:state.token,...formDataObject_(e.currentTarget)},"POST");toast('Refund request तयार भयो ।');await financeRefund(box)}catch(x){handleAdminApiError(x)}};
+      document.querySelectorAll('.finRefApprove').forEach(b=>b.onclick=async()=>{const amt=prompt('Approved Amount',b.dataset.amt);if(amt===null)return;try{await api("adminApproveFinanceRefund",{token:state.token,refundId:b.dataset.id,decision:'APPROVED',approvedAmount:Number(amt)},"POST");await financeRefund(box)}catch(x){handleAdminApiError(x)}});
+      document.querySelectorAll('.finRefProcess').forEach(b=>b.onclick=async()=>{if(!confirm('Refund process गर्ने?'))return;try{await api("adminProcessFinanceRefund",{token:state.token,refundId:b.dataset.id},"POST");await financeRefund(box)}catch(x){handleAdminApiError(x)}});
+    }
+
+    async function financeAccounts(box){
+      const d=await api("adminListFinanceAccounts",{token:state.token});
+      box.innerHTML=`<div class="panel"><h3>Cash / Bank / Wallet Accounts</h3><form id="finAccountForm" class="form-grid"><div class="field"><label>Name *</label><input name="accountName" required></div><div class="field"><label>Type</label><select name="accountType"><option>CASH</option><option>BANK</option><option>WALLET</option></select></div><div class="field"><label>Bank</label><input name="bankName"></div><div class="field"><label>Account No.</label><input name="accountNumber"></div><div class="field"><label>Opening Balance</label><input name="openingBalance" type="number" value="0"></div><div class="field"><label>Default?</label><select name="isDefault"><option value="FALSE">NO</option><option value="TRUE">YES</option></select></div><div class="full-span"><button class="btn btn-primary">Save Account</button></div></form></div><div class="panel"><div class="table-wrap"><table class="table"><thead><tr><th>Name</th><th>Type</th><th>Opening</th><th>Current</th><th>Default</th></tr></thead><tbody>${(d.items||[]).map(r=>`<tr><td>${esc(r.AccountName||'')}</td><td>${esc(r.AccountType||'')}</td><td>रु. ${financeMoney(r.OpeningBalance)}</td><td><strong>रु. ${financeMoney(r.CurrentBalance)}</strong></td><td>${String(r.IsDefault).toUpperCase()==='TRUE'?'YES':'NO'}</td></tr>`).join('')}</tbody></table></div></div>`;
+      $("finAccountForm").onsubmit=async e=>{e.preventDefault();try{await api("adminSaveFinanceAccount",{token:state.token,...formDataObject_(e.currentTarget)},"POST");toast('Account save भयो ।');await financeAccounts(box)}catch(x){handleAdminApiError(x)}};
+    }
+
+    async function financeLedger(box){
+      const d=await api("adminGetFinanceLedger",{token:state.token,tripId:financeTripId(),pageSize:500});
+      box.innerHTML=`<div class="stats"><div class="stat"><small>Debit / Out</small><strong>रु. ${financeMoney(d.debit)}</strong></div><div class="stat"><small>Credit / In</small><strong>रु. ${financeMoney(d.credit)}</strong></div><div class="stat"><small>Net Flow</small><strong>रु. ${financeMoney(d.net)}</strong></div><div class="stat"><small>Entries</small><strong>${d.total||0}</strong></div></div><div class="panel" style="margin-top:14px"><h3>Cash / Bank Ledger</h3><div class="table-wrap"><table class="table"><thead><tr><th>Date</th><th>Account</th><th>Type</th><th>Category</th><th>Description</th><th>Debit</th><th>Credit</th><th>Balance</th></tr></thead><tbody>${(d.items||[]).map(r=>`<tr><td>${esc(r.LedgerDate||'')}</td><td>${esc(r.AccountID||'')}</td><td>${esc(r.EntryType||'')}</td><td>${esc(r.Category||'')}</td><td>${esc(r.Description||'')}</td><td>${Number(r.Debit||0)?`रु. ${financeMoney(r.Debit)}`:'-'}</td><td>${Number(r.Credit||0)?`रु. ${financeMoney(r.Credit)}`:'-'}</td><td>रु. ${financeMoney(r.RunningBalance)}</td></tr>`).join('')}</tbody></table></div></div>`;
+    }
 
     /* =========================================================
        GTYMS v3.9.0 TRAVEL MANAGEMENT — ADDITIVE ADMIN MODULE
