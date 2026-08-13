@@ -792,7 +792,7 @@
 
   <div id="adminApp" class="admin-layout hidden">
     <aside id="sidebar" class="sidebar">
-      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v4.1.0 • Vendor & Supplier</small></div>
+      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v4.2.0 • Executive Reports</small></div>
       <nav class="nav">
         <button data-view="dashboard" class="active">▦ Dashboard</button>
         <button data-view="launcher">🔗 System Launcher</button>
@@ -808,6 +808,7 @@
         <button data-view="payments">💳 Payment Manager</button>
         <button data-view="financemgmt">💰 Finance Management</button>
         <button data-view="vendormgmt">🏪 Vendor & Supplier</button>
+        <button data-view="executive">📊 Executive Dashboard</button>
         <button data-view="tickets">🎫 Ticket & Check-In</button>
         <button data-view="fleet">📍 Fleet & Tracking</button>
         <button data-view="opshub">📣 Ops, Family & Analytics</button>
@@ -1400,10 +1401,10 @@ toast("Login सफल भयो ।");
     async function openView(view){
       state.view=view;
       document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.view===view));
-      $("pageTitle").textContent=view==="dashboard"?"Dashboard":view==="finalops"?"Final Operations":view==="travelmgmt"?"Travel Management":view==="financemgmt"?"Finance Management":view==="vendormgmt"?"Vendor & Supplier":MODULES[view]?.title||view;
+      $("pageTitle").textContent=view==="dashboard"?"Dashboard":view==="finalops"?"Final Operations":view==="travelmgmt"?"Travel Management":view==="financemgmt"?"Finance Management":view==="vendormgmt"?"Vendor & Supplier":view==="executive"?"Executive Dashboard":MODULES[view]?.title||view;
       showLoading();
       try{
-        if(view==="dashboard")await renderDashboard();else if(view==="launcher")await renderSystemLauncher();else if(view==="members")await renderMemberRewardsManager();else if(view==="rewardengine")await renderRewardEngineManager();else if(view==="identity")await renderIdentityManager();else if(view==="cleanup")await renderCleanupManager();else if(view==="trips")await renderTripManager();else if(view==="bookings")await renderBookingManager();else if(view==="payments")await renderPaymentManager();else if(view==="tickets")await renderTicketManager();else if(view==="fleet")await renderFleetManager();else if(view==="opshub")await renderOperationsHub();else if(view==="finalops")await renderFinalOperations();else if(view==="travelmgmt")await renderTravelManagement();else if(view==="financemgmt")await renderFinanceManagement();else if(view==="vendormgmt")await renderVendorManagement();else if(view==="fieldops")await renderFieldOpsManager();else await renderModule(view);
+        if(view==="dashboard")await renderDashboard();else if(view==="launcher")await renderSystemLauncher();else if(view==="members")await renderMemberRewardsManager();else if(view==="rewardengine")await renderRewardEngineManager();else if(view==="identity")await renderIdentityManager();else if(view==="cleanup")await renderCleanupManager();else if(view==="trips")await renderTripManager();else if(view==="bookings")await renderBookingManager();else if(view==="payments")await renderPaymentManager();else if(view==="tickets")await renderTicketManager();else if(view==="fleet")await renderFleetManager();else if(view==="opshub")await renderOperationsHub();else if(view==="finalops")await renderFinalOperations();else if(view==="travelmgmt")await renderTravelManagement();else if(view==="financemgmt")await renderFinanceManagement();else if(view==="vendormgmt")await renderVendorManagement();else if(view==="executive")await renderExecutiveDashboard();else if(view==="fieldops")await renderFieldOpsManager();else await renderModule(view);
       } catch (e) {
         handleAdminApiError(e);
       } finally {
@@ -8172,6 +8173,407 @@ toast("Login सफल भयो ।");
 
 
 
+
+
+
+    /* =========================================================
+       GTYMS v4.2.0 EXECUTIVE DASHBOARD & REPORTS — ADDITIVE
+       ========================================================= */
+
+    async function renderExecutiveDashboard(){
+      $("content").innerHTML=`
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <h3>Executive Management Dashboard</h3>
+              <small>
+                Booking • Finance • Vendor • Operations • Passenger • Readiness • Reports
+              </small>
+            </div>
+
+            <div class="toolbar">
+              <select id="execTripFilter">
+                <option value="">All Trips</option>
+              </select>
+              <input id="execDateFrom" type="date">
+              <input id="execDateTo" type="date">
+              <button id="execRefreshBtn" class="btn btn-primary">
+                Refresh
+              </button>
+            </div>
+          </div>
+
+          <div id="execDashboardBody">
+            <div class="empty">Executive Dashboard लोड हुँदैछ...</div>
+          </div>
+        </div>
+      `;
+
+      $("execRefreshBtn").onclick=loadExecutiveDashboard;
+      await loadExecutiveDashboard();
+    }
+
+
+    async function loadExecutiveDashboard(){
+      const box=$("execDashboardBody");
+
+      box.innerHTML=`<div class="empty">लोड हुँदैछ...</div>`;
+
+      try{
+        const params={
+          token:state.token,
+          tripId:$("execTripFilter")?.value||"",
+          dateFrom:$("execDateFrom")?.value||"",
+          dateTo:$("execDateTo")?.value||""
+        };
+
+        const d=await api(
+          "adminGetExecutiveDashboard",
+          params
+        );
+
+        const currentTrip=
+          $("execTripFilter")?.value||"";
+
+        if($("execTripFilter")&&$("execTripFilter").options.length<=1){
+          $("execTripFilter").innerHTML=`
+            <option value="">All Trips</option>
+            ${(d.trips||[]).map(t=>`
+              <option value="${esc(t.tripId||"")}">
+                ${esc(t.tripTitle||t.tripCode||t.tripId||"")}
+              </option>
+            `).join("")}
+          `;
+          $("execTripFilter").value=currentTrip;
+        }
+
+        const s=d.summary||{};
+
+        box.innerHTML=`
+          <div class="stats">
+            <div class="stat"><small>Active Trips</small><strong>${s.activeTrips||0}</strong></div>
+            <div class="stat"><small>Bookings</small><strong>${s.bookings||0}</strong></div>
+            <div class="stat"><small>Passengers</small><strong>${s.passengers||0}</strong></div>
+            <div class="stat"><small>Verified Payments</small><strong>रु. ${execMoney(s.verifiedPayments||0)}</strong></div>
+            <div class="stat"><small>Total Income</small><strong>रु. ${execMoney(s.totalIncome||0)}</strong></div>
+            <div class="stat"><small>Total Expense</small><strong>रु. ${execMoney(s.totalExpense||0)}</strong></div>
+            <div class="stat"><small>Net Profit</small><strong>रु. ${execMoney(s.netProfit||0)}</strong></div>
+            <div class="stat"><small>Booking Due</small><strong>रु. ${execMoney(s.bookingDue||0)}</strong></div>
+            <div class="stat"><small>Vendor Due</small><strong>रु. ${execMoney(s.vendorDue||0)}</strong></div>
+            <div class="stat"><small>Check-In</small><strong>${s.checkedIn||0}/${s.passengers||0}</strong></div>
+            <div class="stat"><small>Insurance Pending</small><strong>${s.insurancePending||0}</strong></div>
+            <div class="stat"><small>Checklist Pending</small><strong>${s.checklistPending||0}</strong></div>
+            <div class="stat"><small>Members/Pilgrims</small><strong>${s.pilgrims||0}</strong></div>
+            <div class="stat"><small>Vendors</small><strong>${s.vendors||0}</strong></div>
+            <div class="stat"><small>Feedback Avg</small><strong>${execMoney(s.avgFeedback||0)} / 5</strong></div>
+          </div>
+
+          <div class="grid-2" style="margin-top:14px">
+            <div class="panel">
+              <h3>Income by Category</h3>
+              ${execSummaryList(d.charts?.incomeByCategory||[],"amount")}
+            </div>
+
+            <div class="panel">
+              <h3>Expense by Category</h3>
+              ${execSummaryList(d.charts?.expenseByCategory||[],"amount")}
+            </div>
+
+            <div class="panel">
+              <h3>Vendor Cost by Type</h3>
+              ${execSummaryList(d.charts?.vendorCostByType||[],"amount")}
+            </div>
+
+            <div class="panel">
+              <h3>Booking Status</h3>
+              ${execSummaryList(d.charts?.bookingStatus||[],"count")}
+            </div>
+          </div>
+
+          <div class="panel" style="margin-top:14px">
+            <div class="panel-head">
+              <h3>Trip Performance</h3>
+              <div class="toolbar">
+                <button id="execPrintSummary" class="btn btn-soft">
+                  Print / PDF
+                </button>
+                <button id="execExportCsv" class="btn btn-soft">
+                  Export CSV
+                </button>
+              </div>
+            </div>
+
+            ${execTripTable(d.trips||[])}
+          </div>
+
+          <div class="panel" style="margin-top:14px">
+            <h3>Report Center</h3>
+            <div class="toolbar" style="flex-wrap:wrap">
+              <select id="execReportType">
+                <option value="MANAGEMENT_SUMMARY">Management Summary</option>
+                <option value="TRIP_FINANCE">Trip Finance</option>
+                <option value="VENDOR_COST">Vendor Cost</option>
+                <option value="PASSENGER_MANIFEST">Passenger Manifest</option>
+                <option value="FINANCE_LEDGER">Finance Ledger</option>
+              </select>
+
+              <button id="execGenerateReport" class="btn btn-primary">
+                Generate Report
+              </button>
+
+              <button id="execReadinessBtn" class="btn btn-soft">
+                Trip Readiness
+              </button>
+            </div>
+
+            <div id="execReportResult"></div>
+          </div>
+        `;
+
+        $("execPrintSummary").onclick=()=>{
+          window.print();
+        };
+
+        $("execExportCsv").onclick=()=>{
+          execExportTripsCsv(d.trips||[]);
+        };
+
+        $("execGenerateReport").onclick=generateExecutiveReport;
+        $("execReadinessBtn").onclick=showExecutiveReadiness;
+
+      }catch(error){
+        box.innerHTML=`
+          <div class="empty" style="color:var(--danger)">
+            ${esc(error.message||"Executive Dashboard लोड हुन सकेन ।")}
+          </div>
+        `;
+        handleAdminApiError(error);
+      }
+    }
+
+
+    function execSummaryList(rows,valueKey){
+      if(!rows.length){
+        return `<div class="empty">No data</div>`;
+      }
+
+      return rows.map(r=>`
+        <div style="display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--line)">
+          <span>${esc(r.label||"")}</span>
+          <strong>
+            ${valueKey==="amount"
+              ?`रु. ${execMoney(r.amount||0)}`
+              :esc(r.count||0)
+            }
+          </strong>
+        </div>
+      `).join("");
+    }
+
+
+    function execTripTable(rows){
+      if(!rows.length){
+        return `<div class="empty">Trip data छैन ।</div>`;
+      }
+
+      return `
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Trip</th>
+                <th>Status</th>
+                <th>Bookings</th>
+                <th>Passengers</th>
+                <th>Income</th>
+                <th>Expense</th>
+                <th>Profit</th>
+                <th>Vendor Due</th>
+                <th>Checklist</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map(r=>`
+                <tr>
+                  <td>
+                    <strong>${esc(r.tripTitle||"")}</strong><br>
+                    <small>${esc(r.startDate||"")}</small>
+                  </td>
+                  <td>${esc(r.status||"")}</td>
+                  <td>${esc(r.bookings||0)}</td>
+                  <td>${esc(r.passengers||0)}</td>
+                  <td>रु. ${execMoney(r.income||0)}</td>
+                  <td>रु. ${execMoney(r.expense||0)}</td>
+                  <td>रु. ${execMoney(r.netProfit||0)}</td>
+                  <td>रु. ${execMoney(r.vendorDue||0)}</td>
+                  <td>${esc(r.checklist||"0/0")}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+
+    async function generateExecutiveReport(){
+      const reportType=$("execReportType").value;
+      const tripId=$("execTripFilter").value;
+
+      if(
+        ["TRIP_FINANCE","PASSENGER_MANIFEST"].includes(reportType) &&
+        !tripId
+      ){
+        toast("यो Report का लागि Trip छान्नुहोस् ।","error");
+        return;
+      }
+
+      try{
+        const r=await api(
+          "adminGetExecutiveReportData",
+          {
+            token:state.token,
+            reportType,
+            tripId,
+            dateFrom:$("execDateFrom").value,
+            dateTo:$("execDateTo").value
+          }
+        );
+
+        $("execReportResult").innerHTML=`
+          <div class="panel" style="margin-top:14px">
+            <div class="panel-head">
+              <div>
+                <h3>${esc(r.reportType||"Report")}</h3>
+                <small>${esc(r.generatedAt||"")}</small>
+              </div>
+              <button id="execReportPrintBtn" class="btn btn-soft">Print / PDF</button>
+            </div>
+
+            <pre style="white-space:pre-wrap;word-break:break-word;background:#faf7f2;padding:14px;border-radius:12px;max-height:520px;overflow:auto">${esc(JSON.stringify(r.data,null,2))}</pre>
+          </div>
+        `;
+
+        $("execReportPrintBtn").onclick=()=>window.print();
+
+      }catch(error){
+        handleAdminApiError(error);
+      }
+    }
+
+
+    async function showExecutiveReadiness(){
+      const tripId=$("execTripFilter").value;
+
+      if(!tripId){
+        toast("Trip Readiness का लागि Trip छान्नुहोस् ।","error");
+        return;
+      }
+
+      try{
+        const r=await api(
+          "adminGetTripReadiness",
+          {
+            token:state.token,
+            tripId
+          }
+        );
+
+        $("execReportResult").innerHTML=`
+          <div class="panel" style="margin-top:14px">
+            <h3>${esc(r.trip?.TripTitle||"Trip")} — Readiness ${esc(r.readinessPercent||0)}%</h3>
+
+            <div style="height:12px;background:#eee;border-radius:999px;overflow:hidden;margin:12px 0">
+              <div style="height:100%;width:${Math.max(0,Math.min(100,Number(r.readinessPercent||0)))}%;background:var(--primary)"></div>
+            </div>
+
+            <div class="table-wrap">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Area</th>
+                    <th>Status</th>
+                    <th>Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${(r.checks||[]).map(c=>`
+                    <tr>
+                      <td>${esc(c.label||"")}</td>
+                      <td>${c.done?"✅ Ready":"⚠️ Pending"}</td>
+                      <td>${esc(c.value??"")}</td>
+                    </tr>
+                  `).join("")}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      }catch(error){
+        handleAdminApiError(error);
+      }
+    }
+
+
+    function execExportTripsCsv(rows){
+      const headers=[
+        "Trip",
+        "Status",
+        "Bookings",
+        "Passengers",
+        "Income",
+        "Expense",
+        "Profit",
+        "Vendor Due",
+        "Checklist"
+      ];
+
+      const lines=[
+        headers,
+        ...rows.map(r=>[
+          r.tripTitle||"",
+          r.status||"",
+          r.bookings||0,
+          r.passengers||0,
+          r.income||0,
+          r.expense||0,
+          r.netProfit||0,
+          r.vendorDue||0,
+          r.checklist||""
+        ])
+      ];
+
+      const csv=lines.map(row=>
+        row.map(value=>
+          `"${String(value??"").replaceAll('"','""')}"`
+        ).join(",")
+      ).join("\n");
+
+      const blob=new Blob(
+        ["\ufeff"+csv],
+        {type:"text/csv;charset=utf-8;"}
+      );
+
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement("a");
+
+      a.href=url;
+      a.download="GTYMS_Executive_Trip_Report.csv";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+
+    function execMoney(value){
+      return new Intl.NumberFormat(
+        "en-IN",
+        {maximumFractionDigits:2}
+      ).format(
+        Number(value||0)
+      );
+    }
 
 
     /* =========================================================
