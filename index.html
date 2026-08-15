@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- GTYMS Public Website v3.10.7 | Production Trip Preview + Universal PDF -->
+<!-- GTYMS Public Website v3.10.8 | Nepali Trip Date/Time + Preview PDF -->
 <html lang="ne">
 <head>
   <meta charset="UTF-8" />
@@ -2876,6 +2876,7 @@ body.gtyms-trip-preview-open{overflow:hidden}
   <button id="backToTop" class="back-to-top" type="button" aria-label="माथि जानुहोस्">↑</button>
 
   <div id="toast" class="toast hidden" role="status"></div>
+  <script src="https://cdn.jsdelivr.net/npm/@remotemerge/nepali-date-converter@1/dist/ndc-browser.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script>
 /**
@@ -3411,6 +3412,14 @@ window.GTYMS_UI = (() => {
                 )} दिन
               </span>
 
+              ${
+                trip.StartDate
+                  ? `<span class="badge">
+                      📅 ${UI.escapeHtml(formatNepaliTripDate(trip.StartDate))}
+                    </span>`
+                  : ""
+              }
+
               <span class="badge">
                 ${UI.escapeHtml(seatText)}
               </span>
@@ -3696,43 +3705,95 @@ window.GTYMS_UI = (() => {
     }
   }
 
-  function formatTripPdfDate(value){
-    const raw = String(value || "").trim();
-    if(!raw) return "";
+  const GTYMS_NEPALI_MONTHS = [
+    "बैशाख","जेठ","असार","श्रावण","भदौ","असोज",
+    "कार्तिक","मंसिर","पुष","माघ","फागुन","चैत"
+  ];
 
-    const simple = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
-    if(simple){
-      const y = Number(simple[1]);
-      const m = Number(simple[2]);
-      const d = Number(simple[3]);
-      const dt = new Date(Date.UTC(y,m-1,d,12,0,0));
+  const GTYMS_NEPALI_DAYS = {
+    Sunday:"आइतबार",
+    Monday:"सोमबार",
+    Tuesday:"मंगलबार",
+    Wednesday:"बुधबार",
+    Thursday:"बिहीबार",
+    Friday:"शुक्रबार",
+    Saturday:"शनिबार"
+  };
 
-      try{
-        return new Intl.DateTimeFormat("ne-NP",{
-          timeZone:"Asia/Kathmandu",
-          year:"numeric",
-          month:"long",
-          day:"numeric"
-        }).format(dt);
-      }catch(e){
-        return `${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
-      }
-    }
-
-    const dt = new Date(raw);
-    if(!Number.isNaN(dt.getTime())){
-      try{
-        return new Intl.DateTimeFormat("ne-NP",{
-          timeZone:"Asia/Kathmandu",
-          year:"numeric",
-          month:"long",
-          day:"numeric"
-        }).format(dt);
-      }catch(e){}
-    }
-
-    return raw;
+  function toNepaliDigits(value){
+    const map={
+      "0":"०","1":"१","2":"२","3":"३","4":"४",
+      "5":"५","6":"६","7":"७","8":"८","9":"९"
+    };
+    return String(value==null?"":value).replace(/\d/g,d=>map[d]);
   }
+
+  function normalizeAdDateOnly(value){
+    const raw=String(value||"").trim();
+    if(!raw)return "";
+
+    const iso=raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if(iso){
+      return `${iso[1]}-${iso[2]}-${iso[3]}`;
+    }
+
+    const d=new Date(raw);
+    if(Number.isNaN(d.getTime()))return raw;
+
+    const y=d.getFullYear();
+    const m=String(d.getMonth()+1).padStart(2,"0");
+    const day=String(d.getDate()).padStart(2,"0");
+    return `${y}-${m}-${day}`;
+  }
+
+  function formatNepaliTripDate(value){
+    const ad=normalizeAdDateOnly(value);
+    if(!ad)return "";
+
+    try{
+      if(typeof DateConverter==="function"){
+        const bs=new DateConverter(ad).toBs();
+        const month=GTYMS_NEPALI_MONTHS[Number(bs.month)-1]||"";
+        const dayName=GTYMS_NEPALI_DAYS[bs.day]||"";
+        return `${toNepaliDigits(bs.year)} ${month} ${toNepaliDigits(bs.date)}${dayName?`, ${dayName}`:""}`;
+      }
+    }catch(e){
+      console.warn("BS date conversion failed:",value,e);
+    }
+
+    return toNepaliDigits(ad);
+  }
+
+  function extractTripTimeParts(value){
+    const raw=String(value||"").trim();
+    if(!raw)return null;
+
+    let m=raw.match(/T(\d{2}):(\d{2})(?::(\d{2}))?/);
+    if(!m){
+      m=raw.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+    }
+    if(!m)return null;
+
+    return {
+      hour:Number(m[1]),
+      minute:Number(m[2]),
+      second:Number(m[3]||0)
+    };
+  }
+
+  function formatNepaliTripTime(value){
+    const p=extractTripTimeParts(value);
+    if(!p)return String(value||"");
+
+    let period="बिहान";
+    if(p.hour>=12 && p.hour<17)period="दिउँसो";
+    else if(p.hour>=17 && p.hour<20)period="साँझ";
+    else if(p.hour>=20 || p.hour<4)period="राति";
+
+    const hour12=(p.hour%12)||12;
+    return `${period} ${toNepaliDigits(hour12)}:${toNepaliDigits(String(p.minute).padStart(2,"0"))}`;
+  }
+
 
   document.addEventListener("DOMContentLoaded",()=>{
     const modal = document.getElementById("gtymsTripPreviewModal");
@@ -3768,7 +3829,7 @@ window.GTYMS_UI = (() => {
     const email=s.COMPANY_EMAIL||s.EMAIL||"gurutirthayatrasewa@gmail.com";
     const base=Number(trip.BasePrice||0), offer=Number(trip.OfferPrice||0), effective=Number(trip.EffectivePrice||offer||base||0), discount=Number(trip.DiscountAmount||0), advance=Number(trip.AdvanceAmount||0);
     const dest=destination.DestinationName||trip.DestinationName||trip.DestinationID||"";
-    const summary=[["यात्रा सुरु मिति",formatTripPdfDate(trip.StartDate)],["यात्रा समाप्त मिति",formatTripPdfDate(trip.EndDate)],["अवधि",trip.DurationDays?trip.DurationDays+" दिन":""],["गन्तव्य",dest],["यात्रा प्रकार",trip.TripCategory||trip.TripType],["सिट क्षमता",trip.TotalSeatCapacity?trip.TotalSeatCapacity+" सिट":""],["Reporting Time",trip.ReportingTime],["Departure Time",trip.DepartureTime]].filter(x=>String(x[1]||"").trim());
+    const summary=[["यात्रा सुरु मिति",formatNepaliTripDate(trip.StartDate)],["यात्रा समाप्त मिति",formatNepaliTripDate(trip.EndDate)],["अवधि",trip.DurationDays?toNepaliDigits(trip.DurationDays)+" दिन":""],["गन्तव्य",dest],["यात्रा प्रकार",trip.TripCategory||trip.TripType],["सिट क्षमता",trip.TotalSeatCapacity?toNepaliDigits(trip.TotalSeatCapacity)+" सिट":""],["रिपोर्टिङ समय",formatNepaliTripTime(trip.ReportingTime)],["प्रस्थान समय",formatNepaliTripTime(trip.DepartureTime)]].filter(x=>String(x[1]||"").trim());
     const services=[["यात्रु बिमा",pdfBool(trip.InsuranceIncluded)],["Wi-Fi",pdfBool(trip.WiFiIncluded)],["शाकाहारी भोजन",pdfBool(trip.VegetarianFoodIncluded)],["स्वास्थ्य सहायता",pdfBool(trip.HealthSupportIncluded)],["Live Tracking",pdfBool(trip.LiveTrackingEnabled)]];
     const full=sanitizeRichHtmlForPdf(trip.FullDescriptionHTML||trip.FullDescription||trip.ShortDescription||"");
     const inc=sanitizeRichHtmlForPdf(trip.IncludedServicesHTML||"");
@@ -3838,7 +3899,7 @@ window.GTYMS_UI = (() => {
 
       document.getElementById("bookingTripSummary").innerHTML = `
         <strong>${UI.escapeHtml(trip.TripTitle || "")}</strong><br>
-        <span>मिति: ${UI.escapeHtml(trip.StartDate || "")}</span><br>
+        <span>मिति: ${UI.escapeHtml(formatNepaliTripDate(trip.StartDate))}</span><br>
         <span>प्रति व्यक्ति: रु. ${formatMoney(trip.EffectivePrice || 0)}</span><br>
         <span>उपलब्ध सिट: ${UI.escapeHtml(seats)}</span>
       `;
