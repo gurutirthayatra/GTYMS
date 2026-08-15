@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- GTYMS Public Website v3.10.15 | Fixed PDF Preview Window -->
+<!-- GTYMS Public Website v3.10.16 | Direct Fixed-Template PDF Download -->
 <html lang="ne">
 <head>
   <meta charset="UTF-8" />
@@ -2241,7 +2241,7 @@ body.gtyms-trip-preview-open{overflow:hidden}
           <button id="gtymsTripPreviewDownload"
                   class="gtyms-trip-preview-download"
                   type="button">
-            🖨 Save / Download PDF
+            ⬇ Download PDF
           </button>
           <button id="gtymsTripPreviewClose"
                   class="gtyms-trip-preview-close"
@@ -3770,101 +3770,207 @@ window.GTYMS_UI = (() => {
    * - Browser Print -> Save as PDF creates real selectable text.
    * ========================================================== */
 
+  /* ==========================================================
+   * GTYMS v3.10.16 - DIRECT SERVER PDF DOWNLOAD
+   *
+   * FINAL FLOW:
+   * Main Trip Card -> यात्रा विवरण (existing Preview)
+   * Preview -> Download PDF
+   * -> PDF downloads directly.
+   *
+   * NO second preview.
+   * NO blank about:blank window.
+   * NO browser print dialog.
+   * NO canvas/image PDF.
+   *
+   * PDF design is generated from one fixed Google Docs template
+   * on the Apps Script backend; only Trip data changes.
+   * ========================================================== */
+
   async function downloadTripDetailsPdf(){
     const ctx = gtymsTripPreviewContext;
 
     if(!ctx?.trip?.TripID){
-      UI.showToast("पहिले यात्रा विवरण खोल्नुहोस् ।","error");
+      UI.showToast(
+        "पहिले यात्रा विवरण खोल्नुहोस् ।",
+        "error"
+      );
       return;
     }
 
     const button =
-      document.getElementById("gtymsTripPreviewDownload");
+      document.getElementById(
+        "gtymsTripPreviewDownload"
+      );
 
     const old =
       button ? button.innerHTML : "";
 
-    let printWindow = null;
-
     try{
       if(button){
         button.disabled = true;
-        button.textContent = "Document खुल्दैछ...";
+        button.textContent =
+          "PDF तयार हुँदैछ...";
       }
 
-      /*
-       * IMPORTANT FIX v3.10.15
-       *
-       * Do NOT use "noopener,noreferrer" here.
-       * Some browsers still open the blank tab but return null as the
-       * WindowProxy when noopener is requested. That caused the exact
-       * symptom: blank page opened and the document could not be written.
-       *
-       * We open a same-origin about:blank window and keep its WindowProxy.
-       */
-      printWindow = window.open(
-        "about:blank",
-        "_blank"
+      UI.showLoading(
+        "Professional PDF तयार हुँदैछ..."
       );
 
-      if(
-        !printWindow ||
-        printWindow.closed
-      ){
+      const apiUrl =
+        window.GTYMS_CONFIG?.API_URL;
+
+      if(!apiUrl){
         throw new Error(
-          "Document window खुल्न सकेन । Browser popup अनुमति दिनुहोस् ।"
+          "Apps Script API URL उपलब्ध छैन ।"
         );
       }
 
-      UI.showLoading("यात्रा विवरण document तयार हुँदैछ...");
+      const controller =
+        new AbortController();
 
-      const html =
-        buildFixedTripPdfDocumentHtml(
-          ctx.trip || {},
-          ctx.destination || {},
-          ctx.logo || "",
-          ctx.cover || ""
+      const timer =
+        window.setTimeout(
+          ()=>controller.abort(),
+          60000
         );
 
-      /*
-       * Write immediately into the already-opened blank tab.
-       * This avoids popup/user-gesture restrictions.
-       */
-      printWindow.document.open();
-      printWindow.document.write(html);
-      printWindow.document.close();
+      let response;
 
       try{
-        printWindow.focus();
-      }catch(_){}
+        response = await fetch(
+          apiUrl,
+          {
+            method:"POST",
+            headers:{
+              "Content-Type":
+                "text/plain;charset=utf-8"
+            },
+            body:JSON.stringify({
+              action:
+                "generateTripPdf",
+              tripId:
+                ctx.trip.TripID,
+              logoUrl:
+                new URL(
+                  "logo.png",
+                  window.location.href
+                ).href
+            }),
+            signal:
+              controller.signal
+          }
+        );
+      }finally{
+        window.clearTimeout(timer);
+      }
 
-      UI.showToast(
-        "यात्रा विवरण खुलेको छ । माथिको “Save as PDF” बटनबाट PDF बनाउनुहोस् ।"
+      if(!response.ok){
+        throw new Error(
+          `PDF server error (${response.status})`
+        );
+      }
+
+      const result =
+        await response.json();
+
+      if(!result.success){
+        throw new Error(
+          result?.error?.message ||
+          "PDF तयार हुन सकेन ।"
+        );
+      }
+
+      const data =
+        result.data || {};
+
+      if(!data.base64){
+        throw new Error(
+          "PDF data खाली आयो ।"
+        );
+      }
+
+      const binary =
+        window.atob(data.base64);
+
+      const bytes =
+        new Uint8Array(
+          binary.length
+        );
+
+      for(
+        let i=0;
+        i<binary.length;
+        i++
+      ){
+        bytes[i] =
+          binary.charCodeAt(i);
+      }
+
+      const blob =
+        new Blob(
+          [bytes],
+          {
+            type:
+              data.mimeType ||
+              "application/pdf"
+          }
+        );
+
+      const objectUrl =
+        URL.createObjectURL(blob);
+
+      const link =
+        document.createElement("a");
+
+      link.href = objectUrl;
+      link.download =
+        data.fileName ||
+        `${sanitizePdfFileName(
+          ctx.trip.TripTitle ||
+          "GTYMS-Trip"
+        )}-Yatra-Details.pdf`;
+
+      document.body.appendChild(
+        link
       );
 
-    }catch(e){
+      link.click();
+      link.remove();
+
+      window.setTimeout(
+        ()=>{
+          URL.revokeObjectURL(
+            objectUrl
+          );
+        },
+        5000
+      );
+
+      UI.showToast(
+        "PDF download सुरु भयो ।"
+      );
+
+    }catch(error){
       console.error(
-        "GTYMS Fixed PDF Template Error",
-        e
-      );
-
-      UI.showToast(
-        e.message ||
-        "यात्रा विवरण document खोल्न सकिएन ।",
-        "error"
+        "GTYMS Direct PDF Error:",
+        error
       );
 
       if(
-        printWindow &&
-        !printWindow.closed
+        error?.name ===
+        "AbortError"
       ){
-        try{
-          printWindow.document.body.innerHTML =
-            '<div style="font-family:Arial,sans-serif;padding:30px;color:#8b1e1e">' +
-            '<h2>Document खोल्न सकिएन</h2>' +
-            '<p>मुख्य पेजमा फर्केर पुनः प्रयास गर्नुहोस् ।</p>' +
-            '</div>';
-        }catch(_){}
+        UI.showToast(
+          "PDF तयार हुन धेरै समय लाग्यो । पुनः प्रयास गर्नुहोस् ।",
+          "error"
+        );
+      }else{
+        UI.showToast(
+          error?.message ||
+          "PDF download हुन सकेन ।",
+          "error"
+        );
       }
 
     }finally{
@@ -3873,998 +3979,10 @@ window.GTYMS_UI = (() => {
       if(button){
         button.disabled = false;
         button.innerHTML =
-          old || "🖨 Save / Download PDF";
+          old ||
+          "⬇ Download PDF";
       }
     }
-  }
-
-
-  function buildFixedTripPdfDocumentHtml(
-    trip,
-    destination,
-    logoDataUrl,
-    coverDataUrl
-  ){
-    const settings =
-      state.settings || {};
-
-    const companyName =
-      settings.COMPANY_NAME ||
-      "Guru Tirtha Yatra Sewa";
-
-    const officeAddress =
-      settings.OFFICE_ADDRESS ||
-      "Jorpati, Kathmandu";
-
-    const phone =
-      settings.COMPANY_PHONE ||
-      settings.PHONE ||
-      "9843484934";
-
-    const whatsapp =
-      settings.WHATSAPP_NUMBER ||
-      settings.WHATSAPP ||
-      "9843484934";
-
-    const email =
-      settings.COMPANY_EMAIL ||
-      settings.EMAIL ||
-      "gurutirthayatrasewa@gmail.com";
-
-    const destinationName =
-      destination.DestinationName ||
-      trip.DestinationName ||
-      trip.DestinationID ||
-      "";
-
-    const basePrice =
-      Number(trip.BasePrice||0);
-
-    const offerPrice =
-      Number(trip.OfferPrice||0);
-
-    const effectivePrice =
-      Number(
-        trip.EffectivePrice ||
-        offerPrice ||
-        basePrice ||
-        0
-      );
-
-    const advance =
-      Number(trip.AdvanceAmount||0);
-
-    const discount =
-      Number(trip.DiscountAmount||0);
-
-    const startDate =
-      tripBsDateDisplay(
-        trip.StartDateBS,
-        trip.StartDate
-      );
-
-    const endDate =
-      tripBsDateDisplay(
-        trip.EndDateBS,
-        trip.EndDate
-      );
-
-    const regOpen =
-      tripBsDateDisplay(
-        trip.RegistrationOpenDateBS,
-        trip.RegistrationOpenDate
-      );
-
-    const regClose =
-      tripBsDateDisplay(
-        trip.RegistrationCloseDateBS,
-        trip.RegistrationCloseDate
-      );
-
-    const reportingTime =
-      formatNepaliTripTime(
-        trip.ReportingTime
-      );
-
-    const departureTime =
-      formatNepaliTripTime(
-        trip.DepartureTime
-      );
-
-    const fullDescription =
-      sanitizeRichHtmlForPdf(
-        trip.FullDescriptionHTML ||
-        trip.FullDescription ||
-        trip.ShortDescription ||
-        ""
-      );
-
-    const includedServices =
-      sanitizeRichHtmlForPdf(
-        trip.IncludedServicesHTML ||
-        ""
-      );
-
-    const terms =
-      sanitizeRichHtmlForPdf(
-        trip.TermsAndConditionsHTML ||
-        ""
-      );
-
-    const logoHtml =
-      logoDataUrl
-        ? `<img class="brand-logo"
-                src="${pdfAttr(logoDataUrl)}"
-                alt="Logo">`
-        : "";
-
-    const coverHtml =
-      coverDataUrl
-        ? `<div class="cover-wrap">
-             <img class="cover-image"
-                  src="${pdfAttr(coverDataUrl)}"
-                  alt="${pdfAttr(trip.TripTitle||"Trip")}">
-           </div>`
-        : "";
-
-    const summary = [
-      ["यात्रा सुरु मिति", startDate],
-      ["यात्रा समाप्त मिति", endDate],
-      ["Registration Open", regOpen],
-      ["Registration Close", regClose],
-      [
-        "अवधि",
-        trip.DurationDays
-          ? `${toNepaliDigits(trip.DurationDays)} दिन`
-          : ""
-      ],
-      ["गन्तव्य", destinationName],
-      [
-        "यात्रा प्रकार",
-        trip.TripCategory ||
-        trip.TripType ||
-        ""
-      ],
-      [
-        "सिट क्षमता",
-        trip.TotalSeatCapacity
-          ? `${toNepaliDigits(trip.TotalSeatCapacity)} सिट`
-          : ""
-      ],
-      ["रिपोर्टिङ समय", reportingTime],
-      ["प्रस्थान समय", departureTime]
-    ].filter(
-      x=>String(x[1]||"").trim()
-    );
-
-    const serviceRows = [
-      [
-        "यात्रु बिमा",
-        pdfBool(trip.InsuranceIncluded)
-      ],
-      [
-        "Wi-Fi",
-        pdfBool(trip.WiFiIncluded)
-      ],
-      [
-        "शाकाहारी भोजन",
-        pdfBool(trip.VegetarianFoodIncluded)
-      ],
-      [
-        "स्वास्थ्य सहायता",
-        pdfBool(trip.HealthSupportIncluded)
-      ],
-      [
-        "Live Tracking",
-        pdfBool(trip.LiveTrackingEnabled)
-      ]
-    ];
-
-    const generatedAt =
-      new Date().toLocaleString(
-        "en-GB",
-        {
-          timeZone:"Asia/Kathmandu"
-        }
-      );
-
-    const safeTitle =
-      pdfText(
-        trip.TripTitle ||
-        "यात्रा विवरण"
-      );
-
-    return `<!doctype html>
-<html lang="ne">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${safeTitle} - Guru Tirtha Yatra Sewa</title>
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-
-<style>
-  :root{
-    --primary:#8b1e1e;
-    --primary-dark:#681515;
-    --gold:#d4a017;
-    --ink:#2c1b15;
-    --muted:#6f625c;
-    --soft:#fff8ea;
-    --border:#eadbc7;
-    --white:#ffffff;
-  }
-
-  *{
-    box-sizing:border-box;
-  }
-
-  html,
-  body{
-    margin:0;
-    padding:0;
-    background:#fff;
-    color:var(--ink);
-    font-family:
-      "Noto Sans Devanagari",
-      Arial,
-      sans-serif;
-    line-height:1.55;
-  }
-
-  body{
-    font-size:11.2pt;
-  }
-
-  /* ---------------------------------------------
-     FIXED A4 PAGE STRUCTURE
-     Header + footer repeat on every printed page.
-     Only body data flows between them.
-     --------------------------------------------- */
-  @page{
-    size:A4 portrait;
-    margin:
-      38mm
-      13mm
-      24mm
-      13mm;
-  }
-
-  .fixed-header{
-    position:fixed;
-    left:0;
-    right:0;
-    top:-31mm;
-    height:29mm;
-    display:flex;
-    align-items:center;
-    gap:5mm;
-    border-bottom:1.2mm solid var(--primary);
-    padding-bottom:3mm;
-    background:#fff;
-  }
-
-  .fixed-footer{
-    position:fixed;
-    left:0;
-    right:0;
-    bottom:-18mm;
-    height:14mm;
-    border-top:.6mm solid var(--gold);
-    padding-top:3mm;
-    background:#fff;
-    text-align:center;
-    color:var(--muted);
-    font-size:8.3pt;
-    line-height:1.35;
-  }
-
-  .brand-logo{
-    width:22mm;
-    height:22mm;
-    object-fit:contain;
-    flex:0 0 auto;
-  }
-
-  .brand-info{
-    min-width:0;
-  }
-
-  .brand-name{
-    margin:0 0 1mm;
-    color:var(--primary);
-    font-size:19pt;
-    line-height:1.08;
-    font-weight:800;
-  }
-
-  .brand-line{
-    margin:.5mm 0;
-    font-size:8.8pt;
-  }
-
-  .brand-line strong{
-    color:var(--ink);
-  }
-
-  .footer-company{
-    color:var(--primary);
-    font-weight:800;
-    font-size:9pt;
-  }
-
-  .footer-line{
-    margin-top:.8mm;
-  }
-
-  /* ---------------------------------------------
-     DOCUMENT BODY
-     --------------------------------------------- */
-  .document{
-    width:100%;
-  }
-
-  .doc-heading{
-    text-align:center;
-    margin:0 0 5mm;
-    break-inside:avoid;
-  }
-
-  .doc-kicker{
-    color:var(--primary);
-    font-weight:800;
-    font-size:10.5pt;
-    margin-bottom:1mm;
-  }
-
-  .trip-title{
-    margin:0;
-    font-size:21pt;
-    line-height:1.15;
-    font-weight:800;
-  }
-
-  .trip-code{
-    margin-top:1.5mm;
-    color:var(--muted);
-    font-size:8.5pt;
-  }
-
-  .cover-wrap{
-    width:100%;
-    margin:0 0 5mm;
-    text-align:center;
-    break-inside:avoid;
-  }
-
-  .cover-image{
-    display:block;
-    width:100%;
-    max-height:82mm;
-    object-fit:cover;
-    border-radius:3mm;
-    border:.3mm solid var(--border);
-  }
-
-  .summary-grid{
-    display:grid;
-    grid-template-columns:
-      repeat(2,minmax(0,1fr));
-    gap:3mm;
-    margin-bottom:5mm;
-  }
-
-  .summary-box{
-    border:.3mm solid var(--border);
-    border-radius:3mm;
-    padding:3.4mm 4mm;
-    background:var(--soft);
-    min-height:18mm;
-    break-inside:avoid;
-  }
-
-  .summary-label{
-    color:var(--muted);
-    font-size:8pt;
-    margin-bottom:1mm;
-  }
-
-  .summary-value{
-    font-size:10.5pt;
-    font-weight:700;
-    overflow-wrap:anywhere;
-  }
-
-  .section{
-    margin:0 0 5mm;
-  }
-
-  .section-title{
-    display:block;
-    margin:0 0 3mm;
-    padding:2.5mm 3.5mm;
-    border-left:1.5mm solid var(--primary);
-    background:var(--soft);
-    color:var(--primary);
-    font-size:13pt;
-    line-height:1.25;
-    font-weight:800;
-    break-after:avoid;
-    page-break-after:avoid;
-  }
-
-  .section-content{
-    width:100%;
-  }
-
-  .section-content p{
-    margin:0 0 2.2mm;
-  }
-
-  .section-content ul,
-  .section-content ol{
-    margin:1.5mm 0 2.5mm 6mm;
-    padding:0;
-  }
-
-  .section-content li{
-    margin:1mm 0;
-  }
-
-  .price-card{
-    width:100%;
-    border:.65mm solid var(--primary);
-    border-radius:3mm;
-    padding:4mm;
-    break-inside:avoid;
-  }
-
-  .price-row{
-    display:flex;
-    justify-content:space-between;
-    gap:8mm;
-    padding:1.1mm 0;
-  }
-
-  .price-row strong{
-    white-space:nowrap;
-  }
-
-  .price-total{
-    margin-top:2mm;
-    padding-top:2.5mm;
-    border-top:.3mm solid var(--border);
-    color:var(--primary);
-    font-size:13pt;
-    font-weight:800;
-  }
-
-  .services{
-    display:grid;
-    grid-template-columns:
-      repeat(2,minmax(0,1fr));
-    gap:2.5mm;
-  }
-
-  .service{
-    border:.3mm solid var(--border);
-    border-radius:2.5mm;
-    padding:2.8mm 3.2mm;
-    break-inside:avoid;
-  }
-
-  .service.yes::before{
-    content:"✓ ";
-    color:#1f7a4d;
-    font-weight:800;
-  }
-
-  .service.no::before{
-    content:"— ";
-    color:var(--muted);
-  }
-
-  .detail-list{
-    display:grid;
-    grid-template-columns:
-      1fr;
-    gap:2mm;
-  }
-
-  .detail-row{
-    display:grid;
-    grid-template-columns:42mm minmax(0,1fr);
-    gap:4mm;
-    padding:2.2mm 0;
-    border-bottom:.25mm solid #f1e7dc;
-    break-inside:avoid;
-  }
-
-  .detail-label{
-    font-weight:700;
-  }
-
-  .detail-value{
-    overflow-wrap:anywhere;
-  }
-
-  .note-box{
-    border:.3mm solid var(--border);
-    border-radius:2.5mm;
-    padding:3.5mm 4mm;
-    background:#fffdf9;
-    break-inside:avoid;
-  }
-
-  .keep-together{
-    break-inside:avoid;
-    page-break-inside:avoid;
-  }
-
-  /* Avoid orphaned headings */
-  h1,h2,h3{
-    break-after:avoid;
-    page-break-after:avoid;
-  }
-
-
-  .pdf-toolbar{
-    position:sticky;
-    top:0;
-    z-index:9999;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:12px;
-    width:100%;
-    padding:10px 14px;
-    background:#26150f;
-    color:#fff;
-    box-shadow:0 4px 16px rgba(0,0,0,.18);
-    font-family:"Noto Sans Devanagari",Arial,sans-serif;
-  }
-
-  .pdf-toolbar-title{
-    font-weight:800;
-  }
-
-  .pdf-toolbar-actions{
-    display:flex;
-    gap:8px;
-    align-items:center;
-  }
-
-  .pdf-toolbar button{
-    border:0;
-    border-radius:9px;
-    padding:9px 14px;
-    font:inherit;
-    font-weight:800;
-    cursor:pointer;
-  }
-
-  .pdf-save-btn{
-    color:#fff;
-    background:#8b1e1e;
-  }
-
-  .pdf-close-btn{
-    color:#2c1b15;
-    background:#fff2e8;
-  }
-
-
-  /* Screen preview of print document */
-  @media screen{
-    body{
-      width:210mm;
-      margin:0 auto;
-      padding:14mm 13mm 18mm;
-      box-shadow:0 0 20px rgba(0,0,0,.12);
-    }
-
-    .fixed-header,
-    .fixed-footer{
-      position:static;
-      height:auto;
-      margin-bottom:7mm;
-    }
-
-    .fixed-footer{
-      margin-top:8mm;
-      padding-top:4mm;
-    }
-  }
-
-  @media print{
-    .pdf-toolbar{
-      display:none!important;
-    }
-
-    body{
-      -webkit-print-color-adjust:exact;
-      print-color-adjust:exact;
-    }
-  }
-</style>
-</head>
-
-<body>
-
-<div class="pdf-toolbar">
-  <div class="pdf-toolbar-title">
-    Guru Tirtha Yatra Sewa — यात्रा विवरण
-  </div>
-
-  <div class="pdf-toolbar-actions">
-    <button class="pdf-save-btn"
-            type="button"
-            onclick="window.print()">
-      🖨 Save as PDF
-    </button>
-
-    <button class="pdf-close-btn"
-            type="button"
-            onclick="window.close()">
-      बन्द गर्नुहोस्
-    </button>
-  </div>
-</div>
-
-<header class="fixed-header">
-  ${logoHtml}
-
-  <div class="brand-info">
-    <h1 class="brand-name">
-      ${pdfText(companyName)}
-    </h1>
-
-    <div class="brand-line">
-      <strong>Office Address:</strong>
-      ${pdfText(officeAddress)}
-    </div>
-
-    <div class="brand-line">
-      <strong>Phone:</strong>
-      ${pdfText(phone)}
-      &nbsp; | &nbsp;
-      <strong>WhatsApp:</strong>
-      ${pdfText(whatsapp)}
-    </div>
-
-    <div class="brand-line">
-      <strong>Email:</strong>
-      ${pdfText(email)}
-    </div>
-  </div>
-</header>
-
-
-<footer class="fixed-footer">
-  <div class="footer-company">
-    ${pdfText(companyName)}
-  </div>
-
-  <div class="footer-line">
-    Phone:
-    ${pdfText(phone)}
-    &nbsp; | &nbsp;
-    WhatsApp:
-    ${pdfText(whatsapp)}
-    &nbsp; | &nbsp;
-    ${pdfText(email)}
-  </div>
-
-  <div class="footer-line">
-    Generated from GTYMS •
-    ${pdfText(generatedAt)}
-  </div>
-</footer>
-
-
-<main class="document">
-
-  <section class="doc-heading">
-    <div class="doc-kicker">
-      यात्रा प्याकेजको विस्तृत विवरण
-    </div>
-
-    <h2 class="trip-title">
-      ${safeTitle}
-    </h2>
-
-    ${
-      trip.TripCode
-        ? `<div class="trip-code">
-             Trip Code:
-             ${pdfText(trip.TripCode)}
-           </div>`
-        : ""
-    }
-  </section>
-
-  ${coverHtml}
-
-  <section class="summary-grid">
-    ${summary.map(
-      ([label,value])=>`
-        <div class="summary-box">
-          <div class="summary-label">
-            ${pdfText(label)}
-          </div>
-
-          <div class="summary-value">
-            ${pdfText(value)}
-          </div>
-        </div>
-      `
-    ).join("")}
-  </section>
-
-
-  <section class="section">
-    <h3 class="section-title">
-      शुल्क तथा भुक्तानी
-    </h3>
-
-    <div class="price-card">
-      ${
-        basePrice>0
-          ? `<div class="price-row">
-               <span>Base Price</span>
-               <strong>
-                 रु. ${formatMoney(basePrice)}
-               </strong>
-             </div>`
-          : ""
-      }
-
-      ${
-        discount>0
-          ? `<div class="price-row">
-               <span>Discount</span>
-               <strong>
-                 रु. ${formatMoney(discount)}
-               </strong>
-             </div>`
-          : ""
-      }
-
-      ${
-        offerPrice>0
-          ? `<div class="price-row">
-               <span>Offer Price</span>
-               <strong>
-                 रु. ${formatMoney(offerPrice)}
-               </strong>
-             </div>`
-          : ""
-      }
-
-      ${
-        advance>0
-          ? `<div class="price-row">
-               <span>
-                 Advance / Booking Amount
-               </span>
-               <strong>
-                 रु. ${formatMoney(advance)}
-               </strong>
-             </div>`
-          : ""
-      }
-
-      <div class="price-row price-total">
-        <span>
-          प्रति व्यक्ति प्रभावकारी शुल्क
-        </span>
-
-        <strong>
-          रु. ${formatMoney(effectivePrice)}
-        </strong>
-      </div>
-    </div>
-  </section>
-
-
-  <section class="section">
-    <h3 class="section-title">
-      बिमा तथा यात्रा सुविधा
-    </h3>
-
-    <div class="services">
-      ${serviceRows.map(
-        ([label,enabled])=>`
-          <div class="service ${enabled?"yes":"no"}">
-            ${pdfText(label)}
-            :
-            <strong>
-              ${enabled
-                ? "समावेश"
-                : "उल्लेख छैन"}
-            </strong>
-          </div>
-        `
-      ).join("")}
-    </div>
-
-    ${
-      trip.MealsIncludedText
-        ? `<p style="margin-top:3mm">
-             <strong>Meals:</strong>
-             ${pdfText(trip.MealsIncludedText)}
-           </p>`
-        : ""
-    }
-  </section>
-
-
-  ${
-    fullDescription
-      ? `<section class="section">
-           <h3 class="section-title">
-             यात्राको विस्तृत परिचय
-           </h3>
-
-           <div class="section-content">
-             ${fullDescription}
-           </div>
-         </section>`
-      : ""
-  }
-
-
-  ${
-    includedServices
-      ? `<section class="section">
-           <h3 class="section-title">
-             समावेश सेवा
-           </h3>
-
-           <div class="section-content">
-             ${includedServices}
-           </div>
-         </section>`
-      : ""
-  }
-
-
-  ${
-    trip.BusType ||
-    trip.VehicleNumber ||
-    trip.HotelName ||
-    trip.RoomType
-      ? `<section class="section">
-           <h3 class="section-title">
-             यातायात तथा आवास
-           </h3>
-
-           <div class="detail-list">
-
-             ${
-               trip.BusType
-                 ? `<div class="detail-row">
-                      <div class="detail-label">
-                        Bus Type
-                      </div>
-                      <div class="detail-value">
-                        ${pdfText(trip.BusType)}
-                      </div>
-                    </div>`
-                 : ""
-             }
-
-             ${
-               trip.VehicleNumber
-                 ? `<div class="detail-row">
-                      <div class="detail-label">
-                        Vehicle
-                      </div>
-                      <div class="detail-value">
-                        ${pdfText(trip.VehicleNumber)}
-                      </div>
-                    </div>`
-                 : ""
-             }
-
-             ${
-               trip.HotelName
-                 ? `<div class="detail-row">
-                      <div class="detail-label">
-                        Hotel
-                      </div>
-                      <div class="detail-value">
-                        ${pdfText(trip.HotelName)}
-                      </div>
-                    </div>`
-                 : ""
-             }
-
-             ${
-               trip.RoomType
-                 ? `<div class="detail-row">
-                      <div class="detail-label">
-                        Room Type
-                      </div>
-                      <div class="detail-value">
-                        ${pdfText(trip.RoomType)}
-                      </div>
-                    </div>`
-                 : ""
-             }
-
-           </div>
-         </section>`
-      : ""
-  }
-
-
-  ${
-    terms ||
-    trip.CancellationNote ||
-    trip.RegistrationMessage
-      ? `<section class="section">
-           <h3 class="section-title">
-             महत्वपूर्ण नियम तथा सूचना
-           </h3>
-
-           ${
-             terms
-               ? `<div class="section-content">
-                    ${terms}
-                  </div>`
-               : ""
-           }
-
-           ${
-             trip.CancellationNote
-               ? `<div class="note-box"
-                       style="margin-top:3mm">
-                    <strong>
-                      Cancellation:
-                    </strong>
-                    ${pdfText(
-                      trip.CancellationNote
-                    )}
-                  </div>`
-               : ""
-           }
-
-           ${
-             trip.RegistrationMessage
-               ? `<div class="note-box"
-                       style="margin-top:3mm">
-                    <strong>
-                      Registration:
-                    </strong>
-                    ${pdfText(
-                      trip.RegistrationMessage
-                    )}
-                  </div>`
-               : ""
-           }
-         </section>`
-      : ""
-  }
-
-</main>
-
-<script>
-  /*
-   * Keep document open after printing so the user can inspect
-   * or save again. Close only from the toolbar button.
-   */
-  window.addEventListener("load",function(){
-    try{
-      window.scrollTo(0,0);
-    }catch(e){}
-  });
-<\/script>
-
-</body>
-</html>`;
   }
 
 
