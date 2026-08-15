@@ -1793,38 +1793,53 @@ body.gtyms-clock-open{overflow:hidden}
 }
 
 
-/* GTYMS v3.10.3 - Actual Logo in Live Clock Center */
+/* GTYMS v3.10.4 - FINAL Clock Center Logo Alignment */
+.gtyms-big-clock::before{
+  content:none !important;
+}
+
 .gtyms-clock-logo{
-  position:absolute;
-  left:50%;
-  top:34%;
-  transform:translate(-50%,-50%);
-  width:82px;
-  height:82px;
-  display:grid;
-  place-items:center;
-  z-index:3;
-  pointer-events:none;
+  position:absolute !important;
+  left:50% !important;
+  top:50% !important;
+  transform:translate(-50%,-50%) !important;
+  width:48% !important;
+  height:48% !important;
+  display:grid !important;
+  place-items:center !important;
+  z-index:3 !important;
+  pointer-events:none !important;
 }
+
 .gtyms-clock-logo-img{
-  width:100%;
-  height:100%;
-  object-fit:contain;
-  display:block;
-  filter:drop-shadow(0 3px 6px rgba(0,0,0,.16));
+  width:100% !important;
+  height:100% !important;
+  object-fit:contain !important;
+  display:block !important;
+  filter:drop-shadow(0 4px 8px rgba(0,0,0,.14));
 }
+
 .gtyms-clock-logo.logo-fallback::after{
   content:"ॐ";
-  font-size:48px;
+  font-size:72px;
   line-height:1;
   color:#d4a017;
   font-weight:800;
 }
+
+/* Hands always stay above the logo */
+.big-clock-hand{
+  z-index:5 !important;
+}
+
+.big-clock-pin{
+  z-index:6 !important;
+}
+
 @media(max-width:620px){
   .gtyms-clock-logo{
-    width:70px;
-    height:70px;
-    top:34%;
+    width:50% !important;
+    height:50% !important;
   }
 }
 
