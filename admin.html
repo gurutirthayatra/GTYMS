@@ -1052,7 +1052,7 @@
 
   <div id="adminApp" class="admin-layout hidden">
     <aside id="sidebar" class="sidebar">
-      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v4.2.3 • Custom UI Restore</small></div>
+      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v4.2.7 • Nepali Date Save Fix</small></div>
       <nav class="nav">
         <button data-view="dashboard" class="active">▦ Dashboard</button>
         <button data-view="launcher">🔗 System Launcher</button>
@@ -8197,35 +8197,111 @@ toast("Login सफल भयो ।");
       return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
     }
 
+
     function tripAdToBsRaw(value){
       const ad=tripNormalizeAdDate(value);
       if(!ad)return "";
+
+      try{
+        if(
+          typeof NepaliFunctions!=="undefined" &&
+          typeof NepaliFunctions.AD2BS==="function"
+        ){
+          const result=NepaliFunctions.AD2BS(
+            ad,
+            "YYYY-MM-DD",
+            "YYYY-MM-DD"
+          );
+
+          if(result){
+            return String(result).trim();
+          }
+        }
+      }catch(e){
+        console.warn("NepaliFunctions AD→BS failed",value,e);
+      }
+
       try{
         if(typeof DateConverter==="function"){
           const bs=new DateConverter(ad).toBs();
-          return `${bs.year}-${String(bs.month).padStart(2,"0")}-${String(bs.date).padStart(2,"0")}`;
+
+          if(bs&&bs.year&&bs.month&&bs.date){
+            return `${bs.year}-${String(bs.month).padStart(2,"0")}-${String(bs.date).padStart(2,"0")}`;
+          }
         }
-      }catch(e){console.warn("AD→BS failed",value,e)}
+      }catch(e){
+        console.warn("DateConverter AD→BS failed",value,e);
+      }
+
       return "";
     }
 
+
     function tripBsToAdRaw(value){
-      const bs=tripAsciiDigits(value)
-        .trim()
-        .replace(/[/.|,]+/g,"-")
-        .replace(/\s+/g,"");
+      const bs=
+        tripAsciiDigits(value)
+          .trim()
+          .replace(/[/.|,]+/g,"-")
+          .replace(/\s+/g,"");
 
       if(!bs)return "";
+
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(bs)){
+        return "";
+      }
+
+      try{
+        if(
+          typeof NepaliFunctions!=="undefined" &&
+          NepaliFunctions.BS &&
+          typeof NepaliFunctions.BS.ValidateDate==="function" &&
+          typeof NepaliFunctions.ParseDate==="function"
+        ){
+          const parsed=NepaliFunctions.ParseDate(bs);
+          const dateObject=parsed?.parsedDate||null;
+
+          if(
+            dateObject &&
+            NepaliFunctions.BS.ValidateDate(dateObject)===false
+          ){
+            return "";
+          }
+        }
+      }catch(e){
+        console.warn("BS validation skipped",bs,e);
+      }
+
+      try{
+        if(
+          typeof NepaliFunctions!=="undefined" &&
+          typeof NepaliFunctions.BS2AD==="function"
+        ){
+          const result=NepaliFunctions.BS2AD(
+            bs,
+            "YYYY-MM-DD",
+            "YYYY-MM-DD"
+          );
+
+          const clean=String(result||"").trim();
+
+          if(/^\d{4}-\d{2}-\d{2}$/.test(clean)){
+            return clean;
+          }
+        }
+      }catch(e){
+        console.warn("NepaliFunctions BS→AD failed",value,e);
+      }
 
       try{
         if(typeof DateConverter==="function"){
           const ad=new DateConverter(bs).toAd();
+
           if(ad&&ad.year&&ad.month&&ad.date){
             return `${ad.year}-${String(ad.month).padStart(2,"0")}-${String(ad.date).padStart(2,"0")}`;
           }
         }
       }catch(e){
-        console.warn("BS→AD failed",value,e);
+        console.warn("DateConverter BS→AD failed",value,e);
       }
 
       return "";
@@ -8297,7 +8373,7 @@ toast("Login सफल भयो ।");
         if(!input)return;
 
         if(input.dataset.syncReady!=="1"){
-          ["change","blur"].forEach(evt=>{
+          ["input","change","blur"].forEach(evt=>{
             input.addEventListener(evt,()=>{
               updateTripHiddenAdFromBs(bsId,adId);
             });
@@ -8349,45 +8425,91 @@ toast("Login सफल भयो ।");
       });
     }
 
+
     function syncTripAdFieldsFromBs(){
-      const errors=[];
+      const fieldNames={
+        tripStartDateBs:"Start Date",
+        tripEndDateBs:"End Date",
+        tripRegistrationOpenBs:"Registration Open",
+        tripRegistrationCloseBs:"Registration Close"
+      };
 
-      GTYMS_TRIP_DATE_FIELDS.forEach(([bsId,adId,required])=>{
-        const bsInput=$(bsId);
-        const adInput=$(adId);
-        if(!bsInput||!adInput)return;
+      const failed=[];
 
-        const bsValue=String(bsInput.value||"").trim();
+      GTYMS_TRIP_DATE_FIELDS.forEach(
+        ([bsId,adId,required])=>{
+          const bsInput=$(bsId);
+          const adInput=$(adId);
 
-        if(!bsValue){
-          if(required)errors.push(bsId);
-          else adInput.value="";
-          return;
+          if(!bsInput||!adInput)return;
+
+          const bsValue=String(
+            bsInput.value||""
+          ).trim();
+
+          if(!bsValue){
+            if(required){
+              failed.push(
+                fieldNames[bsId]||bsId
+              );
+            }else{
+              adInput.value="";
+            }
+            return;
+          }
+
+          const converted=
+            tripBsToAdRaw(bsValue);
+
+          if(converted){
+            adInput.value=converted;
+            return;
+          }
+
+          const existing=
+            tripNormalizeAdDate(
+              adInput.value||""
+            );
+
+          const existingBs=
+            existing
+              ? tripAdToBsRaw(existing)
+              : "";
+
+          const canonicalBs=
+            tripAsciiDigits(bsValue)
+              .replace(/[/.|,]+/g,"-")
+              .replace(/\s+/g,"");
+
+          if(
+            existing &&
+            existingBs &&
+            existingBs===canonicalBs
+          ){
+            adInput.value=existing;
+            return;
+          }
+
+          failed.push(
+            fieldNames[bsId]||bsId
+          );
         }
+      );
 
-        const converted=tripBsToAdRaw(bsValue);
+      if(failed.length){
+        throw new Error(
+          failed.join(", ") +
+          " को नेपाली मिति convert हुन सकेन । फेरि पात्रोबाट छान्नुहोस् ।"
+        );
+      }
 
-        if(converted){
-          adInput.value=converted;
-          return;
-        }
-
-        /*
-         * Editing an existing trip:
-         * if the BS display was derived from the already-saved AD value,
-         * keep that valid AD value instead of blocking Save.
-         */
-        const existing=tripNormalizeAdDate(adInput.value||"");
-        if(existing){
-          adInput.value=existing;
-          return;
-        }
-
-        errors.push(bsId);
-      });
-
-      if(errors.length){
-        throw new Error("नेपाली मिति सही रूपमा छान्नुहोस् ।");
+      if(
+        !$("tripStartDateAd")?.value ||
+        !$("tripEndDateAd")?.value
+      ){
+        throw new Error(
+          "Start Date र End Date save गर्न आवश्यक मिति तयार भएन ।"
+        );
       }
     }
 
@@ -8440,6 +8562,18 @@ toast("Login सफल भयो ।");
 
       ensureTripNepaliDatePickers();
       syncTripBsFieldsFromAd();
+
+      if(!record.TripID){
+        [
+          "tripStartDateAd",
+          "tripEndDateAd",
+          "tripRegistrationOpenAd",
+          "tripRegistrationCloseAd"
+        ].forEach(id=>{
+          const el=$(id);
+          if(el)el.value="";
+        });
+      }
 
       $("tripFullDescription").innerHTML=
         record.FullDescriptionHTML||"";
@@ -8513,7 +8647,7 @@ toast("Login सफल भयो ।");
         try{
           syncTripAdFieldsFromBs();
         }catch(dateError){
-          toast(dateError.message||"नेपाली मिति सही छान्नुहोस् ।","error");
+          toast(dateError.message||"नेपाली मिति convert हुन सकेन ।","error");
           return;
         }
 
