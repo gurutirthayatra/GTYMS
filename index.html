@@ -1691,6 +1691,107 @@ button {
 #topEmailLink{white-space:nowrap}
 @media(max-width:760px){.top-contact{flex-wrap:wrap}#topEmailLink{font-size:.82rem}}
 @media(max-width:620px){.top-contact{width:100%;display:flex;flex-wrap:wrap;column-gap:12px;row-gap:4px}#topEmailLink{flex-basis:100%;white-space:normal;overflow-wrap:anywhere}}
+
+/* GTYMS v3.10.2 - Click-to-Zoom Live Clock Modal (additive only) */
+#gtymsLiveClock{cursor:pointer;transition:transform .18s ease,box-shadow .18s ease}
+#gtymsLiveClock:hover{transform:scale(1.06);box-shadow:0 7px 18px rgba(139,30,30,.28)}
+#gtymsLiveClock:focus-visible{outline:3px solid rgba(212,160,23,.55);outline-offset:3px}
+
+.gtyms-clock-modal{
+  position:fixed;inset:0;z-index:5000;
+  display:grid;place-items:center;padding:20px;
+}
+.gtyms-clock-backdrop{
+  position:absolute;inset:0;
+  background:rgba(24,12,8,.82);
+  backdrop-filter:blur(7px);
+}
+.gtyms-clock-dialog{
+  position:relative;z-index:2;
+  width:min(92vw,560px);
+  max-height:94vh;overflow:auto;
+  padding:26px 24px 24px;
+  border:1px solid rgba(212,160,23,.48);
+  border-radius:26px;
+  background:linear-gradient(180deg,#fffdf8,#fff6e5);
+  box-shadow:0 28px 90px rgba(0,0,0,.38);
+  text-align:center;
+}
+.gtyms-clock-close{
+  position:absolute;right:13px;top:10px;
+  width:42px;height:42px;border:0;border-radius:50%;
+  background:#8b1e1e;color:#fff;font-size:29px;line-height:1;
+}
+.gtyms-clock-heading{display:grid;gap:2px;margin:2px 44px 18px}
+.gtyms-clock-heading strong{font-size:clamp(1.05rem,3vw,1.35rem);color:#681515}
+.gtyms-clock-heading span{font-size:.9rem;color:#6f625c;font-weight:700}
+
+.gtyms-big-clock{
+  position:relative;
+  width:min(76vw,410px);aspect-ratio:1/1;
+  margin:0 auto;
+  border:12px solid #8b1e1e;border-radius:50%;
+  background:
+    radial-gradient(circle at center,rgba(212,160,23,.08) 0 5%,transparent 5.5%),
+    radial-gradient(circle at center,#fffefb 0 66%,#fff4d8 100%);
+  box-shadow:
+    inset 0 0 0 5px #d4a017,
+    inset 0 0 28px rgba(139,30,30,.12),
+    0 16px 35px rgba(73,35,20,.18);
+}
+.gtyms-big-clock::before{
+  content:"GURU TIRTHA YATRA SEWA";
+  position:absolute;left:50%;top:26%;
+  transform:translateX(-50%);
+  width:70%;font-family:Arial,sans-serif;
+  font-size:clamp(8px,2.2vw,13px);font-weight:800;letter-spacing:.08em;color:#8b1e1e;
+}
+.gtyms-clock-logo{
+  position:absolute;left:50%;top:34%;
+  transform:translate(-50%,-50%);
+  font-size:clamp(25px,8vw,48px);line-height:1;color:#d4a017;font-weight:800;
+}
+.big-num{
+  position:absolute;z-index:2;
+  width:30px;height:30px;
+  display:grid;place-items:center;
+  margin:-15px 0 0 -15px;
+  font-family:Arial,sans-serif;
+  font-size:clamp(13px,3.8vw,21px);font-weight:800;color:#4a2019;
+}
+.b12{left:50%;top:8%}.b1{left:71%;top:14%}.b2{left:86%;top:29%}.b3{left:92%;top:50%}
+.b4{left:86%;top:71%}.b5{left:71%;top:86%}.b6{left:50%;top:92%}.b7{left:29%;top:86%}
+.b8{left:14%;top:71%}.b9{left:8%;top:50%}.b10{left:14%;top:29%}.b11{left:29%;top:14%}
+
+.big-clock-hand{
+  position:absolute;z-index:5;left:50%;bottom:50%;
+  transform-origin:50% 100%;border-radius:999px;
+  box-shadow:0 1px 2px rgba(0,0,0,.2);
+}
+.big-clock-hand.hour{width:7px;height:25%;background:#2c1b15}
+.big-clock-hand.minute{width:5px;height:34%;background:#2c1b15}
+.big-clock-hand.second{width:2px;height:39%;background:#c3261f}
+.big-clock-pin{
+  position:absolute;z-index:6;left:50%;top:50%;
+  width:18px;height:18px;transform:translate(-50%,-50%);
+  border:4px solid #fff;border-radius:50%;background:#8b1e1e;
+  box-shadow:0 1px 5px rgba(0,0,0,.28);
+}
+.gtyms-digital-time{
+  margin-top:17px;font-family:Arial,sans-serif;
+  font-size:clamp(1.55rem,6vw,2.15rem);font-weight:800;letter-spacing:.06em;color:#681515;
+}
+.gtyms-nepal-date{margin-top:2px;color:#6f625c;font-weight:600}
+
+body.gtyms-clock-open{overflow:hidden}
+
+@media(max-width:620px){
+  .gtyms-clock-modal{padding:10px}
+  .gtyms-clock-dialog{width:96vw;padding:22px 12px 18px;border-radius:20px}
+  .gtyms-big-clock{width:min(84vw,390px);border-width:9px}
+  .gtyms-clock-close{width:38px;height:38px;font-size:26px}
+}
+
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
@@ -1752,7 +1853,7 @@ button {
 
     <div class="container navbar">
       <a class="brand" href="index.html" aria-label="Guru Tirtha Yatra Home">
-        <div class="brand-mark gtyms-live-clock" id="gtymsLiveClock" aria-label="नेपाल समय">
+        <div class="brand-mark gtyms-live-clock" id="gtymsLiveClock" role="button" tabindex="0" aria-label="नेपाल समय ठूलो घडीमा हेर्नुहोस्" title="ठूलो घडी हेर्न क्लिक गर्नुहोस्">
           <span class="clock-number n12">12</span><span class="clock-number n3">3</span>
           <span class="clock-number n6">6</span><span class="clock-number n9">9</span>
           <span class="clock-hand hour" id="gtymsClockHour"></span>
@@ -2330,7 +2431,45 @@ button {
       </div>
     </section>
 
-  <footer class="site-footer">
+  
+  <!-- GTYMS Live Clock Zoom Modal - additive -->
+  <div id="gtymsClockModal" class="gtyms-clock-modal hidden" role="dialog" aria-modal="true" aria-labelledby="gtymsClockModalTitle">
+    <div class="gtyms-clock-backdrop" data-clock-close="true"></div>
+    <div class="gtyms-clock-dialog">
+      <button id="gtymsClockClose" class="gtyms-clock-close" type="button" aria-label="घडी बन्द गर्नुहोस्">×</button>
+
+      <div class="gtyms-clock-heading">
+        <strong id="gtymsClockModalTitle">Guru Tirtha Yatra Sewa</strong>
+        <span>नेपाल समय</span>
+      </div>
+
+      <div class="gtyms-big-clock" aria-label="नेपालको वास्तविक समय">
+        <div class="gtyms-clock-logo">ॐ</div>
+        <span class="big-num b12">12</span>
+        <span class="big-num b1">1</span>
+        <span class="big-num b2">2</span>
+        <span class="big-num b3">3</span>
+        <span class="big-num b4">4</span>
+        <span class="big-num b5">5</span>
+        <span class="big-num b6">6</span>
+        <span class="big-num b7">7</span>
+        <span class="big-num b8">8</span>
+        <span class="big-num b9">9</span>
+        <span class="big-num b10">10</span>
+        <span class="big-num b11">11</span>
+
+        <span class="big-clock-hand hour" id="gtymsBigHour"></span>
+        <span class="big-clock-hand minute" id="gtymsBigMinute"></span>
+        <span class="big-clock-hand second" id="gtymsBigSecond"></span>
+        <span class="big-clock-pin"></span>
+      </div>
+
+      <div id="gtymsDigitalTime" class="gtyms-digital-time">--:--:--</div>
+      <div id="gtymsNepalDate" class="gtyms-nepal-date"></div>
+    </div>
+  </div>
+
+<footer class="site-footer">
     <div class="container footer-inner">
       <div>
         <strong id="footerCompany">Guru Tirtha Yatra Sewa</strong>
@@ -5793,5 +5932,84 @@ window.GTYMS_UI = (() => {
  tick();setInterval(tick,1000);
 })();
 </script>
+
+<script>
+/* GTYMS v3.10.2 - Click-to-Zoom Live Nepal Clock */
+(function(){
+  const smallClock = document.getElementById("gtymsLiveClock");
+  const modal = document.getElementById("gtymsClockModal");
+  const closeBtn = document.getElementById("gtymsClockClose");
+
+  function nepalParts(){
+    const parts = new Intl.DateTimeFormat("en-US",{
+      timeZone:"Asia/Kathmandu",
+      hour:"2-digit",minute:"2-digit",second:"2-digit",
+      hour12:false
+    }).formatToParts(new Date());
+    const v={};
+    parts.forEach(p=>{if(p.type!=="literal")v[p.type]=Number(p.value)});
+    return {h:(v.hour||0)%24,m:v.minute||0,s:v.second||0};
+  }
+
+  function updateBigClock(){
+    const h=document.getElementById("gtymsBigHour");
+    const m=document.getElementById("gtymsBigMinute");
+    const s=document.getElementById("gtymsBigSecond");
+    const digital=document.getElementById("gtymsDigitalTime");
+    const date=document.getElementById("gtymsNepalDate");
+    if(!h||!m||!s) return;
+
+    const t=nepalParts();
+    h.style.transform=`translateX(-50%) rotate(${(t.h%12)*30+t.m*.5+t.s/120}deg)`;
+    m.style.transform=`translateX(-50%) rotate(${t.m*6+t.s*.1}deg)`;
+    s.style.transform=`translateX(-50%) rotate(${t.s*6}deg)`;
+
+    if(digital){
+      digital.textContent =
+        String(t.h).padStart(2,"0")+":"+
+        String(t.m).padStart(2,"0")+":"+
+        String(t.s).padStart(2,"0");
+    }
+    if(date){
+      date.textContent = new Intl.DateTimeFormat("ne-NP",{
+        timeZone:"Asia/Kathmandu",
+        weekday:"long",year:"numeric",month:"long",day:"numeric"
+      }).format(new Date());
+    }
+  }
+
+  function openClock(){
+    if(!modal) return;
+    modal.classList.remove("hidden");
+    document.body.classList.add("gtyms-clock-open");
+    updateBigClock();
+    closeBtn?.focus();
+  }
+  function closeClock(){
+    if(!modal) return;
+    modal.classList.add("hidden");
+    document.body.classList.remove("gtyms-clock-open");
+    smallClock?.focus();
+  }
+
+  smallClock?.addEventListener("click",function(e){
+    e.preventDefault();
+    e.stopPropagation();
+    openClock();
+  });
+  smallClock?.addEventListener("keydown",function(e){
+    if(e.key==="Enter"||e.key===" "){e.preventDefault();openClock();}
+  });
+  closeBtn?.addEventListener("click",closeClock);
+  modal?.querySelector("[data-clock-close='true']")?.addEventListener("click",closeClock);
+  document.addEventListener("keydown",function(e){
+    if(e.key==="Escape" && modal && !modal.classList.contains("hidden")) closeClock();
+  });
+
+  updateBigClock();
+  window.setInterval(updateBigClock,1000);
+})();
+</script>
+
 </body>
 </html>
