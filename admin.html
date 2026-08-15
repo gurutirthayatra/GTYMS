@@ -1272,8 +1272,27 @@
             <input type="hidden" id="tripEndDateAd" name="EndDate">
             <small class="muted-text">BS नेपाली पात्रोबाट मिति छान्नुहोस् ।</small>
           </div>
-          <div class="field"><label>Registration Open</label><input type="date" name="RegistrationOpenDate"></div>
-          <div class="field"><label>Registration Close</label><input type="date" name="RegistrationCloseDate"></div>
+          <div class="field">
+            <label>Registration Open (नेपाली मिति)</label>
+            <input type="text"
+                   id="tripRegistrationOpenBs"
+                   class="trip-nepali-date"
+                   placeholder="नेपाली मिति छान्नुहोस्"
+                   autocomplete="off"
+                   readonly>
+            <input type="hidden" id="tripRegistrationOpenAd" name="RegistrationOpenDate">
+          </div>
+
+          <div class="field">
+            <label>Registration Close (नेपाली मिति)</label>
+            <input type="text"
+                   id="tripRegistrationCloseBs"
+                   class="trip-nepali-date"
+                   placeholder="नेपाली मिति छान्नुहोस्"
+                   autocomplete="off"
+                   readonly>
+            <input type="hidden" id="tripRegistrationCloseAd" name="RegistrationCloseDate">
+          </div>
           <div class="field"><label>Reporting Time</label><input type="time" name="ReportingTime"></div>
           <div class="field"><label>Departure Time</label><input type="time" name="DepartureTime"></div>
 
@@ -8191,14 +8210,24 @@ toast("Login सफल भयो ।");
     }
 
     function tripBsToAdRaw(value){
-      const bs=tripAsciiDigits(value).trim();
+      const bs=tripAsciiDigits(value)
+        .trim()
+        .replace(/[/.|,]+/g,"-")
+        .replace(/\s+/g,"");
+
       if(!bs)return "";
+
       try{
         if(typeof DateConverter==="function"){
           const ad=new DateConverter(bs).toAd();
-          return `${ad.year}-${String(ad.month).padStart(2,"0")}-${String(ad.date).padStart(2,"0")}`;
+          if(ad&&ad.year&&ad.month&&ad.date){
+            return `${ad.year}-${String(ad.month).padStart(2,"0")}-${String(ad.date).padStart(2,"0")}`;
+          }
         }
-      }catch(e){console.warn("BS→AD failed",value,e)}
+      }catch(e){
+        console.warn("BS→AD failed",value,e);
+      }
+
       return "";
     }
 
@@ -8237,50 +8266,129 @@ toast("Login सफल भयो ।");
       return `${period} ${tripNepaliDigits((h%12)||12)}:${tripNepaliDigits(m)}`;
     }
 
+    const GTYMS_TRIP_DATE_FIELDS = [
+      ["tripStartDateBs","tripStartDateAd",true],
+      ["tripEndDateBs","tripEndDateAd",true],
+      ["tripRegistrationOpenBs","tripRegistrationOpenAd",false],
+      ["tripRegistrationCloseBs","tripRegistrationCloseAd",false]
+    ];
+
+    function updateTripHiddenAdFromBs(bsId,adId){
+      const bsInput=$(bsId);
+      const adInput=$(adId);
+      if(!bsInput||!adInput)return "";
+
+      const bsValue=String(bsInput.value||"").trim();
+      if(!bsValue){
+        adInput.value="";
+        return "";
+      }
+
+      const converted=tripBsToAdRaw(bsValue);
+      if(converted){
+        adInput.value=converted;
+      }
+      return converted;
+    }
+
     function ensureTripNepaliDatePickers(){
-      ["tripStartDateBs","tripEndDateBs"].forEach(id=>{
-        const input=$(id);
-        if(!input||input.dataset.pickerReady==="1")return;
+      GTYMS_TRIP_DATE_FIELDS.forEach(([bsId,adId])=>{
+        const input=$(bsId);
+        if(!input)return;
+
+        if(input.dataset.syncReady!=="1"){
+          ["change","blur"].forEach(evt=>{
+            input.addEventListener(evt,()=>{
+              updateTripHiddenAdFromBs(bsId,adId);
+            });
+          });
+          input.dataset.syncReady="1";
+        }
+
+        if(input.dataset.pickerReady==="1")return;
 
         try{
           if(typeof input.nepaliDatePicker==="function"){
-            input.nepaliDatePicker();
+            input.nepaliDatePicker({
+              onChange:function(){
+                window.setTimeout(
+                  ()=>updateTripHiddenAdFromBs(bsId,adId),
+                  0
+                );
+              }
+            });
             input.dataset.pickerReady="1";
           }else if(typeof input.NepaliDatePicker==="function"){
-            input.NepaliDatePicker();
+            input.NepaliDatePicker({
+              onChange:function(){
+                window.setTimeout(
+                  ()=>updateTripHiddenAdFromBs(bsId,adId),
+                  0
+                );
+              }
+            });
             input.dataset.pickerReady="1";
           }
         }catch(e){
-          console.warn("Nepali date picker init failed:",id,e);
+          console.warn("Nepali date picker init failed:",bsId,e);
         }
       });
     }
 
+    function setTripBsFromAd(bsId,adId){
+      const bsInput=$(bsId);
+      const adInput=$(adId);
+      if(!bsInput||!adInput)return;
+      const raw=tripAdToBsRaw(adInput.value||"");
+      bsInput.value=raw?tripNepaliDigits(raw):"";
+    }
+
     function syncTripBsFieldsFromAd(){
-      const startAd=$("tripStartDateAd")?.value||"";
-      const endAd=$("tripEndDateAd")?.value||"";
-      if($("tripStartDateBs")){
-        const raw=tripAdToBsRaw(startAd);
-        $("tripStartDateBs").value=raw?tripNepaliDigits(raw):"";
-      }
-      if($("tripEndDateBs")){
-        const raw=tripAdToBsRaw(endAd);
-        $("tripEndDateBs").value=raw?tripNepaliDigits(raw):"";
-      }
+      GTYMS_TRIP_DATE_FIELDS.forEach(([bsId,adId])=>{
+        setTripBsFromAd(bsId,adId);
+      });
     }
 
     function syncTripAdFieldsFromBs(){
-      const startBs=$("tripStartDateBs")?.value||"";
-      const endBs=$("tripEndDateBs")?.value||"";
-      const startAd=tripBsToAdRaw(startBs);
-      const endAd=tripBsToAdRaw(endBs);
+      const errors=[];
 
-      if(!startAd||!endAd){
-        throw new Error("Start Date र End Date नेपाली पात्रोबाट छान्नुहोस् ।");
+      GTYMS_TRIP_DATE_FIELDS.forEach(([bsId,adId,required])=>{
+        const bsInput=$(bsId);
+        const adInput=$(adId);
+        if(!bsInput||!adInput)return;
+
+        const bsValue=String(bsInput.value||"").trim();
+
+        if(!bsValue){
+          if(required)errors.push(bsId);
+          else adInput.value="";
+          return;
+        }
+
+        const converted=tripBsToAdRaw(bsValue);
+
+        if(converted){
+          adInput.value=converted;
+          return;
+        }
+
+        /*
+         * Editing an existing trip:
+         * if the BS display was derived from the already-saved AD value,
+         * keep that valid AD value instead of blocking Save.
+         */
+        const existing=tripNormalizeAdDate(adInput.value||"");
+        if(existing){
+          adInput.value=existing;
+          return;
+        }
+
+        errors.push(bsId);
+      });
+
+      if(errors.length){
+        throw new Error("नेपाली मिति सही रूपमा छान्नुहोस् ।");
       }
-
-      $("tripStartDateAd").value=startAd;
-      $("tripEndDateAd").value=endAd;
     }
 
     function openTripModal(record={}){
