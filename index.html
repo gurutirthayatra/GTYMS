@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- GTYMS Public Website v3.10.14 | Fixed Text PDF Template -->
+<!-- GTYMS Public Website v3.10.15 | Fixed PDF Preview Window -->
 <html lang="ne">
 <head>
   <meta charset="UTF-8" />
@@ -3789,77 +3789,57 @@ window.GTYMS_UI = (() => {
     try{
       if(button){
         button.disabled = true;
-        button.textContent = "PDF तयार हुँदैछ...";
+        button.textContent = "Document खुल्दैछ...";
       }
 
-      UI.showLoading("PDF document तयार हुँदैछ...");
+      /*
+       * IMPORTANT FIX v3.10.15
+       *
+       * Do NOT use "noopener,noreferrer" here.
+       * Some browsers still open the blank tab but return null as the
+       * WindowProxy when noopener is requested. That caused the exact
+       * symptom: blank page opened and the document could not be written.
+       *
+       * We open a same-origin about:blank window and keep its WindowProxy.
+       */
+      printWindow = window.open(
+        "about:blank",
+        "_blank"
+      );
 
-      const trip = ctx.trip || {};
-      const destination = ctx.destination || {};
+      if(
+        !printWindow ||
+        printWindow.closed
+      ){
+        throw new Error(
+          "Document window खुल्न सकेन । Browser popup अनुमति दिनुहोस् ।"
+        );
+      }
+
+      UI.showLoading("यात्रा विवरण document तयार हुँदैछ...");
 
       const html =
         buildFixedTripPdfDocumentHtml(
-          trip,
-          destination,
+          ctx.trip || {},
+          ctx.destination || {},
           ctx.logo || "",
           ctx.cover || ""
         );
 
-      printWindow = window.open(
-        "",
-        "_blank",
-        "noopener,noreferrer"
-      );
-
-      if(!printWindow){
-        throw new Error(
-          "PDF window खुल्न सकेन । Browser popup अनुमति दिनुहोस् ।"
-        );
-      }
-
+      /*
+       * Write immediately into the already-opened blank tab.
+       * This avoids popup/user-gesture restrictions.
+       */
       printWindow.document.open();
       printWindow.document.write(html);
       printWindow.document.close();
 
-      await new Promise(resolve=>{
-        if(printWindow.document.readyState==="complete"){
-          resolve();
-          return;
-        }
-
-        printWindow.addEventListener(
-          "load",
-          resolve,
-          {once:true}
-        );
-
-        window.setTimeout(resolve,2500);
-      });
-
       try{
-        if(printWindow.document.fonts?.ready){
-          await printWindow.document.fonts.ready;
-        }
+        printWindow.focus();
       }catch(_){}
 
-      await new Promise(resolve=>
-        window.setTimeout(resolve,350)
-      );
-
-      printWindow.focus();
-
-      /*
-       * This opens the browser's native print dialog.
-       * Choose "Save as PDF".
-       *
-       * This is intentional:
-       * Browser print preserves vector text and fixed CSS layout,
-       * instead of rasterizing the document into screenshots.
-       */
-      printWindow.print();
-
       UI.showToast(
-        "Print window खुलेको छ । Destination मा “Save as PDF” छान्नुहोस् ।"
+        "यात्रा विवरण खुलेको छ । माथिको “Save as PDF” बटनबाट PDF बनाउनुहोस् ।"
       );
 
     }catch(e){
@@ -3870,12 +3850,21 @@ window.GTYMS_UI = (() => {
 
       UI.showToast(
         e.message ||
-        "PDF document तयार हुन सकेन ।",
+        "यात्रा विवरण document खोल्न सकिएन ।",
         "error"
       );
 
-      if(printWindow && !printWindow.closed){
-        try{printWindow.close();}catch(_){}
+      if(
+        printWindow &&
+        !printWindow.closed
+      ){
+        try{
+          printWindow.document.body.innerHTML =
+            '<div style="font-family:Arial,sans-serif;padding:30px;color:#8b1e1e">' +
+            '<h2>Document खोल्न सकिएन</h2>' +
+            '<p>मुख्य पेजमा फर्केर पुनः प्रयास गर्नुहोस् ।</p>' +
+            '</div>';
+        }catch(_){}
       }
 
     }finally{
@@ -4420,6 +4409,53 @@ window.GTYMS_UI = (() => {
     page-break-after:avoid;
   }
 
+
+  .pdf-toolbar{
+    position:sticky;
+    top:0;
+    z-index:9999;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    width:100%;
+    padding:10px 14px;
+    background:#26150f;
+    color:#fff;
+    box-shadow:0 4px 16px rgba(0,0,0,.18);
+    font-family:"Noto Sans Devanagari",Arial,sans-serif;
+  }
+
+  .pdf-toolbar-title{
+    font-weight:800;
+  }
+
+  .pdf-toolbar-actions{
+    display:flex;
+    gap:8px;
+    align-items:center;
+  }
+
+  .pdf-toolbar button{
+    border:0;
+    border-radius:9px;
+    padding:9px 14px;
+    font:inherit;
+    font-weight:800;
+    cursor:pointer;
+  }
+
+  .pdf-save-btn{
+    color:#fff;
+    background:#8b1e1e;
+  }
+
+  .pdf-close-btn{
+    color:#2c1b15;
+    background:#fff2e8;
+  }
+
+
   /* Screen preview of print document */
   @media screen{
     body{
@@ -4443,6 +4479,10 @@ window.GTYMS_UI = (() => {
   }
 
   @media print{
+    .pdf-toolbar{
+      display:none!important;
+    }
+
     body{
       -webkit-print-color-adjust:exact;
       print-color-adjust:exact;
@@ -4452,6 +4492,26 @@ window.GTYMS_UI = (() => {
 </head>
 
 <body>
+
+<div class="pdf-toolbar">
+  <div class="pdf-toolbar-title">
+    Guru Tirtha Yatra Sewa — यात्रा विवरण
+  </div>
+
+  <div class="pdf-toolbar-actions">
+    <button class="pdf-save-btn"
+            type="button"
+            onclick="window.print()">
+      🖨 Save as PDF
+    </button>
+
+    <button class="pdf-close-btn"
+            type="button"
+            onclick="window.close()">
+      बन्द गर्नुहोस्
+    </button>
+  </div>
+</div>
 
 <header class="fixed-header">
   ${logoHtml}
@@ -4793,12 +4853,12 @@ window.GTYMS_UI = (() => {
 
 <script>
   /*
-   * Do not auto-close.
-   * User may inspect the fixed layout before choosing Save as PDF.
+   * Keep document open after printing so the user can inspect
+   * or save again. Close only from the toolbar button.
    */
-  window.addEventListener("afterprint",function(){
+  window.addEventListener("load",function(){
     try{
-      window.close();
+      window.scrollTo(0,0);
     }catch(e){}
   });
 <\/script>
