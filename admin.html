@@ -775,6 +775,45 @@
     @media(max-width:950px){.ops-grid{grid-template-columns:repeat(2,1fr)}}
     @media(max-width:540px){.ops-grid{grid-template-columns:1fr}}
 
+
+    /* GTYMS v4.2.2 - Slider Image Upload RESTORE (additive only) */
+    .slider-image-field{
+      border:1px solid #eadbd0;
+      border-radius:14px;
+      padding:12px;
+      background:#fffaf6;
+    }
+    .slider-image-preview{
+      width:100%;
+      min-height:120px;
+      max-height:240px;
+      object-fit:cover;
+      border-radius:12px;
+      border:1px solid #eadbd0;
+      background:#f3eee9;
+      display:block;
+      margin-top:10px;
+    }
+    .slider-image-preview.hidden{display:none}
+    .slider-upload-row{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+      margin-top:8px;
+    }
+    .slider-upload-row input[type="file"]{
+      flex:1 1 230px;
+      min-width:0;
+    }
+    .slider-upload-note{
+      display:block;
+      margin-top:6px;
+      font-size:12px;
+      color:#786a62;
+      line-height:1.45;
+    }
+
 </style>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
@@ -1115,7 +1154,7 @@
     const API_URL = "https://script.google.com/macros/s/AKfycbzrKZBb_lg8TiI_HHp390Cscr31XWgcnsG0Jp5qFkkpUYaCoin3TLnJ6TY1RDFyRuI2/exec";
 
     const MODULES = {
-      sliders:{title:"Slider Manager",display:["SliderID","Title","Subtitle","DisplayOrder","Status"]},
+      sliders:{title:"Slider Manager",display:["SliderID","Title","Subtitle","ImageURL","DisplayOrder","Status"]},
       destinations:{title:"Destination Manager",display:["DestinationID","DestinationName","CategoryID","DistrictCity","Featured","Status"]},
       trips:{title:"Trip Manager",display:["TripID","TripTitle","StartDate","EndDate","BasePrice","TripStatus"]},
       services:{title:"Services Manager",display:["ServiceID","ServiceTitle","ApplicableTripType","DisplayOrder","Status"]},
@@ -8015,7 +8054,17 @@ toast("Login सफल भयो ।");
       </table></div>`;
     }
 
-    function cell(v,c){if(/Status|Featured|IsPublic|AccessLevel/i.test(c))return `<span class="chip">${esc(v)}</span>`;if(/Amount|Price/i.test(c))return money(v);return esc(v)}
+    function cell(v,c){
+      if(/^(ImageURL|MobileImageURL|CoverImageURL)$/i.test(c)){
+        const url=String(v||"").trim();
+        return url
+          ? `<img src="${esc(url)}" alt="Image" style="width:86px;height:48px;object-fit:cover;border-radius:8px;border:1px solid #eadbd0">`
+          : "-";
+      }
+      if(/Status|Featured|IsPublic|AccessLevel/i.test(c))return `<span class="chip">${esc(v)}</span>`;
+      if(/Amount|Price/i.test(c))return money(v);
+      return esc(v);
+    }
 
     function wireTableActions(){
       document.querySelectorAll(".editRow").forEach(button=>{
@@ -8044,17 +8093,163 @@ toast("Login सफल भयो ।");
       $("modalTitle").textContent=record?"रेकर्ड सम्पादन":"नयाँ रेकर्ड";
       $("recordFields").innerHTML=headers.map(h=>fieldHtml(h,record?.[h]??"")).join("");
       $("recordModal").classList.remove("hidden");
+
+      /* v4.2.2 restore: Slider photo upload controls */
+      if(state.view==="sliders"){
+        wireSliderImageUploadFields();
+      }
     }
     function closeModal(){$("recordModal").classList.add("hidden");$("recordFields").innerHTML=""}
 
     function fieldHtml(h,v){
       const idField=h===state.schema.idField, cls=TEXTAREA_HINTS.test(h)?"field full-span":"field";
       const label=`<label>${esc(h)}</label>`;
+
+      if(
+        state.view==="sliders" &&
+        /^(ImageURL|MobileImageURL)$/i.test(h)
+      ){
+        return sliderImageFieldHtml(h,v);
+      }
+
       if(TEXTAREA_HINTS.test(h))return `<div class="${cls}">${label}<textarea name="${esc(h)}" rows="${/HTML|Content/i.test(h)?8:4}">${esc(v)}</textarea></div>`;
       if(/^(Status|TripStatus|BookingStatus|Featured|IsPublic|AccessLevel)$/i.test(h)){
         return `<div class="${cls}">${label}<input name="${esc(h)}" value="${esc(v)}" ${idField?"readonly":""}></div>`;
       }
       return `<div class="${cls}">${label}<input name="${esc(h)}" value="${esc(v)}" ${idField||READONLY_ID_FIELDS.test(h)?"readonly":""}></div>`;
+    }
+
+    function sliderImageFieldHtml(fieldName,value){
+      const isMobile=fieldName==="MobileImageURL";
+      const title=isMobile
+        ? "Mobile Slider Image (Optional)"
+        : "Main / Desktop Slider Image";
+
+      const preview=value
+        ? `<img class="slider-image-preview" src="${esc(value)}" alt="Slider preview">`
+        : `<img class="slider-image-preview hidden" alt="Slider preview">`;
+
+      return `
+        <div class="field full-span slider-image-field"
+             data-slider-image-field="${esc(fieldName)}">
+          <label>${esc(title)}</label>
+
+          <input
+            name="${esc(fieldName)}"
+            class="slider-image-url-input"
+            value="${esc(value)}"
+            placeholder="Upload गरेपछि URL automatically यहाँ आउँछ । Manual URL पनि राख्न सकिन्छ ।">
+
+          <div class="slider-upload-row">
+            <input
+              type="file"
+              class="slider-image-file-input"
+              accept="image/jpeg,image/png,image/webp">
+
+            <button
+              type="button"
+              class="btn btn-soft slider-image-upload-btn">
+              📤 फोटो Upload
+            </button>
+          </div>
+
+          <small class="slider-upload-note">
+            JPG / PNG / WEBP • अधिकतम 5 MB
+            ${isMobile
+              ? " • Mobile image नराखे Main Image नै प्रयोग गर्न सकिन्छ ।"
+              : " • Recommended wide landscape image."}
+          </small>
+
+          ${preview}
+        </div>`;
+    }
+
+    function wireSliderImageUploadFields(){
+      document
+        .querySelectorAll("[data-slider-image-field]")
+        .forEach(box=>{
+          const fieldName=box.dataset.sliderImageField;
+          const urlInput=box.querySelector(".slider-image-url-input");
+          const fileInput=box.querySelector(".slider-image-file-input");
+          const uploadBtn=box.querySelector(".slider-image-upload-btn");
+          const preview=box.querySelector(".slider-image-preview");
+
+          const refreshPreview=()=>{
+            const url=String(urlInput.value||"").trim();
+            if(!url){
+              preview.removeAttribute("src");
+              preview.classList.add("hidden");
+              return;
+            }
+            preview.src=url;
+            preview.classList.remove("hidden");
+          };
+
+          urlInput.addEventListener("change",refreshPreview);
+          urlInput.addEventListener("input",()=>{
+            if(!urlInput.value.trim()){
+              refreshPreview();
+            }
+          });
+
+          uploadBtn.onclick=async()=>{
+            const file=fileInput.files?.[0];
+
+            if(!file){
+              toast("पहिले फोटो छान्नुहोस् ।","error");
+              return;
+            }
+
+            if(!["image/jpeg","image/png","image/webp"].includes(file.type)){
+              toast("JPG, PNG वा WEBP image मात्र छान्नुहोस् ।","error");
+              return;
+            }
+
+            if(file.size>5*1024*1024){
+              toast("Image बढीमा 5 MB हुनुपर्छ ।","error");
+              return;
+            }
+
+            setButtonBusy(uploadBtn,true,"Uploading...");
+
+            try{
+              const base64Data=await readFileAsDataUrl(file);
+
+              const result=await api(
+                "adminUploadSliderImage",
+                {
+                  token:state.token,
+                  fileName:file.name,
+                  mimeType:file.type,
+                  base64Data,
+                  imageKind:
+                    fieldName==="MobileImageURL"
+                      ?"MOBILE"
+                      :"MAIN"
+                },
+                "POST"
+              );
+
+              urlInput.value=result.imageUrl||"";
+              refreshPreview();
+              toast("फोटो upload भयो । अब Save गर्नुहोस् ।");
+
+            }catch(error){
+              handleAdminApiError(error);
+            }finally{
+              setButtonBusy(uploadBtn,false);
+            }
+          };
+        });
+    }
+
+    function readFileAsDataUrl(file){
+      return new Promise((resolve,reject)=>{
+        const reader=new FileReader();
+        reader.onload=()=>resolve(String(reader.result||""));
+        reader.onerror=()=>reject(new Error("Image पढ्न सकिएन ।"));
+        reader.readAsDataURL(file);
+      });
     }
 
     $("recordForm").addEventListener("submit",async e=>{
