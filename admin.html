@@ -1017,8 +1017,26 @@
       line-height:1.45;
     }
 
+
+/* GTYMS v4.2.5 - Nepali Trip Date/Time */
+.trip-nepali-date{
+  background:#fff!important;
+  cursor:pointer;
+  font-weight:700;
+}
+.trip-date-ad-note{
+  color:#7b6d64;
+  font-size:12px;
+}
+.nepali-date-picker{
+  z-index:25000!important;
+}
+
 </style>
-  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@remotemerge/nepali-date-converter@1/dist/ndc-browser.js"></script>
+<script src="https://nepalidatepicker.sajanmaharjan.com.np/v5/nepali.datepicker/js/nepali.datepicker.v5.0.6.min.js" type="text/javascript"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<link href="https://nepalidatepicker.sajanmaharjan.com.np/v5/nepali.datepicker/css/nepali.datepicker.v5.0.6.min.css" rel="stylesheet" type="text/css"/>
 </head>
 <body>
   <div id="loginScreen" class="login-screen">
@@ -1229,8 +1247,31 @@
           <div class="field"><label>Difficulty</label><select name="DifficultyLevel"><option>EASY</option><option>MODERATE</option><option>DIFFICULT</option><option>HIGH_ALTITUDE</option></select></div>
 
           <div class="trip-form-section"><h4>२. मिति तथा समय</h4></div>
-          <div class="field"><label>Start Date *</label><input type="date" name="StartDate" required></div>
-          <div class="field"><label>End Date *</label><input type="date" name="EndDate" required></div>
+          <div class="field">
+            <label>Start Date * (नेपाली मिति)</label>
+            <input type="text"
+                   id="tripStartDateBs"
+                   class="trip-nepali-date"
+                   placeholder="नेपाली मिति छान्नुहोस्"
+                   autocomplete="off"
+                   readonly
+                   required>
+            <input type="hidden" id="tripStartDateAd" name="StartDate">
+            <small class="muted-text">BS नेपाली पात्रोबाट मिति छान्नुहोस् ।</small>
+          </div>
+
+          <div class="field">
+            <label>End Date * (नेपाली मिति)</label>
+            <input type="text"
+                   id="tripEndDateBs"
+                   class="trip-nepali-date"
+                   placeholder="नेपाली मिति छान्नुहोस्"
+                   autocomplete="off"
+                   readonly
+                   required>
+            <input type="hidden" id="tripEndDateAd" name="EndDate">
+            <small class="muted-text">BS नेपाली पात्रोबाट मिति छान्नुहोस् ।</small>
+          </div>
           <div class="field"><label>Registration Open</label><input type="date" name="RegistrationOpenDate"></div>
           <div class="field"><label>Registration Close</label><input type="date" name="RegistrationCloseDate"></div>
           <div class="field"><label>Reporting Time</label><input type="time" name="ReportingTime"></div>
@@ -7999,7 +8040,7 @@ toast("Login सफल भयो ।");
           ${rows.map(r=>`
             <tr>
               <td><strong>${esc(r.TripTitle||"")}</strong><br><small>${esc(r.TripCode||r.TripID||"")}</small></td>
-              <td>${esc(r.StartDate||"")} → ${esc(r.EndDate||"")}</td>
+              <td>${esc(tripFormatBsDate(r.StartDate))} → ${esc(tripFormatBsDate(r.EndDate))}</td>
               <td>रु. ${money(Number(r.OfferPrice||0)>0?r.OfferPrice:r.BasePrice)}</td>
               <td>${esc(r.TotalSeatCapacity||"0")}</td>
               <td><span class="chip">${esc(r.TripStatus||"DRAFT")}</span></td>
@@ -8101,6 +8142,147 @@ toast("Login सफल भयो ।");
       }
     }
 
+
+    /* =========================================================
+       GTYMS v4.2.5 - Production Trip Nepali Date/Time Layer
+       UI uses Bikram Sambat; backend keeps existing AD fields.
+       ========================================================= */
+    const GTYMS_TRIP_NEPALI_MONTHS=[
+      "बैशाख","जेठ","असार","श्रावण","भदौ","असोज",
+      "कार्तिक","मंसिर","पुष","माघ","फागुन","चैत"
+    ];
+
+    const GTYMS_TRIP_NEPALI_DAYS={
+      Sunday:"आइतबार",Monday:"सोमबार",Tuesday:"मंगलबार",
+      Wednesday:"बुधबार",Thursday:"बिहीबार",Friday:"शुक्रबार",
+      Saturday:"शनिबार"
+    };
+
+    function tripNepaliDigits(value){
+      const map={"0":"०","1":"१","2":"२","3":"३","4":"४","5":"५","6":"६","7":"७","8":"८","9":"९"};
+      return String(value==null?"":value).replace(/\d/g,d=>map[d]);
+    }
+
+    function tripAsciiDigits(value){
+      const map={"०":"0","१":"1","२":"2","३":"3","४":"4","५":"5","६":"6","७":"7","८":"8","९":"9"};
+      return String(value||"").replace(/[०-९]/g,d=>map[d]);
+    }
+
+    function tripNormalizeAdDate(value){
+      const raw=String(value||"").trim();
+      if(!raw)return "";
+      const m=raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if(m)return `${m[1]}-${m[2]}-${m[3]}`;
+      const d=new Date(raw);
+      if(Number.isNaN(d.getTime()))return "";
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+    }
+
+    function tripAdToBsRaw(value){
+      const ad=tripNormalizeAdDate(value);
+      if(!ad)return "";
+      try{
+        if(typeof DateConverter==="function"){
+          const bs=new DateConverter(ad).toBs();
+          return `${bs.year}-${String(bs.month).padStart(2,"0")}-${String(bs.date).padStart(2,"0")}`;
+        }
+      }catch(e){console.warn("AD→BS failed",value,e)}
+      return "";
+    }
+
+    function tripBsToAdRaw(value){
+      const bs=tripAsciiDigits(value).trim();
+      if(!bs)return "";
+      try{
+        if(typeof DateConverter==="function"){
+          const ad=new DateConverter(bs).toAd();
+          return `${ad.year}-${String(ad.month).padStart(2,"0")}-${String(ad.date).padStart(2,"0")}`;
+        }
+      }catch(e){console.warn("BS→AD failed",value,e)}
+      return "";
+    }
+
+    function tripFormatBsDate(value){
+      const ad=tripNormalizeAdDate(value);
+      if(!ad)return "";
+      try{
+        if(typeof DateConverter==="function"){
+          const bs=new DateConverter(ad).toBs();
+          const month=GTYMS_TRIP_NEPALI_MONTHS[Number(bs.month)-1]||"";
+          const day=GTYMS_TRIP_NEPALI_DAYS[bs.day]||"";
+          return `${tripNepaliDigits(bs.year)} ${month} ${tripNepaliDigits(bs.date)}${day?`, ${day}`:""}`;
+        }
+      }catch(e){}
+      return tripNepaliDigits(ad);
+    }
+
+    function tripNormalizeTimeInput(value){
+      const raw=String(value||"").trim();
+      if(!raw)return "";
+      let m=raw.match(/T(\d{2}):(\d{2})/);
+      if(!m)m=raw.match(/^(\d{1,2}):(\d{2})/);
+      if(!m)return "";
+      return `${String(Number(m[1])).padStart(2,"0")}:${m[2]}`;
+    }
+
+    function tripFormatTimeNp(value){
+      const t=tripNormalizeTimeInput(value);
+      if(!t)return "";
+      const [hText,m]=t.split(":");
+      const h=Number(hText);
+      let period="बिहान";
+      if(h>=12&&h<17)period="दिउँसो";
+      else if(h>=17&&h<20)period="साँझ";
+      else if(h>=20||h<4)period="राति";
+      return `${period} ${tripNepaliDigits((h%12)||12)}:${tripNepaliDigits(m)}`;
+    }
+
+    function ensureTripNepaliDatePickers(){
+      ["tripStartDateBs","tripEndDateBs"].forEach(id=>{
+        const input=$(id);
+        if(!input||input.dataset.pickerReady==="1")return;
+
+        try{
+          if(typeof input.nepaliDatePicker==="function"){
+            input.nepaliDatePicker();
+            input.dataset.pickerReady="1";
+          }else if(typeof input.NepaliDatePicker==="function"){
+            input.NepaliDatePicker();
+            input.dataset.pickerReady="1";
+          }
+        }catch(e){
+          console.warn("Nepali date picker init failed:",id,e);
+        }
+      });
+    }
+
+    function syncTripBsFieldsFromAd(){
+      const startAd=$("tripStartDateAd")?.value||"";
+      const endAd=$("tripEndDateAd")?.value||"";
+      if($("tripStartDateBs")){
+        const raw=tripAdToBsRaw(startAd);
+        $("tripStartDateBs").value=raw?tripNepaliDigits(raw):"";
+      }
+      if($("tripEndDateBs")){
+        const raw=tripAdToBsRaw(endAd);
+        $("tripEndDateBs").value=raw?tripNepaliDigits(raw):"";
+      }
+    }
+
+    function syncTripAdFieldsFromBs(){
+      const startBs=$("tripStartDateBs")?.value||"";
+      const endBs=$("tripEndDateBs")?.value||"";
+      const startAd=tripBsToAdRaw(startBs);
+      const endAd=tripBsToAdRaw(endBs);
+
+      if(!startAd||!endAd){
+        throw new Error("Start Date र End Date नेपाली पात्रोबाट छान्नुहोस् ।");
+      }
+
+      $("tripStartDateAd").value=startAd;
+      $("tripEndDateAd").value=endAd;
+    }
+
     function openTripModal(record={}){
       const form=$("tripProductionForm");
       form.reset();
@@ -8137,9 +8319,19 @@ toast("Login सफल भयो ।");
             el.name
           )
         ){
-          el.value=record[el.name]??"";
+          if(
+            el.name==="ReportingTime" ||
+            el.name==="DepartureTime"
+          ){
+            el.value=tripNormalizeTimeInput(record[el.name]);
+          }else{
+            el.value=record[el.name]??"";
+          }
         }
       });
+
+      ensureTripNepaliDatePickers();
+      syncTripBsFieldsFromAd();
 
       $("tripFullDescription").innerHTML=
         record.FullDescriptionHTML||"";
@@ -8209,6 +8401,13 @@ toast("Login सफल भयो ।");
 
         $("tripIncludedServicesValue").value=
           $("tripIncludedServices").innerHTML;
+
+        try{
+          syncTripAdFieldsFromBs();
+        }catch(dateError){
+          toast(dateError.message||"नेपाली मिति सही छान्नुहोस् ।","error");
+          return;
+        }
 
         const fd=new FormData(e.currentTarget);
         const trip={};
@@ -11720,7 +11919,7 @@ toast("Login सफल भयो ।");
                 ${trips.map(trip=>`
                   <option value="${esc(trip.TripID||"")}">
                     ${esc(trip.TripTitle||trip.TripCode||trip.TripID||"")}
-                    ${trip.StartDate?` • ${esc(trip.StartDate)}`:""}
+                    ${trip.StartDate?` • ${esc(tripFormatBsDate(trip.StartDate))}`:""}
                   </option>
                 `).join("")}
               </select>
@@ -11807,8 +12006,8 @@ toast("Login सफल भयो ।");
                 <h3>${esc(trip.TripTitle||"Trip")}</h3>
                 <small>
                   ${esc(trip.TripCode||"")}
-                  ${trip.StartDate?` • ${esc(trip.StartDate)}`:""}
-                  ${trip.EndDate?` → ${esc(trip.EndDate)}`:""}
+                  ${trip.StartDate?` • ${esc(tripFormatBsDate(trip.StartDate))}`:""}
+                  ${trip.EndDate?` → ${esc(tripFormatBsDate(trip.EndDate))}`:""}
                   ${trip.TripStatus?` • ${esc(trip.TripStatus)}`:""}
                 </small>
               </div>
