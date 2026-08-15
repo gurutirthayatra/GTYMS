@@ -814,6 +814,156 @@
       line-height:1.45;
     }
 
+    /* GTYMS v3.9.3 Destination Rich Text Editor */
+    .rte-wrap{
+      border:1px solid #dccbc0;
+      border-radius:14px;
+      overflow:hidden;
+      background:#fff;
+    }
+
+    .rte-toolbar{
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      padding:10px;
+      border-bottom:1px solid #eadbd0;
+      background:#fff8f2;
+      position:sticky;
+      top:0;
+      z-index:2;
+    }
+
+    .rte-toolbar button,
+    .rte-toolbar select,
+    .rte-toolbar input[type="color"]{
+      min-height:34px;
+      border:1px solid #d9c9bd;
+      border-radius:8px;
+      background:#fff;
+      padding:6px 9px;
+      font:inherit;
+      cursor:pointer;
+    }
+
+    .rte-toolbar button{
+      min-width:36px;
+      font-weight:700;
+    }
+
+    .rte-toolbar input[type="color"]{
+      width:42px;
+      padding:3px;
+    }
+
+    .rte-editor{
+      min-height:260px;
+      max-height:520px;
+      overflow:auto;
+      padding:14px;
+      outline:none;
+      line-height:1.55;
+      background:#fff;
+    }
+
+    .rte-editor:empty:before{
+      content:attr(data-placeholder);
+      color:#a0958d;
+    }
+
+    .rte-editor p{
+      margin:.6em 0;
+    }
+
+    .rte-hidden-source{
+      display:none !important;
+    }
+
+    .rte-note{
+      display:block;
+      margin-top:7px;
+      font-size:12px;
+      color:#786a62;
+    }
+
+  
+    /* GTYMS v3.10.1 Digital Library Large PDF Upload Manager */
+    .library-upload-box{
+      border:1px solid #eadbd0;
+      border-radius:14px;
+      background:#fffaf6;
+      padding:12px;
+    }
+
+    .library-upload-row{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+      margin-top:8px;
+    }
+
+    .library-upload-row input[type="file"]{
+      flex:1 1 240px;
+      min-width:0;
+    }
+
+    .library-cover-preview{
+      width:150px;
+      height:205px;
+      object-fit:cover;
+      border-radius:10px;
+      border:1px solid #e3d4ca;
+      background:#f3eee9;
+      margin-top:10px;
+      display:block;
+    }
+
+    .library-cover-preview.hidden{
+      display:none;
+    }
+
+    .library-protection-note{
+      margin-top:8px;
+      padding:9px 10px;
+      border-radius:10px;
+      background:#f7efe8;
+      color:#6e5547;
+      font-size:12px;
+      line-height:1.45;
+    }
+
+  
+    .library-upload-progress-wrap{
+      margin-top:10px;
+      display:none;
+    }
+
+    .library-upload-progress-wrap.active{
+      display:block;
+    }
+
+    .library-upload-progress-track{
+      height:12px;
+      overflow:hidden;
+      border-radius:999px;
+      background:#eadfd6;
+    }
+
+    .library-upload-progress-bar{
+      height:100%;
+      width:0%;
+      background:#9d211f;
+      transition:width .2s ease;
+    }
+
+    .library-upload-progress-text{
+      margin-top:6px;
+      font-size:12px;
+      font-weight:700;
+      color:#6e5547;
+    }
+
 </style>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
@@ -831,7 +981,7 @@
 
   <div id="adminApp" class="admin-layout hidden">
     <aside id="sidebar" class="sidebar">
-      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v4.2.1 • Executive Fix</small></div>
+      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v4.2.3 • Custom UI Restore</small></div>
       <nav class="nav">
         <button data-view="dashboard" class="active">▦ Dashboard</button>
         <button data-view="launcher">🔗 System Launcher</button>
@@ -8094,9 +8244,17 @@ toast("Login सफल भयो ।");
       $("recordFields").innerHTML=headers.map(h=>fieldHtml(h,record?.[h]??"")).join("");
       $("recordModal").classList.remove("hidden");
 
-      /* v4.2.2 restore: Slider photo upload controls */
       if(state.view==="sliders"){
         wireSliderImageUploadFields();
+      }
+
+      if(state.view==="destinations"){
+        wireDestinationImageUploadField();
+        wireDestinationRichTextEditor();
+      }
+
+      if(state.view==="library"){
+        wireDigitalLibraryUploadFields();
       }
     }
     function closeModal(){$("recordModal").classList.add("hidden");$("recordFields").innerHTML=""}
@@ -8110,6 +8268,34 @@ toast("Login सफल भयो ।");
         /^(ImageURL|MobileImageURL)$/i.test(h)
       ){
         return sliderImageFieldHtml(h,v);
+      }
+
+      if(
+        state.view==="destinations" &&
+        /^CoverImageURL$/i.test(h)
+      ){
+        return destinationCoverImageFieldHtml(h,v);
+      }
+
+      if(
+        state.view==="destinations" &&
+        /^FullDescriptionHTML$/i.test(h)
+      ){
+        return destinationRichTextFieldHtml(h,v);
+      }
+
+      if(
+        state.view==="library" &&
+        /^CoverImageURL$/i.test(h)
+      ){
+        return libraryCoverFieldHtml(h,v);
+      }
+
+      if(
+        state.view==="library" &&
+        /^FileURL$/i.test(h)
+      ){
+        return libraryPdfFieldHtml(h,v);
       }
 
       if(TEXTAREA_HINTS.test(h))return `<div class="${cls}">${label}<textarea name="${esc(h)}" rows="${/HTML|Content/i.test(h)?8:4}">${esc(v)}</textarea></div>`;
@@ -8241,6 +8427,1059 @@ toast("Login सफल भयो ।");
             }
           };
         });
+    }
+
+    function libraryCoverFieldHtml(fieldName,value){
+      const preview=value
+        ? `<img class="library-cover-preview" src="${esc(value)}" alt="Book Cover">`
+        : `<img class="library-cover-preview hidden" alt="Book Cover">`;
+
+      return `
+        <div class="field full-span library-upload-box"
+             data-library-cover-field="${esc(fieldName)}">
+
+          <label>Book Front Cover</label>
+
+          <input
+            name="${esc(fieldName)}"
+            class="library-cover-url"
+            value="${esc(value)}"
+            placeholder="Cover upload गरेपछि URL automatically आउँछ ।">
+
+          <div class="library-upload-row">
+            <input
+              type="file"
+              class="library-cover-file"
+              accept="image/jpeg,image/png,image/webp">
+
+            <button
+              type="button"
+              class="btn btn-soft library-cover-upload-btn">
+              🖼️ Cover Upload
+            </button>
+          </div>
+
+          <small class="rte-note">
+            JPG / PNG / WEBP • अधिकतम 5 MB • Portrait book cover recommended
+          </small>
+
+          ${preview}
+        </div>`;
+    }
+
+
+    function libraryPdfFieldHtml(fieldName,value){
+      return `
+        <div class="field full-span library-upload-box"
+             data-library-pdf-field="${esc(fieldName)}">
+
+          <label>Protected PDF Book — Large File Supported</label>
+
+          <input
+            name="${esc(fieldName)}"
+            class="library-pdf-url"
+            value="${esc(value)}"
+            readonly
+            placeholder="PDF upload पूरा भएपछि protected preview URL यहाँ आउँछ ।">
+
+          <div class="library-upload-row">
+            <input
+              type="file"
+              class="library-pdf-file"
+              accept="application/pdf">
+
+            <button
+              type="button"
+              class="btn btn-soft library-pdf-upload-btn">
+              📕 Large PDF Upload
+            </button>
+          </div>
+
+          <div class="library-upload-progress-wrap">
+            <div class="library-upload-progress-track">
+              <div class="library-upload-progress-bar"></div>
+            </div>
+            <div class="library-upload-progress-text">
+              Upload सुरु भएको छैन ।
+            </div>
+          </div>
+
+          <div class="library-protection-note">
+            20 MB fixed limit हटाइएको छ ।
+            PDF सानो-सानो resumable chunks मा Google Drive मा upload हुन्छ ।
+            Upload बीचमा temporary network/API समस्या आए system ले received bytes जाँचेर resume गर्ने प्रयास गर्छ ।
+            Normal Download / Print / Copy controls protection upload पूरा भएपछि apply हुन्छ ।
+          </div>
+        </div>`;
+    }
+
+
+    function wireDigitalLibraryUploadFields(){
+      wireLibraryCoverUpload();
+      wireLibraryPdfUpload();
+    }
+
+
+    function getCurrentLibraryId(){
+      return (
+        document.querySelector(
+          '#recordForm [name="LibraryID"]'
+        )?.value || ""
+      );
+    }
+
+
+    function setLibraryDefaultsAfterPdfUpload(result){
+      const form=
+        document.getElementById("recordForm");
+
+      if(!form)return;
+
+      const setValue=(name,value)=>{
+        const field=
+          form.querySelector(
+            `[name="${name}"]`
+          );
+
+        if(field && !String(field.value||"").trim()){
+          field.value=value;
+        }
+      };
+
+      const forceValue=(name,value)=>{
+        const field=
+          form.querySelector(
+            `[name="${name}"]`
+          );
+
+        if(field){
+          field.value=value;
+        }
+      };
+
+      setValue("ResourceType","PDF");
+      forceValue("AllowPreview","TRUE");
+      forceValue("AllowDownload","FALSE");
+      setValue("AccessLevel","PUBLIC");
+      setValue("Status","ACTIVE");
+    }
+
+
+    function wireLibraryCoverUpload(){
+      const box=
+        document.querySelector(
+          "[data-library-cover-field]"
+        );
+
+      if(!box)return;
+
+      const urlInput=
+        box.querySelector(
+          ".library-cover-url"
+        );
+
+      const fileInput=
+        box.querySelector(
+          ".library-cover-file"
+        );
+
+      const uploadBtn=
+        box.querySelector(
+          ".library-cover-upload-btn"
+        );
+
+      const preview=
+        box.querySelector(
+          ".library-cover-preview"
+        );
+
+      const refreshPreview=()=>{
+        const url=
+          String(
+            urlInput.value||""
+          ).trim();
+
+        if(!url){
+          preview.removeAttribute("src");
+          preview.classList.add("hidden");
+          return;
+        }
+
+        preview.src=url;
+        preview.classList.remove("hidden");
+      };
+
+      urlInput.addEventListener(
+        "change",
+        refreshPreview
+      );
+
+      uploadBtn.onclick=async()=>{
+        const file=
+          fileInput.files?.[0];
+
+        if(!file){
+          toast("पहिले Book Cover छान्नुहोस् ।");
+          return;
+        }
+
+        if(
+          ![
+            "image/jpeg",
+            "image/png",
+            "image/webp"
+          ].includes(file.type)
+        ){
+          toast("JPG, PNG वा WEBP cover मात्र छान्नुहोस् ।");
+          return;
+        }
+
+        if(
+          file.size >
+          5*1024*1024
+        ){
+          toast("Cover image बढीमा 5 MB हुनुपर्छ ।");
+          return;
+        }
+
+        setButtonBusy(
+          uploadBtn,
+          true,
+          "Uploading..."
+        );
+
+        try{
+          const base64Data=
+            await readFileAsDataUrl(
+              file
+            );
+
+          const result=
+            await api(
+              "adminUploadLibraryCover",
+              {
+                token:state.token,
+                libraryId:
+                  getCurrentLibraryId(),
+                fileName:file.name,
+                mimeType:file.type,
+                base64Data
+              },
+              "POST"
+            );
+
+          urlInput.value=
+            result.imageUrl||"";
+
+          refreshPreview();
+
+          toast(
+            "Book Cover upload भयो । अब record Save गर्नुहोस् ।"
+          );
+
+        }catch(error){
+          handleAdminApiError(error);
+        }finally{
+          setButtonBusy(
+            uploadBtn,
+            false
+          );
+        }
+      };
+    }
+
+
+    function wireLibraryPdfUpload(){
+      const box=
+        document.querySelector(
+          "[data-library-pdf-field]"
+        );
+
+      if(!box)return;
+
+      const urlInput=
+        box.querySelector(
+          ".library-pdf-url"
+        );
+
+      const fileInput=
+        box.querySelector(
+          ".library-pdf-file"
+        );
+
+      const uploadBtn=
+        box.querySelector(
+          ".library-pdf-upload-btn"
+        );
+
+      const progressWrap=
+        box.querySelector(
+          ".library-upload-progress-wrap"
+        );
+
+      const progressBar=
+        box.querySelector(
+          ".library-upload-progress-bar"
+        );
+
+      const progressText=
+        box.querySelector(
+          ".library-upload-progress-text"
+        );
+
+      const setProgress=(percent,message)=>{
+        const safe=
+          Math.max(
+            0,
+            Math.min(
+              100,
+              Number(percent||0)
+            )
+          );
+
+        progressWrap
+          ?.classList.add("active");
+
+        if(progressBar){
+          progressBar.style.width=
+            safe+"%";
+        }
+
+        if(progressText){
+          progressText.textContent=
+            message ||
+            `Uploading... ${safe}%`;
+        }
+      };
+
+      uploadBtn.onclick=async()=>{
+        const file=
+          fileInput.files?.[0];
+
+        if(!file){
+          toast("पहिले PDF Book छान्नुहोस् ।");
+          return;
+        }
+
+        if(
+          file.type !==
+          "application/pdf"
+        ){
+          toast("PDF file मात्र upload गर्नुहोस् ।");
+          return;
+        }
+
+        setButtonBusy(
+          uploadBtn,
+          true,
+          "Starting..."
+        );
+
+        setProgress(
+          0,
+          `तयारी हुँदैछ... ${formatFileSize(file.size)}`
+        );
+
+        let uploadId="";
+        let offset=0;
+        let chunkBytes=
+          4*1024*1024;
+
+        try{
+          const start=
+            await api(
+              "adminStartLibraryPdfUpload",
+              {
+                token:state.token,
+                libraryId:
+                  getCurrentLibraryId(),
+                fileName:file.name,
+                mimeType:file.type,
+                fileSize:file.size
+              },
+              "POST"
+            );
+
+          uploadId=
+            start.uploadId||"";
+
+          chunkBytes=
+            Number(
+              start.recommendedChunkBytes ||
+              chunkBytes
+            );
+
+          if(!uploadId){
+            throw new Error(
+              "Upload Session ID प्राप्त भएन ।"
+            );
+          }
+
+          setButtonBusy(
+            uploadBtn,
+            true,
+            "Uploading..."
+          );
+
+          let finalResult=null;
+
+          while(offset < file.size){
+            const endExclusive=
+              Math.min(
+                offset+chunkBytes,
+                file.size
+              );
+
+            const blob=
+              file.slice(
+                offset,
+                endExclusive
+              );
+
+            const base64Data=
+              await readBlobAsDataUrl(
+                blob
+              );
+
+            let chunkResult=null;
+
+            try{
+              chunkResult=
+                await api(
+                  "adminUploadLibraryPdfChunk",
+                  {
+                    token:state.token,
+                    uploadId,
+                    startByte:offset,
+                    endByte:
+                      endExclusive-1,
+                    totalBytes:
+                      file.size,
+                    base64Data
+                  },
+                  "POST"
+                );
+
+            }catch(chunkError){
+              // A response may be lost even if Drive accepted the chunk.
+              // Query the official resumable session before retrying.
+              const status=
+                await api(
+                  "adminGetLibraryPdfUploadStatus",
+                  {
+                    token:state.token,
+                    uploadId
+                  }
+                );
+
+              if(status.complete){
+                finalResult=status;
+                offset=file.size;
+                break;
+              }
+
+              const resumedOffset=
+                Number(
+                  status.nextOffset||0
+                );
+
+              if(
+                resumedOffset >
+                offset
+              ){
+                offset=
+                  resumedOffset;
+
+                setProgress(
+                  Math.floor(
+                    (
+                      offset /
+                      file.size
+                    )*100
+                  ),
+                  `Upload resume भयो... ${formatFileSize(offset)} / ${formatFileSize(file.size)}`
+                );
+
+                continue;
+              }
+
+              // No forward progress. Rethrow the original error.
+              throw chunkError;
+            }
+
+            if(chunkResult.complete){
+              finalResult=
+                chunkResult;
+
+              offset=
+                file.size;
+
+              setProgress(
+                100,
+                "PDF upload पूरा भयो ।"
+              );
+
+              break;
+            }
+
+            const nextOffset=
+              Number(
+                chunkResult.nextOffset ||
+                endExclusive
+              );
+
+            // Never move backwards.
+            offset=
+              Math.max(
+                endExclusive,
+                nextOffset
+              );
+
+            const percent=
+              Math.min(
+                99,
+                Math.floor(
+                  (
+                    offset /
+                    file.size
+                  )*100
+                )
+              );
+
+            setProgress(
+              percent,
+              `${percent}% — ${formatFileSize(offset)} / ${formatFileSize(file.size)}`
+            );
+          }
+
+          if(
+            !finalResult ||
+            !finalResult.fileUrl
+          ){
+            // Final status check if the last chunk response was unusual.
+            const status=
+              await api(
+                "adminGetLibraryPdfUploadStatus",
+                {
+                  token:state.token,
+                  uploadId
+                }
+              );
+
+            if(
+              status.complete
+            ){
+              finalResult=status;
+            }
+          }
+
+          if(
+            !finalResult ||
+            !finalResult.fileUrl
+          ){
+            throw new Error(
+              "PDF upload पूरा भएको पुष्टि हुन सकेन ।"
+            );
+          }
+
+          urlInput.value=
+            finalResult.fileUrl||"";
+
+          setLibraryDefaultsAfterPdfUpload(
+            finalResult
+          );
+
+          setProgress(
+            100,
+            "100% — PDF सुरक्षित रूपमा upload भयो । अब record Save गर्नुहोस् ।"
+          );
+
+          if(
+            finalResult.restrictionApplied
+          ){
+            toast(
+              "Large PDF upload पूरा भयो र Download / Print / Copy protection लागू भयो ।"
+            );
+          }else{
+            toast(
+              "PDF upload पूरा भयो । Drive restriction status जाँच गर्नुहोस्: " +
+              (
+                finalResult.restrictionMessage ||
+                ""
+              ),
+              true
+            );
+          }
+
+        }catch(error){
+          setProgress(
+            Math.floor(
+              (
+                offset /
+                Math.max(
+                  1,
+                  file.size
+                )
+              )*100
+            ),
+            "Upload रोकियो: " +
+            (
+              error.message ||
+              "Unknown error"
+            )
+          );
+
+          handleAdminApiError(
+            error
+          );
+
+        }finally{
+          setButtonBusy(
+            uploadBtn,
+            false
+          );
+        }
+      };
+    }
+
+
+    function readBlobAsDataUrl(blob){
+      return new Promise(
+        (resolve,reject)=>{
+          const reader=
+            new FileReader();
+
+          reader.onload=()=>{
+            resolve(
+              String(
+                reader.result||""
+              )
+            );
+          };
+
+          reader.onerror=()=>{
+            reject(
+              new Error(
+                "PDF chunk पढ्न सकिएन ।"
+              )
+            );
+          };
+
+          reader.readAsDataURL(
+            blob
+          );
+        }
+      );
+    }
+
+
+    function formatFileSize(bytes){
+      const value=
+        Number(bytes||0);
+
+      if(value < 1024){
+        return value+" B";
+      }
+
+      if(value < 1024*1024){
+        return (
+          value/1024
+        ).toFixed(1)+" KB";
+      }
+
+      if(value < 1024*1024*1024){
+        return (
+          value/(1024*1024)
+        ).toFixed(1)+" MB";
+      }
+
+      return (
+        value/(1024*1024*1024)
+      ).toFixed(2)+" GB";
+    }
+
+
+
+    function destinationRichTextFieldHtml(fieldName,value){
+      const safeValue=String(value||"");
+
+      return `
+        <div class="field full-span">
+          <label>FullDescriptionHTML</label>
+
+          <textarea
+            name="${esc(fieldName)}"
+            class="rte-hidden-source">${esc(safeValue)}</textarea>
+
+          <div class="rte-wrap"
+               data-rte-field="${esc(fieldName)}">
+
+            <div class="rte-toolbar">
+              <button type="button" data-cmd="bold" title="Bold"><b>B</b></button>
+              <button type="button" data-cmd="italic" title="Italic"><i>I</i></button>
+              <button type="button" data-cmd="underline" title="Underline"><u>U</u></button>
+              <button type="button" data-cmd="strikeThrough" title="Strike">S</button>
+
+              <select data-rte-block title="Heading">
+                <option value="">Paragraph</option>
+                <option value="H1">Heading 1</option>
+                <option value="H2">Heading 2</option>
+                <option value="H3">Heading 3</option>
+                <option value="H4">Heading 4</option>
+                <option value="P">Paragraph</option>
+              </select>
+
+              <select data-rte-font-size title="Font Size">
+                <option value="">Font Size</option>
+                <option value="12px">12</option>
+                <option value="14px">14</option>
+                <option value="16px">16</option>
+                <option value="18px">18</option>
+                <option value="20px">20</option>
+                <option value="24px">24</option>
+                <option value="28px">28</option>
+                <option value="32px">32</option>
+                <option value="36px">36</option>
+              </select>
+
+              <select data-rte-font-family title="Font">
+                <option value="">Font</option>
+                <option value="Arial">Arial</option>
+                <option value="Georgia">Georgia</option>
+                <option value="Verdana">Verdana</option>
+                <option value="'Noto Sans Devanagari', sans-serif">Noto Sans Devanagari</option>
+                <option value="'Noto Serif Devanagari', serif">Noto Serif Devanagari</option>
+              </select>
+
+              <label title="Text Color">
+                A
+                <input type="color" data-rte-color value="#222222">
+              </label>
+
+              <label title="Background Color">
+                BG
+                <input type="color" data-rte-bg value="#fff2a8">
+              </label>
+
+              <button type="button" data-cmd="justifyLeft" title="Align Left">L</button>
+              <button type="button" data-cmd="justifyCenter" title="Align Center">C</button>
+              <button type="button" data-cmd="justifyRight" title="Align Right">R</button>
+              <button type="button" data-cmd="justifyFull" title="Justify">J</button>
+
+              <button type="button" data-cmd="insertUnorderedList" title="Bullet List">• List</button>
+              <button type="button" data-cmd="insertOrderedList" title="Number List">1. List</button>
+
+              <button type="button" data-rte-link title="Insert Link">🔗</button>
+              <button type="button" data-cmd="removeFormat" title="Clear Formatting">Clear</button>
+            </div>
+
+            <div
+              class="rte-editor"
+              contenteditable="true"
+              data-placeholder="यहाँ विस्तृत विवरण लेख्नुहोस्...">${safeValue}</div>
+          </div>
+
+          <small class="rte-note">
+            Bold, Italic, Underline, Colour, Font Size, Font Family, Alignment, Heading, List, Link आदि format गर्न सकिन्छ ।
+          </small>
+        </div>`;
+    }
+
+    function wireDestinationRichTextEditor(){
+      const wrap=document.querySelector("[data-rte-field]");
+      if(!wrap)return;
+
+      const fieldName=wrap.dataset.rteField;
+      const source=document.querySelector(
+        `#recordForm textarea[name="${fieldName}"]`
+      );
+      const editor=wrap.querySelector(".rte-editor");
+
+      if(!source||!editor)return;
+
+      const sync=()=>{
+        source.value=editor.innerHTML.trim();
+      };
+
+      editor.addEventListener("input",sync);
+      editor.addEventListener("blur",sync);
+
+      wrap.querySelectorAll("[data-cmd]").forEach(btn=>{
+        btn.addEventListener("click",()=>{
+          editor.focus();
+          document.execCommand(
+            btn.dataset.cmd,
+            false,
+            null
+          );
+          sync();
+        });
+      });
+
+      const block=wrap.querySelector("[data-rte-block]");
+      block?.addEventListener("change",()=>{
+        if(!block.value)return;
+        editor.focus();
+        document.execCommand(
+          "formatBlock",
+          false,
+          block.value
+        );
+        block.value="";
+        sync();
+      });
+
+      const fontFamily=wrap.querySelector("[data-rte-font-family]");
+      fontFamily?.addEventListener("change",()=>{
+        if(!fontFamily.value)return;
+        applyStyleToSelection(
+          editor,
+          "fontFamily",
+          fontFamily.value
+        );
+        fontFamily.value="";
+        sync();
+      });
+
+      const fontSize=wrap.querySelector("[data-rte-font-size]");
+      fontSize?.addEventListener("change",()=>{
+        if(!fontSize.value)return;
+        applyStyleToSelection(
+          editor,
+          "fontSize",
+          fontSize.value
+        );
+        fontSize.value="";
+        sync();
+      });
+
+      const color=wrap.querySelector("[data-rte-color]");
+      color?.addEventListener("input",()=>{
+        editor.focus();
+        document.execCommand(
+          "foreColor",
+          false,
+          color.value
+        );
+        sync();
+      });
+
+      const bg=wrap.querySelector("[data-rte-bg]");
+      bg?.addEventListener("input",()=>{
+        editor.focus();
+        document.execCommand(
+          "hiliteColor",
+          false,
+          bg.value
+        );
+        sync();
+      });
+
+      wrap.querySelector("[data-rte-link]")
+        ?.addEventListener("click",()=>{
+          const url=window.prompt(
+            "Link URL राख्नुहोस्:",
+            "https://"
+          );
+
+          if(!url)return;
+
+          if(
+            !/^(https?:|mailto:|tel:)/i
+              .test(url.trim())
+          ){
+            toast("HTTP/HTTPS, mailto वा tel link मात्र राख्नुहोस् ।");
+            return;
+          }
+
+          editor.focus();
+
+          const selection=
+            window.getSelection();
+
+          if(
+            !selection ||
+            !selection.rangeCount ||
+            selection.isCollapsed
+          ){
+            toast("पहिले link बनाउन text select गर्नुहोस् ।");
+            return;
+          }
+
+          document.execCommand(
+            "createLink",
+            false,
+            url.trim()
+          );
+
+          sync();
+        });
+
+      // Ensure HTML is synced immediately before generic form submission.
+      document.getElementById("recordForm")
+        ?.addEventListener(
+          "submit",
+          sync,
+          {capture:true}
+        );
+    }
+
+    function applyStyleToSelection(editor,styleName,styleValue){
+      editor.focus();
+
+      const selection=window.getSelection();
+
+      if(
+        !selection ||
+        !selection.rangeCount
+      )return;
+
+      const range=selection.getRangeAt(0);
+
+      if(
+        !editor.contains(
+          range.commonAncestorContainer
+        )
+      )return;
+
+      if(selection.isCollapsed){
+        toast("पहिले format गर्न text select गर्नुहोस् ।");
+        return;
+      }
+
+      const span=document.createElement("span");
+      span.style[styleName]=styleValue;
+
+      try{
+        range.surroundContents(span);
+      }catch(error){
+        const fragment=
+          range.extractContents();
+
+        span.appendChild(fragment);
+        range.insertNode(span);
+      }
+
+      selection.removeAllRanges();
+
+      const newRange=
+        document.createRange();
+
+      newRange.selectNodeContents(span);
+
+      selection.addRange(newRange);
+    }
+
+    function destinationCoverImageFieldHtml(fieldName,value){
+      const preview=value
+        ? `<img class="slider-image-preview" src="${esc(value)}" alt="Destination preview">`
+        : `<img class="slider-image-preview hidden" alt="Destination preview">`;
+
+      return `
+        <div class="field full-span slider-image-field"
+             data-destination-image-field="${esc(fieldName)}">
+          <label>Destination Cover Photo</label>
+
+          <input
+            name="${esc(fieldName)}"
+            class="destination-image-url-input"
+            value="${esc(value)}"
+            placeholder="Upload गरेपछि CoverImageURL automatically यहाँ आउँछ । Manual URL पनि राख्न सकिन्छ ।">
+
+          <div class="slider-upload-row">
+            <input
+              type="file"
+              class="destination-image-file-input"
+              accept="image/jpeg,image/png,image/webp">
+
+            <button
+              type="button"
+              class="btn btn-soft destination-image-upload-btn">
+              📷 गन्तव्य फोटो Upload
+            </button>
+          </div>
+
+          <small class="slider-upload-note">
+            JPG / PNG / WEBP • अधिकतम 5 MB • Landscape photo recommended
+          </small>
+
+          ${preview}
+        </div>`;
+    }
+
+    function wireDestinationImageUploadField(){
+      const box=document.querySelector("[data-destination-image-field]");
+      if(!box)return;
+
+      const urlInput=box.querySelector(".destination-image-url-input");
+      const fileInput=box.querySelector(".destination-image-file-input");
+      const uploadBtn=box.querySelector(".destination-image-upload-btn");
+      const preview=box.querySelector(".slider-image-preview");
+
+      const refreshPreview=()=>{
+        const url=String(urlInput.value||"").trim();
+        if(!url){
+          preview.removeAttribute("src");
+          preview.classList.add("hidden");
+          return;
+        }
+        preview.src=url;
+        preview.classList.remove("hidden");
+      };
+
+      urlInput.addEventListener("change",refreshPreview);
+
+      uploadBtn.onclick=async()=>{
+        const file=fileInput.files?.[0];
+
+        if(!file){
+          toast("पहिले गन्तव्यको फोटो छान्नुहोस् ।");
+          return;
+        }
+
+        if(!["image/jpeg","image/png","image/webp"].includes(file.type)){
+          toast("JPG, PNG वा WEBP image मात्र छान्नुहोस् ।");
+          return;
+        }
+
+        if(file.size>5*1024*1024){
+          toast("Image बढीमा 5 MB हुनुपर्छ ।");
+          return;
+        }
+
+        setButtonBusy(uploadBtn,true,"Uploading...");
+
+        try{
+          const base64Data=await readFileAsDataUrl(file);
+
+          const destinationId=
+            document.querySelector(
+              '#recordForm [name="DestinationID"]'
+            )?.value || "";
+
+          const result=await api(
+            "adminUploadDestinationImage",
+            {
+              token:state.token,
+              destinationId,
+              fileName:file.name,
+              mimeType:file.type,
+              base64Data
+            },
+            "POST"
+          );
+
+          urlInput.value=result.imageUrl||"";
+          refreshPreview();
+
+          toast("गन्तव्यको फोटो upload भयो । अब Save गर्नुहोस् ।");
+
+        }catch(error){
+          handleAdminApiError(error);
+        }finally{
+          setButtonBusy(uploadBtn,false);
+        }
+      };
     }
 
     function readFileAsDataUrl(file){
