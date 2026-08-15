@@ -1843,6 +1843,11 @@ body.gtyms-clock-open{overflow:hidden}
   }
 }
 
+
+/* GTYMS v3.10.5 - Nepal Tithi / Paksha Display */
+.gtyms-tithi{margin-top:10px;padding:10px 14px;border:1px solid rgba(212,160,23,.35);border-radius:14px;background:rgba(255,248,234,.92);text-align:center;color:var(--primary-dark)}
+.gtyms-tithi-label{display:block;margin-bottom:2px;color:#8a6a55;font-size:.78rem;font-weight:700}.gtyms-tithi strong{display:block;font-size:1rem;line-height:1.45}
+@media(max-width:620px){.gtyms-tithi{margin-top:8px;padding:8px 10px}.gtyms-tithi strong{font-size:.92rem}}
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
@@ -2522,6 +2527,7 @@ body.gtyms-clock-open{overflow:hidden}
 
       <div id="gtymsDigitalTime" class="gtyms-digital-time">--:--:--</div>
       <div id="gtymsNepalDate" class="gtyms-nepal-date"></div>
+      <div id="gtymsTithi" class="gtyms-tithi" aria-live="polite"><span class="gtyms-tithi-label">आजको तिथि</span><strong id="gtymsTithiText">गणना हुँदैछ...</strong></div>
     </div>
   </div>
 
@@ -5986,6 +5992,20 @@ window.GTYMS_UI = (() => {
  function np(){const ps=new Intl.DateTimeFormat("en-US",{timeZone:"Asia/Kathmandu",hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false}).formatToParts(new Date()),x={};ps.forEach(p=>{if(p.type!=="literal")x[p.type]=Number(p.value)});return{h:(x.hour||0)%24,m:x.minute||0,s:x.second||0}}
  function tick(){const h=document.getElementById("gtymsClockHour"),m=document.getElementById("gtymsClockMinute"),s=document.getElementById("gtymsClockSecond");if(!h||!m||!s)return;const t=np();h.style.transform=`translateX(-50%) rotate(${(t.h%12)*30+t.m*.5+t.s/120}deg)`;m.style.transform=`translateX(-50%) rotate(${t.m*6+t.s*.1}deg)`;s.style.transform=`translateX(-50%) rotate(${t.s*6}deg)`}
  tick();setInterval(tick,1000);
+})();
+</script>
+
+<script>
+/* GTYMS v3.10.5 - Astronomical Tithi / Paksha */
+(function(){
+ const N=["प्रतिपदा","द्वितीया","तृतीया","चतुर्थी","पञ्चमी","षष्ठी","सप्तमी","अष्टमी","नवमी","दशमी","एकादशी","द्वादशी","त्रयोदशी","चतुर्दशी","पूर्णिमा","प्रतिपदा","द्वितीया","तृतीया","चतुर्थी","पञ्चमी","षष्ठी","सप्तमी","अष्टमी","नवमी","दशमी","एकादशी","द्वादशी","त्रयोदशी","चतुर्दशी","अमावस्या"];
+ const norm=x=>((x%360)+360)%360, ds=x=>Math.sin(x*Math.PI/180);
+ function jd(d){return d.getTime()/86400000+2440587.5}
+ function sun(j){const T=(j-2451545)/36525,L=norm(280.46646+36000.76983*T+.0003032*T*T),M=norm(357.52911+35999.05029*T-.0001537*T*T),C=(1.914602-.004817*T-.000014*T*T)*ds(M)+(.019993-.000101*T)*ds(2*M)+.000289*ds(3*M);return norm(L+C)}
+ function moon(j){const d=j-2451545,L=norm(218.3164477+13.17639648*d),m=norm(134.9633964+13.06499295*d),s=norm(357.5291092+.98560028*d),D=norm(297.8501921+12.19074912*d),F=norm(93.272095+13.22935024*d);return norm(L+6.289*ds(m)+1.274*ds(2*D-m)+.658*ds(2*D)+.214*ds(2*m)-.186*ds(s)-.114*ds(2*F)+.059*ds(2*D-2*m)+.057*ds(2*D-s-m)+.053*ds(2*D+m)+.046*ds(2*D-s)+.041*ds(s-m)-.035*ds(D)-.031*ds(s+m)-.015*ds(2*F-2*D)+.011*ds(2*D-4*m))}
+ function calc(d){const j=jd(d),n=Math.floor(norm(moon(j)-sun(j))/12)+1;return{number:n,paksha:n<=15?"शुक्ल पक्ष":"कृष्ण पक्ष",name:N[n-1]}}
+ function render(){const e=document.getElementById('gtymsTithiText');if(!e)return;try{const t=calc(new Date());e.textContent=t.paksha+' • '+t.name}catch(x){e.textContent='तिथि उपलब्ध हुन सकेन'}}
+ window.GTYMS_TITHI={getCurrent:()=>calc(new Date()),refresh:render};render();setInterval(render,60000);
 })();
 </script>
 
