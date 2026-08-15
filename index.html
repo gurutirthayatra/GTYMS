@@ -1792,6 +1792,42 @@ body.gtyms-clock-open{overflow:hidden}
   .gtyms-clock-close{width:38px;height:38px;font-size:26px}
 }
 
+
+/* GTYMS v3.10.3 - Actual Logo in Live Clock Center */
+.gtyms-clock-logo{
+  position:absolute;
+  left:50%;
+  top:34%;
+  transform:translate(-50%,-50%);
+  width:82px;
+  height:82px;
+  display:grid;
+  place-items:center;
+  z-index:3;
+  pointer-events:none;
+}
+.gtyms-clock-logo-img{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  display:block;
+  filter:drop-shadow(0 3px 6px rgba(0,0,0,.16));
+}
+.gtyms-clock-logo.logo-fallback::after{
+  content:"ॐ";
+  font-size:48px;
+  line-height:1;
+  color:#d4a017;
+  font-weight:800;
+}
+@media(max-width:620px){
+  .gtyms-clock-logo{
+    width:70px;
+    height:70px;
+    top:34%;
+  }
+}
+
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
@@ -2444,7 +2480,12 @@ body.gtyms-clock-open{overflow:hidden}
       </div>
 
       <div class="gtyms-big-clock" aria-label="नेपालको वास्तविक समय">
-        <div class="gtyms-clock-logo">ॐ</div>
+        <div class="gtyms-clock-logo">
+          <img src="logo.png"
+               alt="Guru Tirtha Yatra Sewa Logo"
+               class="gtyms-clock-logo-img"
+               onerror="this.style.display='none'; this.parentElement.classList.add('logo-fallback');">
+        </div>
         <span class="big-num b12">12</span>
         <span class="big-num b1">1</span>
         <span class="big-num b2">2</span>
