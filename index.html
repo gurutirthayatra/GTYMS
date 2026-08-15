@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- GTYMS Public Website v3.10.11 | Sheet BS Date Priority -->
+<!-- GTYMS Public Website v3.10.12 | Final A4 PDF Export Fix -->
 <html lang="ne">
 <head>
   <meta charset="UTF-8" />
@@ -2052,6 +2052,138 @@ body.gtyms-trip-preview-open{overflow:hidden}
   }
 }
 
+
+
+/* =========================================================
+   GTYMS v3.10.12 - FINAL A4 PDF EXPORT FIX
+   Fixes horizontal clipping in downloaded PDF only.
+   Preview and all other website systems remain unchanged.
+   ========================================================= */
+
+/* The PDF document itself must include padding INSIDE 210mm. */
+.gtyms-trip-pdf{
+  box-sizing:border-box!important;
+  width:210mm!important;
+  max-width:210mm!important;
+  min-width:210mm!important;
+  margin:0!important;
+  padding:9mm 11mm 10mm!important;
+  overflow:visible!important;
+  background:#ffffff!important;
+}
+
+/* Every child must remain inside the printable content width. */
+.gtyms-trip-pdf *,
+.gtyms-trip-pdf *::before,
+.gtyms-trip-pdf *::after{
+  box-sizing:border-box!important;
+  max-width:100%;
+}
+
+.gtyms-trip-pdf img{
+  max-width:100%!important;
+}
+
+.gtyms-pdf-letterhead{
+  width:100%!important;
+  grid-template-columns:24mm minmax(0,1fr)!important;
+  gap:5mm!important;
+}
+
+.gtyms-pdf-logo{
+  width:22mm!important;
+  height:22mm!important;
+  object-fit:contain!important;
+}
+
+.gtyms-pdf-company{
+  min-width:0!important;
+  overflow-wrap:anywhere!important;
+}
+
+.gtyms-pdf-company h1{
+  font-size:23px!important;
+  line-height:1.18!important;
+}
+
+.gtyms-pdf-company p{
+  font-size:11.5px!important;
+  overflow-wrap:anywhere!important;
+}
+
+.gtyms-pdf-summary{
+  width:100%!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+}
+
+.gtyms-pdf-summary-item{
+  min-width:0!important;
+  overflow:hidden!important;
+}
+
+.gtyms-pdf-summary-item strong,
+.gtyms-pdf-summary-item span{
+  overflow-wrap:anywhere!important;
+}
+
+.gtyms-pdf-price-box,
+.gtyms-pdf-section,
+.gtyms-pdf-service-grid,
+.gtyms-pdf-footer{
+  width:100%!important;
+}
+
+.gtyms-pdf-price-row{
+  min-width:0!important;
+}
+
+.gtyms-pdf-price-row > *{
+  min-width:0!important;
+  overflow-wrap:anywhere!important;
+}
+
+.gtyms-pdf-service-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+}
+
+.gtyms-pdf-service{
+  min-width:0!important;
+  overflow-wrap:anywhere!important;
+}
+
+/* Keep sensible document pieces together without forcing whole sections. */
+.gtyms-pdf-letterhead,
+.gtyms-pdf-title-block,
+.gtyms-pdf-summary-item,
+.gtyms-pdf-price-box,
+.gtyms-pdf-service,
+.gtyms-pdf-footer{
+  break-inside:avoid!important;
+  page-break-inside:avoid!important;
+}
+
+.gtyms-pdf-section{
+  break-inside:auto!important;
+  page-break-inside:auto!important;
+}
+
+.gtyms-pdf-section h3{
+  break-after:avoid!important;
+  page-break-after:avoid!important;
+}
+
+/* Export host has exactly one A4-width coordinate system. */
+.gtyms-pdf-host{
+  box-sizing:border-box!important;
+  width:210mm!important;
+  min-width:210mm!important;
+  max-width:210mm!important;
+  margin:0!important;
+  padding:0!important;
+  overflow:visible!important;
+  background:#fff!important;
+}
+
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
@@ -3655,16 +3787,19 @@ window.GTYMS_UI = (() => {
        */
       const host = document.createElement("div");
       host.className = "gtyms-pdf-host";
+      host.style.position = "absolute";
       host.style.left = "0";
       host.style.top = "0";
-      host.style.position = "fixed";
       host.style.width = "210mm";
-      host.style.opacity = "0.001";
-      host.style.zIndex = "-1";
+      host.style.margin = "0";
+      host.style.padding = "0";
+      host.style.opacity = "0.01";
+      host.style.zIndex = "-99999";
       host.style.pointerEvents = "none";
+      host.style.background = "#ffffff";
 
       const report = document.createElement("div");
-      report.className = "gtyms-trip-pdf";
+      report.className = "gtyms-trip-pdf gtyms-trip-pdf-export";
       report.innerHTML = buildTripPdfHtml(
         ctx.trip,
         ctx.destination,
@@ -3702,7 +3837,8 @@ window.GTYMS_UI = (() => {
               logging:false,
               scrollX:0,
               scrollY:0,
-              windowWidth:1123
+              width:794,
+              windowWidth:794
             },
             jsPDF:{
               unit:"mm",
@@ -3712,8 +3848,11 @@ window.GTYMS_UI = (() => {
             },
             pagebreak:{
               mode:["css","legacy"],
+              before:[],
+              after:[],
               avoid:[
                 ".gtyms-pdf-letterhead",
+                ".gtyms-pdf-title-block",
                 ".gtyms-pdf-summary-item",
                 ".gtyms-pdf-price-box",
                 ".gtyms-pdf-service",
