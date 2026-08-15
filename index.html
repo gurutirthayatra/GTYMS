@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- GTYMS Public Website v3.10.12 | Final A4 PDF Export Fix -->
+<!-- GTYMS Public Website v3.10.13 | Canvas-Sliced A4 PDF Engine -->
 <html lang="ne">
 <head>
   <meta charset="UTF-8" />
@@ -3040,6 +3040,8 @@ body.gtyms-trip-preview-open{overflow:hidden}
   <script src="https://nepalidatepicker.sajanmaharjan.com.np/v5/nepali.datepicker/js/nepali.datepicker.v5.0.6.min.js" type="text/javascript"></script>
   <script src="https://cdn.jsdelivr.net/npm/@remotemerge/nepali-date-converter@1/dist/ndc-browser.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script>
 /**
  * GTYMS GitHub Frontend Configuration
@@ -3767,9 +3769,40 @@ window.GTYMS_UI = (() => {
     const button = document.getElementById("gtymsTripPreviewDownload");
     const old = button ? button.innerHTML : "";
 
+    let host = null;
+
     try{
-      if(typeof window.html2pdf !== "function"){
-        throw new Error("PDF library load हुन सकेन । पुनः प्रयास गर्नुहोस् ।");
+      /*
+       * v3.10.13 FINAL PDF ENGINE
+       * We intentionally DO NOT use html2pdf().from(element).save().
+       *
+       * The old engine reflowed the 210mm DOM while paginating and on some
+       * browsers produced a horizontally shifted/cropped PDF.
+       *
+       * New method:
+       * 1) Render the report once to one complete html2canvas canvas.
+       * 2) Slice that canvas vertically into A4 page-sized image strips.
+       * 3) Place every strip at x=0 in jsPDF.
+       *
+       * Result: horizontal clipping/offset is mathematically impossible
+       * because every page uses the full captured canvas width.
+       */
+      const html2canvasFn =
+        window.html2canvas ||
+        (window.html2pdf && window.html2pdf.Worker
+          ? null
+          : null);
+
+      const JsPdfCtor =
+        window.jspdf?.jsPDF ||
+        window.jsPDF;
+
+      if(typeof html2canvasFn !== "function"){
+        throw new Error("PDF capture library load हुन सकेन । पेज refresh गरेर पुनः प्रयास गर्नुहोस् ।");
+      }
+
+      if(typeof JsPdfCtor !== "function"){
+        throw new Error("PDF library load हुन सकेन । पेज refresh गरेर पुनः प्रयास गर्नुहोस् ।");
       }
 
       if(button){
@@ -3779,27 +3812,37 @@ window.GTYMS_UI = (() => {
 
       UI.showLoading("PDF तयार हुँदैछ...");
 
-      /*
-       * IMPORTANT:
-       * PDF is generated from a fresh, visible-layout clone.
-       * We do not capture the whole website/screen.
-       * This prevents the old blank-first-page / screenshot-like result.
-       */
-      const host = document.createElement("div");
+      host = document.createElement("div");
       host.className = "gtyms-pdf-host";
-      host.style.position = "absolute";
-      host.style.left = "0";
-      host.style.top = "0";
-      host.style.width = "210mm";
-      host.style.margin = "0";
-      host.style.padding = "0";
-      host.style.opacity = "0.01";
-      host.style.zIndex = "-99999";
-      host.style.pointerEvents = "none";
-      host.style.background = "#ffffff";
+      Object.assign(host.style,{
+        position:"absolute",
+        left:"-10000px",
+        top:"0",
+        width:"794px",
+        minWidth:"794px",
+        maxWidth:"794px",
+        margin:"0",
+        padding:"0",
+        opacity:"1",
+        visibility:"visible",
+        pointerEvents:"none",
+        background:"#ffffff",
+        overflow:"visible",
+        zIndex:"-1"
+      });
 
       const report = document.createElement("div");
       report.className = "gtyms-trip-pdf gtyms-trip-pdf-export";
+      Object.assign(report.style,{
+        boxSizing:"border-box",
+        width:"794px",
+        minWidth:"794px",
+        maxWidth:"794px",
+        margin:"0",
+        overflow:"visible",
+        background:"#ffffff"
+      });
+
       report.innerHTML = buildTripPdfHtml(
         ctx.trip,
         ctx.destination,
@@ -3812,6 +3855,138 @@ window.GTYMS_UI = (() => {
 
       await waitForPdfImages(report);
 
+      /* Let fonts/layout finish before measuring. */
+      if(document.fonts?.ready){
+        try{ await document.fonts.ready; }catch(_){}
+      }
+
+      await new Promise(resolve =>
+        requestAnimationFrame(() =>
+          requestAnimationFrame(resolve)
+        )
+      );
+
+      const captureWidth = Math.ceil(
+        Math.max(
+          report.scrollWidth,
+          report.offsetWidth,
+          report.getBoundingClientRect().width
+        )
+      );
+
+      const captureHeight = Math.ceil(
+        Math.max(
+          report.scrollHeight,
+          report.offsetHeight,
+          report.getBoundingClientRect().height
+        )
+      );
+
+      if(!captureWidth || !captureHeight){
+        throw new Error("PDF document को size calculate हुन सकेन ।");
+      }
+
+      const fullCanvas = await html2canvasFn(report,{
+        scale:2,
+        useCORS:true,
+        allowTaint:false,
+        backgroundColor:"#ffffff",
+        logging:false,
+        scrollX:0,
+        scrollY:0,
+        width:captureWidth,
+        height:captureHeight,
+        windowWidth:captureWidth,
+        windowHeight:captureHeight,
+        x:0,
+        y:0
+      });
+
+      if(!fullCanvas.width || !fullCanvas.height){
+        throw new Error("PDF capture खाली आयो ।");
+      }
+
+      const pdf = new JsPdfCtor({
+        orientation:"portrait",
+        unit:"mm",
+        format:"a4",
+        compress:true
+      });
+
+      const pageWidthMm = 210;
+      const pageHeightMm = 297;
+
+      /*
+       * Canvas is scaled to exactly A4 width.
+       * Therefore source pixels that fit one A4 page are:
+       * canvasWidth * (297 / 210)
+       */
+      const pageSlicePx = Math.floor(
+        fullCanvas.width * (pageHeightMm / pageWidthMm)
+      );
+
+      let sourceY = 0;
+      let pageIndex = 0;
+
+      while(sourceY < fullCanvas.height){
+        const sliceHeight = Math.min(
+          pageSlicePx,
+          fullCanvas.height - sourceY
+        );
+
+        const pageCanvas = document.createElement("canvas");
+        pageCanvas.width = fullCanvas.width;
+        pageCanvas.height = sliceHeight;
+
+        const pageCtx = pageCanvas.getContext("2d",{
+          alpha:false
+        });
+
+        pageCtx.fillStyle = "#ffffff";
+        pageCtx.fillRect(
+          0,0,
+          pageCanvas.width,
+          pageCanvas.height
+        );
+
+        pageCtx.drawImage(
+          fullCanvas,
+          0,sourceY,
+          fullCanvas.width,sliceHeight,
+          0,0,
+          fullCanvas.width,sliceHeight
+        );
+
+        const imageData =
+          pageCanvas.toDataURL("image/jpeg",0.96);
+
+        const renderedHeightMm =
+          pageWidthMm *
+          (sliceHeight / fullCanvas.width);
+
+        if(pageIndex > 0){
+          pdf.addPage("a4","portrait");
+        }
+
+        /*
+         * x is ALWAYS 0 and width is ALWAYS 210mm.
+         * No browser-dependent html2pdf horizontal translation remains.
+         */
+        pdf.addImage(
+          imageData,
+          "JPEG",
+          0,
+          0,
+          pageWidthMm,
+          renderedHeightMm,
+          undefined,
+          "FAST"
+        );
+
+        sourceY += sliceHeight;
+        pageIndex += 1;
+      }
+
       const filename =
         sanitizePdfFileName(
           ctx.trip.TripTitle ||
@@ -3820,59 +3995,23 @@ window.GTYMS_UI = (() => {
           "GTYMS-Trip"
         ) + "-Yatra-Details.pdf";
 
-      try{
-        await window.html2pdf()
-          .set({
-            margin:0,
-            filename,
-            image:{
-              type:"jpeg",
-              quality:.97
-            },
-            html2canvas:{
-              scale:2,
-              useCORS:true,
-              allowTaint:false,
-              backgroundColor:"#ffffff",
-              logging:false,
-              scrollX:0,
-              scrollY:0,
-              width:794,
-              windowWidth:794
-            },
-            jsPDF:{
-              unit:"mm",
-              format:"a4",
-              orientation:"portrait",
-              compress:true
-            },
-            pagebreak:{
-              mode:["css","legacy"],
-              before:[],
-              after:[],
-              avoid:[
-                ".gtyms-pdf-letterhead",
-                ".gtyms-pdf-title-block",
-                ".gtyms-pdf-summary-item",
-                ".gtyms-pdf-price-box",
-                ".gtyms-pdf-service",
-                ".gtyms-pdf-footer"
-              ]
-            }
-          })
-          .from(report)
-          .save();
-      }finally{
-        host.remove();
-      }
+      pdf.save(filename);
 
       UI.showToast("PDF सफलतापूर्वक तयार भयो ।");
 
     }catch(e){
       console.error("GTYMS Trip PDF Error",e);
-      UI.showToast(e.message || "PDF तयार हुन सकेन ।","error");
+      UI.showToast(
+        e.message || "PDF तयार हुन सकेन ।",
+        "error"
+      );
     }finally{
+      if(host){
+        try{ host.remove(); }catch(_){}
+      }
+
       UI.hideLoading();
+
       if(button){
         button.disabled = false;
         button.innerHTML = old || "⬇ Download PDF";
