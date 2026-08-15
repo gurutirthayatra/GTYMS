@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- GTYMS Public Website v3.10.9 | Nepali Date Fix + A4 PDF -->
+<!-- GTYMS Public Website v3.10.11 | Sheet BS Date Priority -->
 <html lang="ne">
 <head>
   <meta charset="UTF-8" />
@@ -2905,6 +2905,7 @@ body.gtyms-trip-preview-open{overflow:hidden}
   <button id="backToTop" class="back-to-top" type="button" aria-label="माथि जानुहोस्">↑</button>
 
   <div id="toast" class="toast hidden" role="status"></div>
+  <script src="https://nepalidatepicker.sajanmaharjan.com.np/v5/nepali.datepicker/js/nepali.datepicker.v5.0.6.min.js" type="text/javascript"></script>
   <script src="https://cdn.jsdelivr.net/npm/@remotemerge/nepali-date-converter@1/dist/ndc-browser.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script>
@@ -3095,6 +3096,12 @@ window.GTYMS_UI = (() => {
   };
 
   document.addEventListener("DOMContentLoaded", init);
+
+  window.addEventListener("load",()=>{
+    if(typeof NepaliFunctions==="undefined"){
+      console.error("GTYMS: NepaliFunctions date engine did not load.");
+    }
+  });
 
   async function init() {
     bindEvents();
@@ -3444,7 +3451,7 @@ window.GTYMS_UI = (() => {
               ${
                 trip.StartDate
                   ? `<span class="badge">
-                      📅 ${UI.escapeHtml(formatNepaliTripDate(trip.StartDate))}
+                      📅 ${UI.escapeHtml(tripBsDateDisplay(trip.StartDateBS,trip.StartDate))}
                     </span>`
                   : ""
               }
@@ -3775,22 +3782,106 @@ window.GTYMS_UI = (() => {
     return `${y}-${m}-${day}`;
   }
 
+  function formatStoredBsTripDate(bsValue){
+    const raw=
+      String(bsValue||"")
+        .trim()
+        .replace(/[०-९]/g,d=>({
+          "०":"0","१":"1","२":"2","३":"3","४":"4",
+          "५":"5","६":"6","७":"7","८":"8","९":"9"
+        })[d]||d)
+        .replace(/[/.|,]+/g,"-")
+        .replace(/\s+/g,"");
+
+    const m=raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if(!m)return "";
+
+    const year=Number(m[1]);
+    const monthNo=Number(m[2]);
+    const day=Number(m[3]);
+    const month=GTYMS_NEPALI_MONTHS[monthNo-1]||"";
+
+    return `${toNepaliDigits(year)} ${month} ${toNepaliDigits(day)}`;
+  }
+
+  function tripBsDateDisplay(bsValue,adValue){
+    return (
+      formatStoredBsTripDate(bsValue) ||
+      formatNepaliTripDate(adValue)
+    );
+  }
+
   function formatNepaliTripDate(value){
     const ad=normalizeAdDateOnly(value);
     if(!ad)return "";
 
+    let bsRaw="";
+
+    /*
+     * PRIMARY:
+     * Use NepaliFunctions.AD2BS from the same Nepali calendar engine
+     * used in Admin. This prevents the old fallback that merely changed
+     * 2026 digits into २०२६ without converting the calendar.
+     */
     try{
-      if(typeof DateConverter==="function"){
-        const bs=new DateConverter(ad).toBs();
-        const month=GTYMS_NEPALI_MONTHS[Number(bs.month)-1]||"";
-        const dayName=GTYMS_NEPALI_DAYS[bs.day]||"";
-        return `${toNepaliDigits(bs.year)} ${month} ${toNepaliDigits(bs.date)}${dayName?`, ${dayName}`:""}`;
+      if(
+        typeof NepaliFunctions!=="undefined" &&
+        typeof NepaliFunctions.AD2BS==="function"
+      ){
+        bsRaw=String(
+          NepaliFunctions.AD2BS(
+            ad,
+            "YYYY-MM-DD",
+            "YYYY-MM-DD"
+          ) || ""
+        ).trim();
       }
     }catch(e){
-      console.warn("BS date conversion failed:",value,e);
+      console.warn("NepaliFunctions AD→BS failed:",value,e);
     }
 
-    return toNepaliDigits(ad);
+    /* Fallback only if the primary engine is unavailable. */
+    if(!bsRaw){
+      try{
+        if(typeof DateConverter==="function"){
+          const bs=new DateConverter(ad).toBs();
+          if(bs&&bs.year&&bs.month&&bs.date){
+            bsRaw=
+              `${bs.year}-${String(bs.month).padStart(2,"0")}-${String(bs.date).padStart(2,"0")}`;
+          }
+        }
+      }catch(e){
+        console.warn("DateConverter AD→BS failed:",value,e);
+      }
+    }
+
+    if(!bsRaw){
+      /* Never pretend AD is BS. Show a clear unavailable value instead. */
+      return "नेपाली मिति उपलब्ध छैन";
+    }
+
+    const parts=bsRaw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if(!parts){
+      return toNepaliDigits(bsRaw);
+    }
+
+    const year=Number(parts[1]);
+    const monthNo=Number(parts[2]);
+    const dateNo=Number(parts[3]);
+    const month=GTYMS_NEPALI_MONTHS[monthNo-1]||"";
+
+    let dayName="";
+    try{
+      const [ay,am,adDay]=ad.split("-").map(Number);
+      const dt=new Date(Date.UTC(ay,am-1,adDay,12,0,0));
+      const enDay=new Intl.DateTimeFormat("en-US",{
+        timeZone:"Asia/Kathmandu",
+        weekday:"long"
+      }).format(dt);
+      dayName=GTYMS_NEPALI_DAYS[enDay]||"";
+    }catch(e){}
+
+    return `${toNepaliDigits(year)} ${month} ${toNepaliDigits(dateNo)}${dayName?`, ${dayName}`:""}`;
   }
 
   function extractTripTimeParts(value){
@@ -3871,10 +3962,10 @@ window.GTYMS_UI = (() => {
     const base=Number(trip.BasePrice||0), offer=Number(trip.OfferPrice||0), effective=Number(trip.EffectivePrice||offer||base||0), discount=Number(trip.DiscountAmount||0), advance=Number(trip.AdvanceAmount||0);
     const dest=destination.DestinationName||trip.DestinationName||trip.DestinationID||"";
     const summary=[
-      ["यात्रा सुरु मिति",formatNepaliTripDate(trip.StartDate)],
-      ["यात्रा समाप्त मिति",formatNepaliTripDate(trip.EndDate)],
-      ["Registration Open",formatNepaliTripDate(trip.RegistrationOpenDate)],
-      ["Registration Close",formatNepaliTripDate(trip.RegistrationCloseDate)],
+      ["यात्रा सुरु मिति",tripBsDateDisplay(trip.StartDateBS,trip.StartDate)],
+      ["यात्रा समाप्त मिति",tripBsDateDisplay(trip.EndDateBS,trip.EndDate)],
+      ["Registration Open",tripBsDateDisplay(trip.RegistrationOpenDateBS,trip.RegistrationOpenDate)],
+      ["Registration Close",tripBsDateDisplay(trip.RegistrationCloseDateBS,trip.RegistrationCloseDate)],
       ["अवधि",trip.DurationDays?toNepaliDigits(trip.DurationDays)+" दिन":""],
       ["गन्तव्य",dest],
       ["यात्रा प्रकार",trip.TripCategory||trip.TripType],
@@ -3951,7 +4042,7 @@ window.GTYMS_UI = (() => {
 
       document.getElementById("bookingTripSummary").innerHTML = `
         <strong>${UI.escapeHtml(trip.TripTitle || "")}</strong><br>
-        <span>मिति: ${UI.escapeHtml(formatNepaliTripDate(trip.StartDate))}</span><br>
+        <span>मिति: ${UI.escapeHtml(tripBsDateDisplay(trip.StartDateBS,trip.StartDate))}</span><br>
         <span>प्रति व्यक्ति: रु. ${formatMoney(trip.EffectivePrice || 0)}</span><br>
         <span>उपलब्ध सिट: ${UI.escapeHtml(seats)}</span>
       `;
