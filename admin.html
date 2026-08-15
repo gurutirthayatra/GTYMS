@@ -964,6 +964,59 @@
       color:#6e5547;
     }
 
+
+    /* GTYMS v4.2.4 - Production Trip Cover + Gallery Upload (additive only) */
+    .trip-media-upload-box{
+      border:1px solid #eadbd0;
+      border-radius:14px;
+      padding:12px;
+      background:#fffaf6;
+      margin-top:8px;
+    }
+    .trip-media-upload-row{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+      margin-top:8px;
+    }
+    .trip-media-upload-row input[type="file"]{
+      flex:1 1 240px;
+      min-width:0;
+    }
+    .trip-cover-preview{
+      width:100%;
+      max-height:280px;
+      object-fit:cover;
+      border-radius:12px;
+      border:1px solid #eadbd0;
+      background:#f3eee9;
+      display:block;
+      margin-top:10px;
+    }
+    .trip-cover-preview.hidden{display:none}
+    .trip-gallery-preview{
+      display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(120px,1fr));
+      gap:10px;
+      margin-top:10px;
+    }
+    .trip-gallery-preview img{
+      width:100%;
+      aspect-ratio:4/3;
+      object-fit:cover;
+      border-radius:10px;
+      border:1px solid #eadbd0;
+      background:#f3eee9;
+    }
+    .trip-upload-note{
+      display:block;
+      margin-top:6px;
+      font-size:12px;
+      color:#786a62;
+      line-height:1.45;
+    }
+
 </style>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
@@ -1204,7 +1257,32 @@
             </div>
           </div>
           <div class="field"><label>Meals Included</label><input name="MealsIncludedText" placeholder="Tea, Breakfast, Lunch, Dinner"></div>
-          <div class="field"><label>Cover Image URL</label><input name="CoverImageURL"></div>
+          <div class="field full-span">
+            <label>Trip Cover Photo</label>
+            <input name="CoverImageURL" id="tripCoverImageUrl"
+                   placeholder="Upload गरेपछि URL automatically आउँछ । Manual URL पनि राख्न सकिन्छ ।">
+
+            <div class="trip-media-upload-box">
+              <div class="trip-media-upload-row">
+                <input id="tripCoverImageFile"
+                       type="file"
+                       accept="image/jpeg,image/png,image/webp">
+                <button id="tripCoverUploadBtn"
+                        type="button"
+                        class="btn btn-soft">
+                  📷 Cover Photo Upload
+                </button>
+              </div>
+
+              <small class="trip-upload-note">
+                JPG / PNG / WEBP • प्रति image अधिकतम 5 MB • Photoshop बाट तयार गरेको design पनि upload गर्न सकिन्छ ।
+              </small>
+
+              <img id="tripCoverPreview"
+                   class="trip-cover-preview hidden"
+                   alt="Trip Cover Preview">
+            </div>
+          </div>
 
           <div class="trip-form-section"><h4>५. गाडी तथा चालक</h4></div>
           <div class="field"><label>Bus Type</label><input name="BusType"></div>
@@ -1247,7 +1325,32 @@
           <div class="field full-span"><label>Registration Message</label><textarea name="RegistrationMessage" rows="2"></textarea></div>
 
           <div class="trip-form-section"><h4>८. Media</h4></div>
-          <div class="field full-span"><label>Gallery Image URLs (one per line)</label><textarea name="GalleryURLs" rows="4"></textarea></div>
+          <div class="field full-span">
+            <label>Gallery Images</label>
+            <textarea name="GalleryURLs" id="tripGalleryUrls" rows="4"
+                      placeholder="Upload भएका image URL हरू यहाँ one per line आउँछन् । Manual URL पनि थप्न सकिन्छ ।"></textarea>
+
+            <div class="trip-media-upload-box">
+              <div class="trip-media-upload-row">
+                <input id="tripGalleryImageFiles"
+                       type="file"
+                       accept="image/jpeg,image/png,image/webp"
+                       multiple>
+                <button id="tripGalleryUploadBtn"
+                        type="button"
+                        class="btn btn-soft">
+                  🖼️ Gallery Photos Upload
+                </button>
+              </div>
+
+              <small class="trip-upload-note">
+                Multiple photos select गर्न सकिन्छ • प्रति image अधिकतम 5 MB • Upload भएपछि URL list मा स्वतः थपिन्छ ।
+              </small>
+
+              <div id="tripGalleryPreview"
+                   class="trip-gallery-preview"></div>
+            </div>
+          </div>
           <div class="field full-span"><label>Video URLs (one per line)</label><textarea name="VideoURLs" rows="3"></textarea></div>
 
           <div class="trip-form-section"><h4>९. Publish Control</h4></div>
@@ -14223,7 +14326,251 @@ toast("Login सफल भयो ।");
       }
     };
   })();
-  </script>
+  
+    /* =========================================================
+       GTYMS v4.2.4 - Production Trip Media Upload
+       Additive only. Existing Trip save/editor logic unchanged.
+       ========================================================= */
+
+    function tripImageFileToDataUrl(file){
+      return new Promise((resolve,reject)=>{
+        const reader=new FileReader();
+        reader.onload=()=>resolve(String(reader.result||""));
+        reader.onerror=()=>reject(new Error("Image पढ्न सकिएन ।"));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function validateTripImageFile(file){
+      if(!file){
+        throw new Error("पहिले फोटो छान्नुहोस् ।");
+      }
+
+      if(!["image/jpeg","image/png","image/webp"].includes(file.type)){
+        throw new Error("JPG, PNG वा WEBP image मात्र upload गर्न मिल्छ ।");
+      }
+
+      if(file.size>5*1024*1024){
+        throw new Error("प्रति image बढीमा 5 MB हुनुपर्छ ।");
+      }
+    }
+
+    async function uploadTripImageFile(file,imageKind){
+      validateTripImageFile(file);
+
+      const base64Data=
+        await tripImageFileToDataUrl(file);
+
+      const tripId=
+        document.querySelector(
+          '#tripProductionForm [name="TripID"]'
+        )?.value || "";
+
+      return await api(
+        "adminUploadTripImage",
+        {
+          token:state.token,
+          tripId,
+          fileName:file.name,
+          mimeType:file.type,
+          base64Data,
+          imageKind
+        },
+        "POST"
+      );
+    }
+
+    function refreshTripCoverPreview(){
+      const input=$("tripCoverImageUrl");
+      const preview=$("tripCoverPreview");
+      if(!input||!preview)return;
+
+      const url=String(input.value||"").trim();
+
+      if(!url){
+        preview.removeAttribute("src");
+        preview.classList.add("hidden");
+        return;
+      }
+
+      preview.src=url;
+      preview.classList.remove("hidden");
+    }
+
+    function refreshTripGalleryPreview(){
+      const textarea=$("tripGalleryUrls");
+      const wrap=$("tripGalleryPreview");
+      if(!textarea||!wrap)return;
+
+      const urls=
+        String(textarea.value||"")
+          .split(/\r?\n/)
+          .map(v=>v.trim())
+          .filter(Boolean);
+
+      wrap.innerHTML=
+        urls
+          .slice(0,24)
+          .map(url=>`<img src="${esc(url)}" alt="Trip Gallery">`)
+          .join("");
+    }
+
+    function wireTripMediaUpload(){
+      const coverInput=$("tripCoverImageUrl");
+      const coverFile=$("tripCoverImageFile");
+      const coverBtn=$("tripCoverUploadBtn");
+
+      const galleryText=$("tripGalleryUrls");
+      const galleryFiles=$("tripGalleryImageFiles");
+      const galleryBtn=$("tripGalleryUploadBtn");
+
+      if(coverInput){
+        coverInput.onchange=refreshTripCoverPreview;
+        coverInput.oninput=()=>{
+          if(!coverInput.value.trim()){
+            refreshTripCoverPreview();
+          }
+        };
+        refreshTripCoverPreview();
+      }
+
+      if(galleryText){
+        galleryText.onchange=refreshTripGalleryPreview;
+        refreshTripGalleryPreview();
+      }
+
+      if(coverBtn){
+        coverBtn.onclick=async()=>{
+          try{
+            const file=coverFile?.files?.[0];
+            validateTripImageFile(file);
+
+            setButtonBusy(coverBtn,true,"Uploading...");
+
+            const result=
+              await uploadTripImageFile(
+                file,
+                "COVER"
+              );
+
+            if(coverInput){
+              coverInput.value=
+                result.imageUrl||"";
+            }
+
+            refreshTripCoverPreview();
+            toast("Trip Cover Photo upload भयो । अब Save Trip गर्नुहोस् ।");
+
+          }catch(error){
+            toast(
+              error.message ||
+              "Trip Cover Photo upload हुन सकेन ।",
+              "error"
+            );
+          }finally{
+            setButtonBusy(coverBtn,false);
+          }
+        };
+      }
+
+      if(galleryBtn){
+        galleryBtn.onclick=async()=>{
+          const files=
+            Array.from(
+              galleryFiles?.files||[]
+            );
+
+          if(!files.length){
+            toast("पहिले Gallery photo छान्नुहोस् ।","error");
+            return;
+          }
+
+          try{
+            files.forEach(validateTripImageFile);
+
+            setButtonBusy(
+              galleryBtn,
+              true,
+              `Uploading 0/${files.length}...`
+            );
+
+            const uploaded=[];
+
+            for(let i=0;i<files.length;i++){
+              galleryBtn.textContent=
+                `Uploading ${i+1}/${files.length}...`;
+
+              const result=
+                await uploadTripImageFile(
+                  files[i],
+                  "GALLERY"
+                );
+
+              if(result.imageUrl){
+                uploaded.push(result.imageUrl);
+              }
+            }
+
+            const existing=
+              String(galleryText?.value||"")
+                .split(/\r?\n/)
+                .map(v=>v.trim())
+                .filter(Boolean);
+
+            const merged=
+              Array.from(
+                new Set(
+                  existing.concat(uploaded)
+                )
+              );
+
+            if(galleryText){
+              galleryText.value=
+                merged.join("\n");
+            }
+
+            refreshTripGalleryPreview();
+
+            toast(
+              `${uploaded.length} वटा Gallery photo upload भयो । अब Save Trip गर्नुहोस् ।`
+            );
+
+          }catch(error){
+            toast(
+              error.message ||
+              "Gallery photo upload हुन सकेन ।",
+              "error"
+            );
+          }finally{
+            setButtonBusy(galleryBtn,false);
+          }
+        };
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded",()=>{
+      wireTripMediaUpload();
+    });
+
+
+</script>
+
+
+<script>
+/* GTYMS v4.2.4 - keep Trip Media controls wired whenever modal opens */
+(function(){
+  const modal=document.getElementById("tripModal");
+  if(!modal)return;
+
+  const observer=new MutationObserver(()=>{
+    if(!modal.classList.contains("hidden")){
+      try{ wireTripMediaUpload(); }catch(e){ console.warn(e); }
+    }
+  });
+
+  observer.observe(modal,{attributes:true,attributeFilter:["class"]});
+})();
+</script>
 
 </body>
 </html>
