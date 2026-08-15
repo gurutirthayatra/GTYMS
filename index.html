@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- GTYMS Public Website v3.10.8 | Nepali Trip Date/Time + Preview PDF -->
+<!-- GTYMS Public Website v3.10.9 | Nepali Date Fix + A4 PDF -->
 <html lang="ne">
 <head>
   <meta charset="UTF-8" />
@@ -2023,6 +2023,35 @@ body.gtyms-trip-preview-open{overflow:hidden}
   }
 }
 
+
+/* GTYMS v3.10.9 - A4 PDF Download Correction */
+.gtyms-trip-preview-paper{
+  width:210mm;
+  max-width:100%;
+  background:#fff;
+}
+.gtyms-trip-pdf{
+  width:210mm!important;
+  max-width:none!important;
+  min-height:0!important;
+  padding:10mm 12mm 10mm!important;
+  margin:0!important;
+  box-shadow:none!important;
+  background:#fff!important;
+}
+.gtyms-trip-pdf .gtyms-pdf-letterhead{
+  width:100%;
+}
+.gtyms-trip-pdf .gtyms-pdf-summary{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
+@media(max-width:700px){
+  .gtyms-trip-preview-paper{
+    width:210mm;
+    max-width:none;
+  }
+}
+
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
@@ -3622,7 +3651,7 @@ window.GTYMS_UI = (() => {
       host.style.left = "0";
       host.style.top = "0";
       host.style.position = "fixed";
-      host.style.width = "794px";
+      host.style.width = "210mm";
       host.style.opacity = "0.001";
       host.style.zIndex = "-1";
       host.style.pointerEvents = "none";
@@ -3652,7 +3681,7 @@ window.GTYMS_UI = (() => {
       try{
         await window.html2pdf()
           .set({
-            margin:[6,7,8,7],
+            margin:0,
             filename,
             image:{
               type:"jpeg",
@@ -3666,7 +3695,7 @@ window.GTYMS_UI = (() => {
               logging:false,
               scrollX:0,
               scrollY:0,
-              windowWidth:794
+              windowWidth:1123
             },
             jsPDF:{
               unit:"mm",
@@ -3769,13 +3798,25 @@ window.GTYMS_UI = (() => {
     if(!raw)return null;
 
     let m=raw.match(/T(\d{2}):(\d{2})(?::(\d{2}))?/);
-    if(!m){
-      m=raw.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+    if(m){
+      return {
+        hour:Number(m[1]),
+        minute:Number(m[2]),
+        second:Number(m[3]||0)
+      };
     }
+
+    m=raw.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?$/i);
     if(!m)return null;
 
+    let hour=Number(m[1]);
+    const ampm=String(m[4]||"").toUpperCase();
+
+    if(ampm==="PM"&&hour<12)hour+=12;
+    if(ampm==="AM"&&hour===12)hour=0;
+
     return {
-      hour:Number(m[1]),
+      hour,
       minute:Number(m[2]),
       second:Number(m[3]||0)
     };
@@ -3829,7 +3870,18 @@ window.GTYMS_UI = (() => {
     const email=s.COMPANY_EMAIL||s.EMAIL||"gurutirthayatrasewa@gmail.com";
     const base=Number(trip.BasePrice||0), offer=Number(trip.OfferPrice||0), effective=Number(trip.EffectivePrice||offer||base||0), discount=Number(trip.DiscountAmount||0), advance=Number(trip.AdvanceAmount||0);
     const dest=destination.DestinationName||trip.DestinationName||trip.DestinationID||"";
-    const summary=[["यात्रा सुरु मिति",formatNepaliTripDate(trip.StartDate)],["यात्रा समाप्त मिति",formatNepaliTripDate(trip.EndDate)],["अवधि",trip.DurationDays?toNepaliDigits(trip.DurationDays)+" दिन":""],["गन्तव्य",dest],["यात्रा प्रकार",trip.TripCategory||trip.TripType],["सिट क्षमता",trip.TotalSeatCapacity?toNepaliDigits(trip.TotalSeatCapacity)+" सिट":""],["रिपोर्टिङ समय",formatNepaliTripTime(trip.ReportingTime)],["प्रस्थान समय",formatNepaliTripTime(trip.DepartureTime)]].filter(x=>String(x[1]||"").trim());
+    const summary=[
+      ["यात्रा सुरु मिति",formatNepaliTripDate(trip.StartDate)],
+      ["यात्रा समाप्त मिति",formatNepaliTripDate(trip.EndDate)],
+      ["Registration Open",formatNepaliTripDate(trip.RegistrationOpenDate)],
+      ["Registration Close",formatNepaliTripDate(trip.RegistrationCloseDate)],
+      ["अवधि",trip.DurationDays?toNepaliDigits(trip.DurationDays)+" दिन":""],
+      ["गन्तव्य",dest],
+      ["यात्रा प्रकार",trip.TripCategory||trip.TripType],
+      ["सिट क्षमता",trip.TotalSeatCapacity?toNepaliDigits(trip.TotalSeatCapacity)+" सिट":""],
+      ["रिपोर्टिङ समय",formatNepaliTripTime(trip.ReportingTime)],
+      ["प्रस्थान समय",formatNepaliTripTime(trip.DepartureTime)]
+    ].filter(x=>String(x[1]||"").trim());
     const services=[["यात्रु बिमा",pdfBool(trip.InsuranceIncluded)],["Wi-Fi",pdfBool(trip.WiFiIncluded)],["शाकाहारी भोजन",pdfBool(trip.VegetarianFoodIncluded)],["स्वास्थ्य सहायता",pdfBool(trip.HealthSupportIncluded)],["Live Tracking",pdfBool(trip.LiveTrackingEnabled)]];
     const full=sanitizeRichHtmlForPdf(trip.FullDescriptionHTML||trip.FullDescription||trip.ShortDescription||"");
     const inc=sanitizeRichHtmlForPdf(trip.IncludedServicesHTML||"");
