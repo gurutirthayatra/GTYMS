@@ -1678,7 +1678,20 @@ button {
       }
     }
 
-  </style>
+  
+/* GTYMS v3.10.1 - Live Nepal Clock + Top Gmail */
+.gtyms-live-clock{position:relative;overflow:hidden;background:#fff!important;border:3px solid var(--primary);box-shadow:0 5px 14px rgba(139,30,30,.20);color:var(--primary);flex:0 0 48px}
+.gtyms-live-clock::before{content:"";position:absolute;inset:3px;border:1px solid rgba(139,30,30,.20);border-radius:50%}
+.clock-number{position:absolute;z-index:1;font-family:Arial,sans-serif;font-size:7px;line-height:1;font-weight:800;color:#5b1a16}
+.clock-number.n12{top:3px;left:50%;transform:translateX(-50%)} .clock-number.n3{right:4px;top:50%;transform:translateY(-50%)}
+.clock-number.n6{bottom:3px;left:50%;transform:translateX(-50%)} .clock-number.n9{left:4px;top:50%;transform:translateY(-50%)}
+.clock-hand{position:absolute;z-index:3;left:50%;bottom:50%;transform-origin:50% 100%;border-radius:99px}
+.clock-hand.hour{width:2.4px;height:11px;background:#2c1b15}.clock-hand.minute{width:2px;height:15px;background:#2c1b15}.clock-hand.second{width:1px;height:17px;background:#c3261f}
+.clock-pin{position:absolute;z-index:4;width:5px;height:5px;left:50%;top:50%;transform:translate(-50%,-50%);border-radius:50%;background:var(--primary)}
+#topEmailLink{white-space:nowrap}
+@media(max-width:760px){.top-contact{flex-wrap:wrap}#topEmailLink{font-size:.82rem}}
+@media(max-width:620px){.top-contact{width:100%;display:flex;flex-wrap:wrap;column-gap:12px;row-gap:4px}#topEmailLink{flex-basis:100%;white-space:normal;overflow-wrap:anywhere}}
+</style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
@@ -1730,6 +1743,7 @@ button {
       <div class="container top-strip-inner">
         <span id="topNotice">आस्था, सुरक्षा र सेवासहितको पूर्ण यात्रा</span>
         <div class="top-contact">
+          <a id="topEmailLink" href="mailto:gurutirthayatrasewa@gmail.com">✉️ gurutirthayatrasewa@gmail.com</a>
           <a id="topPhoneLink" href="tel:+9779843484934">📞 9843484934</a>
           <a id="topWhatsAppLink" href="https://wa.me/9779843484934?text=%E0%A4%A8%E0%A4%AE%E0%A4%B8%E0%A5%8D%E0%A4%95%E0%A4%BE%E0%A4%B0%20%E0%A4%97%E0%A5%81%E0%A4%B0%E0%A5%81%20%E0%A4%A4%E0%A5%80%E0%A4%B0%E0%A5%8D%E0%A4%A5%E0%A4%AF%E0%A4%BE%E0%A4%A4%E0%A5%8D%E0%A4%B0%E0%A4%BE%20%E0%A4%B8%E0%A5%87%E0%A4%B5%E0%A4%BE%20%E0%A5%A4" target="_blank" rel="noopener">WhatsApp</a>
         </div>
@@ -1738,7 +1752,14 @@ button {
 
     <div class="container navbar">
       <a class="brand" href="index.html" aria-label="Guru Tirtha Yatra Home">
-        <div class="brand-mark">ॐ</div>
+        <div class="brand-mark gtyms-live-clock" id="gtymsLiveClock" aria-label="नेपाल समय">
+          <span class="clock-number n12">12</span><span class="clock-number n3">3</span>
+          <span class="clock-number n6">6</span><span class="clock-number n9">9</span>
+          <span class="clock-hand hour" id="gtymsClockHour"></span>
+          <span class="clock-hand minute" id="gtymsClockMinute"></span>
+          <span class="clock-hand second" id="gtymsClockSecond"></span>
+          <span class="clock-pin"></span>
+        </div>
         <div>
           <strong id="companyName">गुरु तीर्थयात्रा सेवा</strong>
           <small>Guru Tirtha Yatra Management System</small>
@@ -5764,5 +5785,13 @@ window.GTYMS_UI = (() => {
   })();
   </script>
 
+
+<script>
+(function(){
+ function np(){const ps=new Intl.DateTimeFormat("en-US",{timeZone:"Asia/Kathmandu",hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false}).formatToParts(new Date()),x={};ps.forEach(p=>{if(p.type!=="literal")x[p.type]=Number(p.value)});return{h:(x.hour||0)%24,m:x.minute||0,s:x.second||0}}
+ function tick(){const h=document.getElementById("gtymsClockHour"),m=document.getElementById("gtymsClockMinute"),s=document.getElementById("gtymsClockSecond");if(!h||!m||!s)return;const t=np();h.style.transform=`translateX(-50%) rotate(${(t.h%12)*30+t.m*.5+t.s/120}deg)`;m.style.transform=`translateX(-50%) rotate(${t.m*6+t.s*.1}deg)`;s.style.transform=`translateX(-50%) rotate(${t.s*6}deg)`}
+ tick();setInterval(tick,1000);
+})();
+</script>
 </body>
 </html>
