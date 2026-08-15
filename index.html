@@ -1848,6 +1848,34 @@ body.gtyms-clock-open{overflow:hidden}
 .gtyms-tithi{margin-top:10px;padding:10px 14px;border:1px solid rgba(212,160,23,.35);border-radius:14px;background:rgba(255,248,234,.92);text-align:center;color:var(--primary-dark)}
 .gtyms-tithi-label{display:block;margin-bottom:2px;color:#8a6a55;font-size:.78rem;font-weight:700}.gtyms-tithi strong{display:block;font-size:1rem;line-height:1.45}
 @media(max-width:620px){.gtyms-tithi{margin-top:8px;padding:8px 10px}.gtyms-tithi strong{font-size:.92rem}}
+
+/* GTYMS v3.10.6 - Production Trip Dynamic PDF (additive only) */
+.trip-pdf-btn{white-space:nowrap}
+.gtyms-pdf-host{position:fixed;left:-100000px;top:0;width:794px;background:#fff;z-index:-1;pointer-events:none}
+.gtyms-trip-pdf{width:794px;background:#fff;color:#2c1b15;font-family:"Noto Sans Devanagari",Arial,sans-serif;padding:34px 38px 30px;line-height:1.55}
+.gtyms-trip-pdf *{box-sizing:border-box}
+.gtyms-pdf-letterhead{display:grid;grid-template-columns:92px 1fr;gap:18px;align-items:center;padding-bottom:16px;border-bottom:3px solid #8b1e1e}
+.gtyms-pdf-logo{width:86px;height:86px;object-fit:contain}
+.gtyms-pdf-company h1{margin:0 0 5px;color:#8b1e1e;font-size:27px;line-height:1.15}
+.gtyms-pdf-company p{margin:2px 0;font-size:12.5px}
+.gtyms-pdf-title-block{padding:19px 0 14px;text-align:center}
+.gtyms-pdf-title-block .label{color:#8b1e1e;font-weight:800;font-size:14px}
+.gtyms-pdf-title-block h2{margin:5px 0 2px;font-size:24px;line-height:1.3}
+.gtyms-pdf-trip-code{color:#6f625c;font-size:12px}
+.gtyms-pdf-cover{width:100%;max-height:310px;object-fit:cover;border-radius:14px;margin:8px 0 18px;border:1px solid #eadbc7}
+.gtyms-pdf-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:18px}
+.gtyms-pdf-summary-item{padding:11px 13px;border:1px solid #eadbc7;border-radius:10px;background:#fff8ea}
+.gtyms-pdf-summary-item span{display:block;color:#6f625c;font-size:11px;margin-bottom:3px}
+.gtyms-pdf-summary-item strong{display:block;font-size:14px}
+.gtyms-pdf-section{margin-top:18px;page-break-inside:avoid}
+.gtyms-pdf-section h3{margin:0 0 9px;padding:8px 11px;border-left:5px solid #8b1e1e;background:#fff8ea;color:#8b1e1e;font-size:16px}
+.gtyms-pdf-section p,.gtyms-pdf-rich{font-size:13px}
+.gtyms-pdf-rich p{margin:6px 0}.gtyms-pdf-rich ul,.gtyms-pdf-rich ol{margin:7px 0 7px 22px;padding:0}.gtyms-pdf-rich li{margin:3px 0}
+.gtyms-pdf-service-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.gtyms-pdf-service{padding:8px 10px;border:1px solid #eadbc7;border-radius:9px;font-size:12.5px}
+.gtyms-pdf-price-box{margin-top:8px;border:2px solid #8b1e1e;border-radius:13px;padding:13px 16px;background:#fffaf4}.gtyms-pdf-price-row{display:flex;justify-content:space-between;gap:20px;padding:4px 0;font-size:13px}.gtyms-pdf-price-row.total{margin-top:5px;padding-top:8px;border-top:1px solid #eadbc7;font-size:16px;color:#8b1e1e;font-weight:800}
+.gtyms-pdf-footer{margin-top:25px;padding-top:12px;border-top:2px solid #d4a017;text-align:center;color:#6f625c;font-size:11px}.gtyms-pdf-footer strong{display:block;color:#8b1e1e;font-size:12px;margin-bottom:2px}
+@media(max-width:620px){.card-actions .trip-pdf-btn{width:100%}}
+
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
@@ -2670,6 +2698,7 @@ body.gtyms-clock-open{overflow:hidden}
   <button id="backToTop" class="back-to-top" type="button" aria-label="माथि जानुहोस्">↑</button>
 
   <div id="toast" class="toast hidden" role="status"></div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script>
 /**
  * GTYMS GitHub Frontend Configuration
@@ -3264,6 +3293,10 @@ window.GTYMS_UI = (() => {
                       : "Registration बन्द"
                 }
               </button>
+
+              <button class="btn btn-secondary trip-pdf-btn" type="button" data-id="${UI.escapeHtml(trip.TripID || "")}">
+                📄 यात्रा विवरण PDF
+              </button>
             </div>
           </div>
         </article>
@@ -3280,8 +3313,82 @@ window.GTYMS_UI = (() => {
         );
       });
     });
+
+    grid.querySelectorAll(".trip-pdf-btn").forEach((button) => {
+      button.addEventListener("click", () => downloadTripDetailsPdf(button.dataset.id, button));
+    });
   }
 
+
+
+  /* GTYMS v3.10.6 - Dynamic Production Trip PDF */
+  async function downloadTripDetailsPdf(tripId,button){
+    if(!tripId){UI.showToast("Trip ID उपलब्ध छैन ।","error");return;}
+    const old=button?button.innerHTML:"";
+    try{
+      if(button){button.disabled=true;button.textContent="PDF तयार हुँदैछ...";}
+      UI.showLoading("यात्रा विवरण PDF तयार हुँदैछ...");
+      if(typeof window.html2pdf!=="function")throw new Error("PDF library load हुन सकेन । पुनः प्रयास गर्नुहोस् ।");
+      const data=await API.get("getTripDetails",{tripId});
+      const trip=data?.trip||{}, destination=data?.destination||{};
+      if(!trip.TripID)throw new Error("Trip विवरण भेटिएन ।");
+      const logo=await imageToDataUrlForPdf("logo.png");
+      const cover=await imageToDataUrlForPdf(trip.CoverImageURL||"");
+      const host=document.createElement("div"); host.className="gtyms-pdf-host";
+      const report=document.createElement("div"); report.className="gtyms-trip-pdf";
+      report.innerHTML=buildTripPdfHtml(trip,destination,logo,cover); host.appendChild(report); document.body.appendChild(host);
+      await waitForPdfImages(report);
+      const filename=sanitizePdfFileName(trip.TripTitle||trip.TripCode||trip.TripID||"GTYMS-Trip")+"-Yatra-Details.pdf";
+      try{await window.html2pdf().set({margin:[7,7,9,7],filename,image:{type:"jpeg",quality:.96},html2canvas:{scale:2,useCORS:true,allowTaint:false,backgroundColor:"#ffffff",logging:false},jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},pagebreak:{mode:["css","legacy"],avoid:[".gtyms-pdf-summary-item",".gtyms-pdf-price-box"]}}).from(report).save();}
+      finally{host.remove();}
+      UI.showToast("यात्रा विवरण PDF तयार भयो ।");
+    }catch(e){console.error("GTYMS Trip PDF Error",e);UI.showToast(e.message||"PDF तयार हुन सकेन ।","error");}
+    finally{UI.hideLoading();if(button){button.disabled=false;button.innerHTML=old||"📄 यात्रा विवरण PDF";}}
+  }
+
+  function buildTripPdfHtml(trip,destination,logo,cover){
+    const s=state.settings||{};
+    const company=s.COMPANY_NAME||"Guru Tirtha Yatra Sewa";
+    const address=s.OFFICE_ADDRESS||"कार्यालयको ठेगाना Admin Settings बाट अद्यावधिक गर्नुहोस् ।";
+    const phone=s.COMPANY_PHONE||s.PHONE||"9843484934";
+    const whatsapp=s.WHATSAPP_NUMBER||s.WHATSAPP||"9843484934";
+    const email=s.COMPANY_EMAIL||s.EMAIL||"gurutirthayatrasewa@gmail.com";
+    const base=Number(trip.BasePrice||0), offer=Number(trip.OfferPrice||0), effective=Number(trip.EffectivePrice||offer||base||0), discount=Number(trip.DiscountAmount||0), advance=Number(trip.AdvanceAmount||0);
+    const dest=destination.DestinationName||trip.DestinationName||trip.DestinationID||"";
+    const summary=[["यात्रा सुरु मिति",trip.StartDate],["यात्रा समाप्त मिति",trip.EndDate],["अवधि",trip.DurationDays?trip.DurationDays+" दिन":""],["गन्तव्य",dest],["यात्रा प्रकार",trip.TripCategory||trip.TripType],["सिट क्षमता",trip.TotalSeatCapacity?trip.TotalSeatCapacity+" सिट":""],["Reporting Time",trip.ReportingTime],["Departure Time",trip.DepartureTime]].filter(x=>String(x[1]||"").trim());
+    const services=[["यात्रु बिमा",pdfBool(trip.InsuranceIncluded)],["Wi-Fi",pdfBool(trip.WiFiIncluded)],["शाकाहारी भोजन",pdfBool(trip.VegetarianFoodIncluded)],["स्वास्थ्य सहायता",pdfBool(trip.HealthSupportIncluded)],["Live Tracking",pdfBool(trip.LiveTrackingEnabled)]];
+    const full=sanitizeRichHtmlForPdf(trip.FullDescriptionHTML||trip.FullDescription||trip.ShortDescription||"");
+    const inc=sanitizeRichHtmlForPdf(trip.IncludedServicesHTML||"");
+    const terms=sanitizeRichHtmlForPdf(trip.TermsAndConditionsHTML||"");
+    const logoHtml=logo?`<img class="gtyms-pdf-logo" src="${pdfAttr(logo)}" alt="GTYMS Logo">`:"";
+    const coverHtml=cover?`<img class="gtyms-pdf-cover" src="${pdfAttr(cover)}" alt="${pdfAttr(trip.TripTitle||"Trip")}">`:"";
+    return `<div class="gtyms-pdf-letterhead"><div>${logoHtml}</div><div class="gtyms-pdf-company"><h1>${pdfText(company)}</h1><p><strong>Office Address:</strong> ${pdfText(address)}</p><p><strong>Phone:</strong> ${pdfText(phone)} &nbsp; | &nbsp; <strong>WhatsApp:</strong> ${pdfText(whatsapp)}</p><p><strong>Email:</strong> ${pdfText(email)}</p></div></div>
+    <div class="gtyms-pdf-title-block"><div class="label">यात्रा प्याकेजको विस्तृत विवरण</div><h2>${pdfText(trip.TripTitle||"")}</h2>${trip.TripCode?`<div class="gtyms-pdf-trip-code">Trip Code: ${pdfText(trip.TripCode)}</div>`:""}</div>${coverHtml}
+    <div class="gtyms-pdf-summary">${summary.map(([l,v])=>`<div class="gtyms-pdf-summary-item"><span>${pdfText(l)}</span><strong>${pdfText(v)}</strong></div>`).join("")}</div>
+    <div class="gtyms-pdf-section"><h3>शुल्क तथा भुक्तानी</h3><div class="gtyms-pdf-price-box">${base>0?`<div class="gtyms-pdf-price-row"><span>Base Price</span><strong>रु. ${formatMoney(base)}</strong></div>`:""}${discount>0?`<div class="gtyms-pdf-price-row"><span>Discount</span><strong>रु. ${formatMoney(discount)}</strong></div>`:""}${offer>0?`<div class="gtyms-pdf-price-row"><span>Offer Price</span><strong>रु. ${formatMoney(offer)}</strong></div>`:""}${advance>0?`<div class="gtyms-pdf-price-row"><span>Advance / Booking Amount</span><strong>रु. ${formatMoney(advance)}</strong></div>`:""}<div class="gtyms-pdf-price-row total"><span>प्रति व्यक्ति प्रभावकारी शुल्क</span><strong>रु. ${formatMoney(effective)}</strong></div></div></div>
+    <div class="gtyms-pdf-section"><h3>बिमा तथा यात्रा सुविधा</h3><div class="gtyms-pdf-service-grid">${services.map(([l,on])=>`<div class="gtyms-pdf-service">${on?"✓":"—"} ${pdfText(l)} : <strong>${on?"समावेश":"उल्लेख छैन"}</strong></div>`).join("")}</div>${trip.MealsIncludedText?`<p><strong>Meals:</strong> ${pdfText(trip.MealsIncludedText)}</p>`:""}</div>
+    ${full?`<div class="gtyms-pdf-section"><h3>यात्राको विस्तृत परिचय</h3><div class="gtyms-pdf-rich">${full}</div></div>`:""}
+    ${inc?`<div class="gtyms-pdf-section"><h3>समावेश सेवा</h3><div class="gtyms-pdf-rich">${inc}</div></div>`:""}
+    ${(trip.BusType||trip.VehicleNumber||trip.HotelName||trip.RoomType)?`<div class="gtyms-pdf-section"><h3>यातायात तथा आवास</h3>${trip.BusType?`<p><strong>Bus Type:</strong> ${pdfText(trip.BusType)}</p>`:""}${trip.VehicleNumber?`<p><strong>Vehicle:</strong> ${pdfText(trip.VehicleNumber)}</p>`:""}${trip.HotelName?`<p><strong>Hotel:</strong> ${pdfText(trip.HotelName)}</p>`:""}${trip.RoomType?`<p><strong>Room Type:</strong> ${pdfText(trip.RoomType)}</p>`:""}</div>`:""}
+    ${(terms||trip.CancellationNote||trip.RegistrationMessage)?`<div class="gtyms-pdf-section"><h3>महत्वपूर्ण नियम तथा सूचना</h3>${terms?`<div class="gtyms-pdf-rich">${terms}</div>`:""}${trip.CancellationNote?`<p><strong>Cancellation:</strong> ${pdfText(trip.CancellationNote)}</p>`:""}${trip.RegistrationMessage?`<p><strong>Registration:</strong> ${pdfText(trip.RegistrationMessage)}</p>`:""}</div>`:""}
+    <div class="gtyms-pdf-footer"><strong>${pdfText(company)}</strong><div>Phone: ${pdfText(phone)} &nbsp; | &nbsp; WhatsApp: ${pdfText(whatsapp)} &nbsp; | &nbsp; ${pdfText(email)}</div><div>Generated from GTYMS • ${pdfText(new Date().toLocaleString("en-GB",{timeZone:"Asia/Kathmandu"}))}</div></div>`;
+  }
+
+  function pdfBool(v){return v===true||["true","1","yes","active","included"].includes(String(v||"").trim().toLowerCase())}
+  function pdfText(v){return UI.escapeHtml(v==null?"":String(v))}
+  function pdfAttr(v){return pdfText(v)}
+  function sanitizeRichHtmlForPdf(value){
+    const html=String(value||"").trim(); if(!html)return "";
+    const allowed=new Set(["P","DIV","BR","B","STRONG","I","EM","U","UL","OL","LI","H1","H2","H3","H4","H5","H6","SPAN"]);
+    const doc=new DOMParser().parseFromString(`<div>${html}</div>`,"text/html"),root=doc.body.firstElementChild;if(!root)return pdfText(html);
+    (function clean(node){Array.from(node.children).forEach(child=>{if(!allowed.has(child.tagName)){child.replaceWith(doc.createTextNode(child.textContent||""));return}Array.from(child.attributes).forEach(a=>child.removeAttribute(a.name));clean(child)})})(root);return root.innerHTML;
+  }
+  async function imageToDataUrlForPdf(url){
+    const src=String(url||"").trim();if(!src)return "";if(src.startsWith("data:image/"))return src;
+    try{const r=await fetch(src,{mode:"cors",cache:"force-cache"});if(!r.ok)return "";const b=await r.blob();return await new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(String(fr.result||""));fr.onerror=rej;fr.readAsDataURL(b)})}catch(e){console.warn("PDF image skipped",src,e);return ""}
+  }
+  function waitForPdfImages(root){const imgs=Array.from(root.querySelectorAll("img"));return Promise.all(imgs.map(img=>new Promise(res=>{if(img.complete)return res();img.onload=res;img.onerror=res;setTimeout(res,5000)})))}
+  function sanitizePdfFileName(v){return String(v||"GTYMS-Trip").replace(/[\\/:*?"<>|]+/g,"-").replace(/\s+/g,"-").replace(/-+/g,"-").replace(/^-|-$/g,"").substring(0,90)||"GTYMS-Trip"}
 
   let bookingTripCache = [];
   let bookingPassengerCounter = 0;
