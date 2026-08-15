@@ -1052,7 +1052,7 @@
 
   <div id="adminApp" class="admin-layout hidden">
     <aside id="sidebar" class="sidebar">
-      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v4.2.7 • Nepali Date Save Fix</small></div>
+      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v4.2.8 • Dual AD/BS Date Save</small></div>
       <nav class="nav">
         <button data-view="dashboard" class="active">▦ Dashboard</button>
         <button data-view="launcher">🔗 System Launcher</button>
@@ -1257,6 +1257,7 @@
                    readonly
                    required>
             <input type="hidden" id="tripStartDateAd" name="StartDate">
+            <input type="hidden" id="tripStartDateBsValue" name="StartDateBS">
             <small class="muted-text">BS नेपाली पात्रोबाट मिति छान्नुहोस् ।</small>
           </div>
 
@@ -1270,6 +1271,7 @@
                    readonly
                    required>
             <input type="hidden" id="tripEndDateAd" name="EndDate">
+            <input type="hidden" id="tripEndDateBsValue" name="EndDateBS">
             <small class="muted-text">BS नेपाली पात्रोबाट मिति छान्नुहोस् ।</small>
           </div>
           <div class="field">
@@ -1281,6 +1283,7 @@
                    autocomplete="off"
                    readonly>
             <input type="hidden" id="tripRegistrationOpenAd" name="RegistrationOpenDate">
+            <input type="hidden" id="tripRegistrationOpenBsValue" name="RegistrationOpenDateBS">
           </div>
 
           <div class="field">
@@ -1292,6 +1295,7 @@
                    autocomplete="off"
                    readonly>
             <input type="hidden" id="tripRegistrationCloseAd" name="RegistrationCloseDate">
+            <input type="hidden" id="tripRegistrationCloseBsValue" name="RegistrationCloseDateBS">
           </div>
           <div class="field"><label>Reporting Time</label><input type="time" name="ReportingTime"></div>
           <div class="field"><label>Departure Time</label><input type="time" name="DepartureTime"></div>
@@ -8343,39 +8347,53 @@ toast("Login सफल भयो ।");
     }
 
     const GTYMS_TRIP_DATE_FIELDS = [
-      ["tripStartDateBs","tripStartDateAd",true],
-      ["tripEndDateBs","tripEndDateAd",true],
-      ["tripRegistrationOpenBs","tripRegistrationOpenAd",false],
-      ["tripRegistrationCloseBs","tripRegistrationCloseAd",false]
+      ["tripStartDateBs","tripStartDateAd","tripStartDateBsValue",true],
+      ["tripEndDateBs","tripEndDateAd","tripEndDateBsValue",true],
+      ["tripRegistrationOpenBs","tripRegistrationOpenAd","tripRegistrationOpenBsValue",false],
+      ["tripRegistrationCloseBs","tripRegistrationCloseAd","tripRegistrationCloseBsValue",false]
     ];
 
-    function updateTripHiddenAdFromBs(bsId,adId){
+
+    function updateTripHiddenAdFromBs(bsId,adId,bsValueId){
       const bsInput=$(bsId);
       const adInput=$(adId);
+      const bsHidden=$(bsValueId);
+
       if(!bsInput||!adInput)return "";
 
-      const bsValue=String(bsInput.value||"").trim();
-      if(!bsValue){
+      const raw=
+        tripAsciiDigits(bsInput.value||"")
+          .trim()
+          .replace(/[/.|,]+/g,"-")
+          .replace(/\s+/g,"");
+
+      if(bsHidden){
+        bsHidden.value=raw;
+      }
+
+      if(!raw){
         adInput.value="";
         return "";
       }
 
-      const converted=tripBsToAdRaw(bsValue);
+      const converted=tripBsToAdRaw(raw);
+
       if(converted){
         adInput.value=converted;
       }
+
       return converted;
     }
 
     function ensureTripNepaliDatePickers(){
-      GTYMS_TRIP_DATE_FIELDS.forEach(([bsId,adId])=>{
+      GTYMS_TRIP_DATE_FIELDS.forEach(([bsId,adId,bsValueId])=>{
         const input=$(bsId);
         if(!input)return;
 
         if(input.dataset.syncReady!=="1"){
           ["input","change","blur"].forEach(evt=>{
             input.addEventListener(evt,()=>{
-              updateTripHiddenAdFromBs(bsId,adId);
+              updateTripHiddenAdFromBs(bsId,adId,bsValueId);
             });
           });
           input.dataset.syncReady="1";
@@ -8388,7 +8406,7 @@ toast("Login सफल भयो ।");
             input.nepaliDatePicker({
               onChange:function(){
                 window.setTimeout(
-                  ()=>updateTripHiddenAdFromBs(bsId,adId),
+                  ()=>updateTripHiddenAdFromBs(bsId,adId,bsValueId),
                   0
                 );
               }
@@ -8398,7 +8416,7 @@ toast("Login सफल भयो ।");
             input.NepaliDatePicker({
               onChange:function(){
                 window.setTimeout(
-                  ()=>updateTripHiddenAdFromBs(bsId,adId),
+                  ()=>updateTripHiddenAdFromBs(bsId,adId,bsValueId),
                   0
                 );
               }
@@ -8411,19 +8429,29 @@ toast("Login सफल भयो ।");
       });
     }
 
-    function setTripBsFromAd(bsId,adId){
+
+    function setTripBsFromAd(bsId,adId,bsValueId){
       const bsInput=$(bsId);
       const adInput=$(adId);
+      const bsHidden=$(bsValueId);
+
       if(!bsInput||!adInput)return;
+
       const raw=tripAdToBsRaw(adInput.value||"");
+
       bsInput.value=raw?tripNepaliDigits(raw):"";
+
+      if(bsHidden){
+        bsHidden.value=raw||"";
+      }
     }
 
     function syncTripBsFieldsFromAd(){
-      GTYMS_TRIP_DATE_FIELDS.forEach(([bsId,adId])=>{
-        setTripBsFromAd(bsId,adId);
+      GTYMS_TRIP_DATE_FIELDS.forEach(([bsId,adId,bsValueId])=>{
+        setTripBsFromAd(bsId,adId,bsValueId);
       });
     }
+
 
 
     function syncTripAdFieldsFromBs(){
@@ -8437,49 +8465,42 @@ toast("Login सफल भयो ।");
       const failed=[];
 
       GTYMS_TRIP_DATE_FIELDS.forEach(
-        ([bsId,adId,required])=>{
+        ([bsId,adId,bsValueId,required])=>{
           const bsInput=$(bsId);
           const adInput=$(adId);
+          const bsHidden=$(bsValueId);
 
           if(!bsInput||!adInput)return;
 
-          const bsValue=String(
-            bsInput.value||""
-          ).trim();
+          const canonicalBs=
+            tripAsciiDigits(bsInput.value||"")
+              .trim()
+              .replace(/[/.|,]+/g,"-")
+              .replace(/\s+/g,"");
 
-          if(!bsValue){
+          if(bsHidden){
+            bsHidden.value=canonicalBs;
+          }
+
+          if(!canonicalBs){
             if(required){
-              failed.push(
-                fieldNames[bsId]||bsId
-              );
+              failed.push(fieldNames[bsId]||bsId);
             }else{
               adInput.value="";
+              if(bsHidden)bsHidden.value="";
             }
             return;
           }
 
-          const converted=
-            tripBsToAdRaw(bsValue);
+          const converted=tripBsToAdRaw(canonicalBs);
 
           if(converted){
             adInput.value=converted;
             return;
           }
 
-          const existing=
-            tripNormalizeAdDate(
-              adInput.value||""
-            );
-
-          const existingBs=
-            existing
-              ? tripAdToBsRaw(existing)
-              : "";
-
-          const canonicalBs=
-            tripAsciiDigits(bsValue)
-              .replace(/[/.|,]+/g,"-")
-              .replace(/\s+/g,"");
+          const existing=tripNormalizeAdDate(adInput.value||"");
+          const existingBs=existing?tripAdToBsRaw(existing):"";
 
           if(
             existing &&
@@ -8490,9 +8511,7 @@ toast("Login सफल भयो ।");
             return;
           }
 
-          failed.push(
-            fieldNames[bsId]||bsId
-          );
+          failed.push(fieldNames[bsId]||bsId);
         }
       );
 
@@ -8505,10 +8524,12 @@ toast("Login सफल भयो ।");
 
       if(
         !$("tripStartDateAd")?.value ||
-        !$("tripEndDateAd")?.value
+        !$("tripEndDateAd")?.value ||
+        !$("tripStartDateBsValue")?.value ||
+        !$("tripEndDateBsValue")?.value
       ){
         throw new Error(
-          "Start Date र End Date save गर्न आवश्यक मिति तयार भएन ।"
+          "यात्राको AD र BS दुवै मिति save गर्न तयार भएन ।"
         );
       }
     }
@@ -8568,7 +8589,11 @@ toast("Login सफल भयो ।");
           "tripStartDateAd",
           "tripEndDateAd",
           "tripRegistrationOpenAd",
-          "tripRegistrationCloseAd"
+          "tripRegistrationCloseAd",
+          "tripStartDateBsValue",
+          "tripEndDateBsValue",
+          "tripRegistrationOpenBsValue",
+          "tripRegistrationCloseBsValue"
         ].forEach(id=>{
           const el=$(id);
           if(el)el.value="";
