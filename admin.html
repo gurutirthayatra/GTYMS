@@ -108,64 +108,21 @@
     .rich-editor{min-height:150px;border:1px solid #d7c8ba;border-radius:11px;padding:12px;background:#fff;outline:none}
     .rich-editor:focus{border-color:var(--primary);box-shadow:0 0 0 4px rgba(139,30,30,.09)}
 
-    /* GTYMS v4.2.11 - Trip Rich Text UI (date logic untouched) */
+    /* GTYMS v4.3.0 Trip Rich Text Final */
     .trip-rich-field{grid-column:1/-1}
-    .trip-rich-field .rich-toolbar{
-      display:flex;
-      gap:6px;
-      flex-wrap:wrap;
-      align-items:center;
-      margin-bottom:0;
-      padding:8px;
-      border:1px solid #d7c8ba;
-      border-bottom:0;
-      border-radius:11px 11px 0 0;
-      background:#fbf6f1;
-    }
-    .trip-rich-field .rich-toolbar button,
-    .trip-rich-field .rich-toolbar select,
-    .trip-rich-field .rich-toolbar input[type="color"]{
-      min-height:34px;
-      border:1px solid var(--border);
-      border-radius:7px;
-      background:#fff;
-      color:var(--ink);
-    }
-    .trip-rich-field .rich-toolbar button{
-      min-width:34px;
-      padding:5px 8px;
-      font-weight:800;
-    }
-    .trip-rich-field .rich-toolbar select{
-      padding:4px 7px;
-      max-width:150px;
-    }
-    .trip-rich-field .rich-toolbar input[type="color"]{
-      width:38px;
-      padding:3px;
-    }
-    .trip-rich-field .rich-editor{
-      min-height:130px;
-      border-radius:0 0 11px 11px;
-      line-height:1.65;
-    }
-    .trip-rich-field .rich-editor.small{min-height:90px}
-    .trip-rich-field .rich-editor:empty:before{
-      content:attr(data-placeholder);
-      color:#9b8b82;
-      pointer-events:none;
-    }
-    .trip-rich-separator{
-      width:1px;
-      height:26px;
-      background:#ddcec2;
-      margin:0 2px;
-    }
-    @media(max-width:620px){
-      .trip-rich-field .rich-toolbar{gap:5px;padding:7px}
-      .trip-rich-field .rich-toolbar select{max-width:120px;font-size:12px}
-      .trip-rich-field .rich-editor{min-height:110px}
-    }
+    .trip-rich-field .rich-toolbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:8px;border:1px solid #d7c8ba;border-bottom:0;border-radius:11px 11px 0 0;background:#fbf6f1;margin-bottom:0}
+    .trip-rich-field .rich-toolbar button,.trip-rich-field .rich-toolbar select,.trip-rich-field .rich-toolbar input[type="color"]{min-height:34px;border:1px solid var(--border);border-radius:7px;background:#fff;color:var(--ink)}
+    .trip-rich-field .rich-toolbar button{min-width:34px;padding:5px 8px;font-weight:800}
+    .trip-rich-field .rich-toolbar select{padding:4px 7px;max-width:145px}
+    .trip-rich-field .rich-toolbar input[type="color"]{width:38px;padding:3px}
+    .trip-rich-field .rich-editor{min-height:130px;border-radius:0 0 11px 11px;line-height:1.65;overflow:auto}
+    .trip-rich-field .rich-editor[data-small="true"]{min-height:90px}
+    .trip-rich-field .rich-editor:empty:before{content:attr(data-placeholder);color:#9b8b82;pointer-events:none}
+    .trip-rich-field .rich-editor p{margin:.35em 0}
+    .trip-rich-field .rich-editor ul,.trip-rich-field .rich-editor ol{padding-left:26px}
+    .trip-rich-separator{width:1px;height:26px;background:#ddcec2;margin:0 2px}
+    .rich-toolbar .tool-label{font-size:11px;color:var(--muted);font-weight:700}
+    @media(max-width:620px){.trip-rich-field .rich-toolbar{gap:5px;padding:7px}.trip-rich-field .rich-toolbar select{max-width:118px;font-size:12px}.trip-rich-field .rich-editor{min-height:115px}}
 
     @media(max-width:900px){.trip-summary-grid{grid-template-columns:1fr 1fr}.check-grid{grid-template-columns:1fr 1fr}}
     @media(max-width:540px){.trip-summary-grid,.check-grid{grid-template-columns:1fr}}
@@ -1112,7 +1069,7 @@
 
   <div id="adminApp" class="admin-layout hidden">
     <aside id="sidebar" class="sidebar">
-      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v4.2.11 • Rich Text + Stable Edit Date Restore</small></div>
+      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v4.3.0 • Rich Text + Date Restore Final</small></div>
       <nav class="nav">
         <button data-view="dashboard" class="active">▦ Dashboard</button>
         <button data-view="launcher">🔗 System Launcher</button>
@@ -1419,330 +1376,90 @@
           <div class="field"><label>Room Type</label><input name="RoomType"></div>
 
           <div class="trip-form-section"><h4>७. विवरण — Rich Text</h4></div>
-
-          <div class="field trip-rich-field">
-            <label>Short Description (Rich Text)</label>
+          <div class="field trip-rich-field"><label>Short Description (Rich Text)</label>
             <div class="rich-toolbar" data-editor="tripShortDescription">
-              <select class="rich-format" title="Text Style">
-                <option value="">Style</option>
-                <option value="p">Paragraph</option>
-                <option value="h2">Heading 2</option>
-                <option value="h3">Heading 3</option>
-                <option value="h4">Heading 4</option>
-                <option value="blockquote">Quote</option>
-              </select>
-              <select class="rich-font" title="Font">
-                <option value="">Font</option>
-                <option value="Noto Sans Devanagari">Noto Sans Devanagari</option>
-                <option value="Arial">Arial</option>
-                <option value="Georgia">Georgia</option>
-                <option value="Times New Roman">Times New Roman</option>
-              </select>
-              <select class="rich-size" title="Font Size">
-                <option value="">Size</option>
-                <option value="1">Small</option>
-                <option value="3">Normal</option>
-                <option value="4">Medium</option>
-                <option value="5">Large</option>
-                <option value="6">X-Large</option>
-              </select>
+              <select class="rich-format" title="Text Style"><option value="">Style</option><option value="p">Paragraph</option><option value="h2">Heading 2</option><option value="h3">Heading 3</option><option value="h4">Heading 4</option><option value="blockquote">Quote</option></select>
+              <select class="rich-font" title="Font"><option value="">Font</option><option value="Noto Sans Devanagari">Noto Sans Devanagari</option><option value="Arial">Arial</option><option value="Georgia">Georgia</option><option value="Times New Roman">Times New Roman</option></select>
+              <select class="rich-size" title="Font Size"><option value="">Size</option><option value="1">Small</option><option value="3">Normal</option><option value="4">Medium</option><option value="5">Large</option><option value="6">X-Large</option></select>
               <span class="trip-rich-separator"></span>
-              <button type="button" data-cmd="bold" title="Bold"><b>B</b></button>
-              <button type="button" data-cmd="italic" title="Italic"><i>I</i></button>
-              <button type="button" data-cmd="underline" title="Underline"><u>U</u></button>
-              <button type="button" data-cmd="strikeThrough" title="Strike"><s>S</s></button>
-              <input class="rich-color" type="color" value="#2c1b15" title="Text Color">
-              <input class="rich-highlight" type="color" value="#fff2a8" title="Highlight">
+              <button type="button" data-cmd="bold"><b>B</b></button><button type="button" data-cmd="italic"><i>I</i></button><button type="button" data-cmd="underline"><u>U</u></button><button type="button" data-cmd="strikeThrough"><s>S</s></button>
+              <span class="tool-label">Text</span><input class="rich-color" type="color" value="#2c1b15"><span class="tool-label">BG</span><input class="rich-highlight" type="color" value="#fff2a8">
               <span class="trip-rich-separator"></span>
-              <button type="button" data-cmd="justifyLeft" title="Align Left">⇤</button>
-              <button type="button" data-cmd="justifyCenter" title="Center">↔</button>
-              <button type="button" data-cmd="justifyRight" title="Align Right">⇥</button>
-              <button type="button" data-cmd="justifyFull" title="Justify">☰</button>
-              <button type="button" data-cmd="insertUnorderedList" title="Bullets">• List</button>
-              <button type="button" data-cmd="insertOrderedList" title="Numbering">1. List</button>
-              <button type="button" data-cmd="outdent" title="Outdent">←</button>
-              <button type="button" data-cmd="indent" title="Indent">→</button>
+              <button type="button" data-cmd="justifyLeft">≡</button><button type="button" data-cmd="justifyCenter">≣</button><button type="button" data-cmd="justifyRight">≡→</button><button type="button" data-cmd="justifyFull">☰</button>
+              <button type="button" data-cmd="insertUnorderedList">• List</button><button type="button" data-cmd="insertOrderedList">1. List</button><button type="button" data-cmd="outdent">←</button><button type="button" data-cmd="indent">→</button>
               <span class="trip-rich-separator"></span>
-              <button type="button" data-cmd="createLink" title="Link">🔗</button>
-              <button type="button" data-cmd="unlink" title="Unlink">⛓</button>
-              <button type="button" data-cmd="removeFormat" title="Clear Format">Tx</button>
-              <button type="button" data-cmd="undo" title="Undo">↶</button>
-              <button type="button" data-cmd="redo" title="Redo">↷</button>
-            </div>
-            <div id="tripShortDescription" class="rich-editor small" contenteditable="true"
-                 data-placeholder="Trip card मा देखिने छोटो परिचय..."></div>
-            <input type="hidden" name="ShortDescription" id="tripShortDescriptionValue">
-          </div>
-
-          <div class="field trip-rich-field">
-            <label>Full Description (Rich Text)</label>
+              <button type="button" data-cmd="createLink">🔗</button><button type="button" data-cmd="unlink">⛓</button><button type="button" data-cmd="removeFormat">Tx</button><button type="button" data-cmd="undo">↶</button><button type="button" data-cmd="redo">↷</button>
+            </div><div id="tripShortDescription" class="rich-editor" data-small="true" contenteditable="true" data-placeholder="Home page मा देखिने छोटो परिचय..."></div><input type="hidden" name="ShortDescription" id="tripShortDescriptionValue"></div>
+          <div class="field trip-rich-field"><label>Full Description (Rich Text)</label>
             <div class="rich-toolbar" data-editor="tripFullDescription">
-              <select class="rich-format" title="Text Style">
-                <option value="">Style</option>
-                <option value="p">Paragraph</option>
-                <option value="h2">Heading 2</option>
-                <option value="h3">Heading 3</option>
-                <option value="h4">Heading 4</option>
-                <option value="blockquote">Quote</option>
-              </select>
-              <select class="rich-font" title="Font">
-                <option value="">Font</option>
-                <option value="Noto Sans Devanagari">Noto Sans Devanagari</option>
-                <option value="Arial">Arial</option>
-                <option value="Georgia">Georgia</option>
-                <option value="Times New Roman">Times New Roman</option>
-              </select>
-              <select class="rich-size" title="Font Size">
-                <option value="">Size</option>
-                <option value="1">Small</option>
-                <option value="3">Normal</option>
-                <option value="4">Medium</option>
-                <option value="5">Large</option>
-                <option value="6">X-Large</option>
-              </select>
+              <select class="rich-format" title="Text Style"><option value="">Style</option><option value="p">Paragraph</option><option value="h2">Heading 2</option><option value="h3">Heading 3</option><option value="h4">Heading 4</option><option value="blockquote">Quote</option></select>
+              <select class="rich-font" title="Font"><option value="">Font</option><option value="Noto Sans Devanagari">Noto Sans Devanagari</option><option value="Arial">Arial</option><option value="Georgia">Georgia</option><option value="Times New Roman">Times New Roman</option></select>
+              <select class="rich-size" title="Font Size"><option value="">Size</option><option value="1">Small</option><option value="3">Normal</option><option value="4">Medium</option><option value="5">Large</option><option value="6">X-Large</option></select>
               <span class="trip-rich-separator"></span>
-              <button type="button" data-cmd="bold" title="Bold"><b>B</b></button>
-              <button type="button" data-cmd="italic" title="Italic"><i>I</i></button>
-              <button type="button" data-cmd="underline" title="Underline"><u>U</u></button>
-              <button type="button" data-cmd="strikeThrough" title="Strike"><s>S</s></button>
-              <input class="rich-color" type="color" value="#2c1b15" title="Text Color">
-              <input class="rich-highlight" type="color" value="#fff2a8" title="Highlight">
+              <button type="button" data-cmd="bold"><b>B</b></button><button type="button" data-cmd="italic"><i>I</i></button><button type="button" data-cmd="underline"><u>U</u></button><button type="button" data-cmd="strikeThrough"><s>S</s></button>
+              <span class="tool-label">Text</span><input class="rich-color" type="color" value="#2c1b15"><span class="tool-label">BG</span><input class="rich-highlight" type="color" value="#fff2a8">
               <span class="trip-rich-separator"></span>
-              <button type="button" data-cmd="justifyLeft" title="Align Left">⇤</button>
-              <button type="button" data-cmd="justifyCenter" title="Center">↔</button>
-              <button type="button" data-cmd="justifyRight" title="Align Right">⇥</button>
-              <button type="button" data-cmd="justifyFull" title="Justify">☰</button>
-              <button type="button" data-cmd="insertUnorderedList" title="Bullets">• List</button>
-              <button type="button" data-cmd="insertOrderedList" title="Numbering">1. List</button>
-              <button type="button" data-cmd="outdent" title="Outdent">←</button>
-              <button type="button" data-cmd="indent" title="Indent">→</button>
+              <button type="button" data-cmd="justifyLeft">≡</button><button type="button" data-cmd="justifyCenter">≣</button><button type="button" data-cmd="justifyRight">≡→</button><button type="button" data-cmd="justifyFull">☰</button>
+              <button type="button" data-cmd="insertUnorderedList">• List</button><button type="button" data-cmd="insertOrderedList">1. List</button><button type="button" data-cmd="outdent">←</button><button type="button" data-cmd="indent">→</button>
               <span class="trip-rich-separator"></span>
-              <button type="button" data-cmd="createLink" title="Link">🔗</button>
-              <button type="button" data-cmd="unlink" title="Unlink">⛓</button>
-              <button type="button" data-cmd="removeFormat" title="Clear Format">Tx</button>
-              <button type="button" data-cmd="undo" title="Undo">↶</button>
-              <button type="button" data-cmd="redo" title="Redo">↷</button>
-            </div>
-            <div id="tripFullDescription" class="rich-editor" contenteditable="true"
-                 data-placeholder="यात्राको विस्तृत परिचय..."></div>
-            <input type="hidden" name="FullDescriptionHTML" id="tripFullDescriptionValue">
-          </div>
-
-          <div class="field trip-rich-field">
-            <label>Included Services (Rich Text)</label>
+              <button type="button" data-cmd="createLink">🔗</button><button type="button" data-cmd="unlink">⛓</button><button type="button" data-cmd="removeFormat">Tx</button><button type="button" data-cmd="undo">↶</button><button type="button" data-cmd="redo">↷</button>
+            </div><div id="tripFullDescription" class="rich-editor" contenteditable="true"></div><input type="hidden" name="FullDescriptionHTML" id="tripFullDescriptionValue"></div>
+          <div class="field trip-rich-field"><label>Included Services (Rich Text)</label>
             <div class="rich-toolbar" data-editor="tripIncludedServices">
-              <select class="rich-format" title="Text Style">
-                <option value="">Style</option>
-                <option value="p">Paragraph</option>
-                <option value="h2">Heading 2</option>
-                <option value="h3">Heading 3</option>
-                <option value="h4">Heading 4</option>
-                <option value="blockquote">Quote</option>
-              </select>
-              <select class="rich-font" title="Font">
-                <option value="">Font</option>
-                <option value="Noto Sans Devanagari">Noto Sans Devanagari</option>
-                <option value="Arial">Arial</option>
-                <option value="Georgia">Georgia</option>
-                <option value="Times New Roman">Times New Roman</option>
-              </select>
-              <select class="rich-size" title="Font Size">
-                <option value="">Size</option>
-                <option value="1">Small</option>
-                <option value="3">Normal</option>
-                <option value="4">Medium</option>
-                <option value="5">Large</option>
-                <option value="6">X-Large</option>
-              </select>
+              <select class="rich-format" title="Text Style"><option value="">Style</option><option value="p">Paragraph</option><option value="h2">Heading 2</option><option value="h3">Heading 3</option><option value="h4">Heading 4</option><option value="blockquote">Quote</option></select>
+              <select class="rich-font" title="Font"><option value="">Font</option><option value="Noto Sans Devanagari">Noto Sans Devanagari</option><option value="Arial">Arial</option><option value="Georgia">Georgia</option><option value="Times New Roman">Times New Roman</option></select>
+              <select class="rich-size" title="Font Size"><option value="">Size</option><option value="1">Small</option><option value="3">Normal</option><option value="4">Medium</option><option value="5">Large</option><option value="6">X-Large</option></select>
               <span class="trip-rich-separator"></span>
-              <button type="button" data-cmd="bold" title="Bold"><b>B</b></button>
-              <button type="button" data-cmd="italic" title="Italic"><i>I</i></button>
-              <button type="button" data-cmd="underline" title="Underline"><u>U</u></button>
-              <button type="button" data-cmd="strikeThrough" title="Strike"><s>S</s></button>
-              <input class="rich-color" type="color" value="#2c1b15" title="Text Color">
-              <input class="rich-highlight" type="color" value="#fff2a8" title="Highlight">
+              <button type="button" data-cmd="bold"><b>B</b></button><button type="button" data-cmd="italic"><i>I</i></button><button type="button" data-cmd="underline"><u>U</u></button><button type="button" data-cmd="strikeThrough"><s>S</s></button>
+              <span class="tool-label">Text</span><input class="rich-color" type="color" value="#2c1b15"><span class="tool-label">BG</span><input class="rich-highlight" type="color" value="#fff2a8">
               <span class="trip-rich-separator"></span>
-              <button type="button" data-cmd="justifyLeft" title="Align Left">⇤</button>
-              <button type="button" data-cmd="justifyCenter" title="Center">↔</button>
-              <button type="button" data-cmd="justifyRight" title="Align Right">⇥</button>
-              <button type="button" data-cmd="justifyFull" title="Justify">☰</button>
-              <button type="button" data-cmd="insertUnorderedList" title="Bullets">• List</button>
-              <button type="button" data-cmd="insertOrderedList" title="Numbering">1. List</button>
-              <button type="button" data-cmd="outdent" title="Outdent">←</button>
-              <button type="button" data-cmd="indent" title="Indent">→</button>
+              <button type="button" data-cmd="justifyLeft">≡</button><button type="button" data-cmd="justifyCenter">≣</button><button type="button" data-cmd="justifyRight">≡→</button><button type="button" data-cmd="justifyFull">☰</button>
+              <button type="button" data-cmd="insertUnorderedList">• List</button><button type="button" data-cmd="insertOrderedList">1. List</button><button type="button" data-cmd="outdent">←</button><button type="button" data-cmd="indent">→</button>
               <span class="trip-rich-separator"></span>
-              <button type="button" data-cmd="createLink" title="Link">🔗</button>
-              <button type="button" data-cmd="unlink" title="Unlink">⛓</button>
-              <button type="button" data-cmd="removeFormat" title="Clear Format">Tx</button>
-              <button type="button" data-cmd="undo" title="Undo">↶</button>
-              <button type="button" data-cmd="redo" title="Redo">↷</button>
-            </div>
-            <div id="tripIncludedServices" class="rich-editor" contenteditable="true"
-                 data-placeholder="समावेश सेवा तथा सुविधा..."></div>
-            <input type="hidden" name="IncludedServicesHTML" id="tripIncludedServicesValue">
-          </div>
-
-          <div class="field trip-rich-field">
-            <label>Terms & Conditions / महत्वपूर्ण नियम (Rich Text)</label>
+              <button type="button" data-cmd="createLink">🔗</button><button type="button" data-cmd="unlink">⛓</button><button type="button" data-cmd="removeFormat">Tx</button><button type="button" data-cmd="undo">↶</button><button type="button" data-cmd="redo">↷</button>
+            </div><div id="tripIncludedServices" class="rich-editor" contenteditable="true"></div><input type="hidden" name="IncludedServicesHTML" id="tripIncludedServicesValue"></div>
+          <div class="field trip-rich-field"><label>Terms & Conditions / महत्वपूर्ण नियम (Rich Text)</label>
             <div class="rich-toolbar" data-editor="tripTerms">
-              <select class="rich-format" title="Text Style">
-                <option value="">Style</option>
-                <option value="p">Paragraph</option>
-                <option value="h2">Heading 2</option>
-                <option value="h3">Heading 3</option>
-                <option value="h4">Heading 4</option>
-                <option value="blockquote">Quote</option>
-              </select>
-              <select class="rich-font" title="Font">
-                <option value="">Font</option>
-                <option value="Noto Sans Devanagari">Noto Sans Devanagari</option>
-                <option value="Arial">Arial</option>
-                <option value="Georgia">Georgia</option>
-                <option value="Times New Roman">Times New Roman</option>
-              </select>
-              <select class="rich-size" title="Font Size">
-                <option value="">Size</option>
-                <option value="1">Small</option>
-                <option value="3">Normal</option>
-                <option value="4">Medium</option>
-                <option value="5">Large</option>
-                <option value="6">X-Large</option>
-              </select>
+              <select class="rich-format" title="Text Style"><option value="">Style</option><option value="p">Paragraph</option><option value="h2">Heading 2</option><option value="h3">Heading 3</option><option value="h4">Heading 4</option><option value="blockquote">Quote</option></select>
+              <select class="rich-font" title="Font"><option value="">Font</option><option value="Noto Sans Devanagari">Noto Sans Devanagari</option><option value="Arial">Arial</option><option value="Georgia">Georgia</option><option value="Times New Roman">Times New Roman</option></select>
+              <select class="rich-size" title="Font Size"><option value="">Size</option><option value="1">Small</option><option value="3">Normal</option><option value="4">Medium</option><option value="5">Large</option><option value="6">X-Large</option></select>
               <span class="trip-rich-separator"></span>
-              <button type="button" data-cmd="bold" title="Bold"><b>B</b></button>
-              <button type="button" data-cmd="italic" title="Italic"><i>I</i></button>
-              <button type="button" data-cmd="underline" title="Underline"><u>U</u></button>
-              <button type="button" data-cmd="strikeThrough" title="Strike"><s>S</s></button>
-              <input class="rich-color" type="color" value="#2c1b15" title="Text Color">
-              <input class="rich-highlight" type="color" value="#fff2a8" title="Highlight">
+              <button type="button" data-cmd="bold"><b>B</b></button><button type="button" data-cmd="italic"><i>I</i></button><button type="button" data-cmd="underline"><u>U</u></button><button type="button" data-cmd="strikeThrough"><s>S</s></button>
+              <span class="tool-label">Text</span><input class="rich-color" type="color" value="#2c1b15"><span class="tool-label">BG</span><input class="rich-highlight" type="color" value="#fff2a8">
               <span class="trip-rich-separator"></span>
-              <button type="button" data-cmd="justifyLeft" title="Align Left">⇤</button>
-              <button type="button" data-cmd="justifyCenter" title="Center">↔</button>
-              <button type="button" data-cmd="justifyRight" title="Align Right">⇥</button>
-              <button type="button" data-cmd="justifyFull" title="Justify">☰</button>
-              <button type="button" data-cmd="insertUnorderedList" title="Bullets">• List</button>
-              <button type="button" data-cmd="insertOrderedList" title="Numbering">1. List</button>
-              <button type="button" data-cmd="outdent" title="Outdent">←</button>
-              <button type="button" data-cmd="indent" title="Indent">→</button>
+              <button type="button" data-cmd="justifyLeft">≡</button><button type="button" data-cmd="justifyCenter">≣</button><button type="button" data-cmd="justifyRight">≡→</button><button type="button" data-cmd="justifyFull">☰</button>
+              <button type="button" data-cmd="insertUnorderedList">• List</button><button type="button" data-cmd="insertOrderedList">1. List</button><button type="button" data-cmd="outdent">←</button><button type="button" data-cmd="indent">→</button>
               <span class="trip-rich-separator"></span>
-              <button type="button" data-cmd="createLink" title="Link">🔗</button>
-              <button type="button" data-cmd="unlink" title="Unlink">⛓</button>
-              <button type="button" data-cmd="removeFormat" title="Clear Format">Tx</button>
-              <button type="button" data-cmd="undo" title="Undo">↶</button>
-              <button type="button" data-cmd="redo" title="Redo">↷</button>
-            </div>
-            <div id="tripTerms" class="rich-editor" contenteditable="true"
-                 data-placeholder="महत्वपूर्ण नियम तथा सर्तहरू..."></div>
-            <input type="hidden" name="TermsAndConditionsHTML" id="tripTermsValue">
-          </div>
-
-          <div class="field trip-rich-field">
-            <label>Cancellation Note (Rich Text)</label>
+              <button type="button" data-cmd="createLink">🔗</button><button type="button" data-cmd="unlink">⛓</button><button type="button" data-cmd="removeFormat">Tx</button><button type="button" data-cmd="undo">↶</button><button type="button" data-cmd="redo">↷</button>
+            </div><div id="tripTerms" class="rich-editor" contenteditable="true"></div><input type="hidden" name="TermsAndConditionsHTML" id="tripTermsValue"></div>
+          <div class="field trip-rich-field"><label>Cancellation Note (Rich Text)</label>
             <div class="rich-toolbar" data-editor="tripCancellation">
-              <select class="rich-format" title="Text Style">
-                <option value="">Style</option>
-                <option value="p">Paragraph</option>
-                <option value="h2">Heading 2</option>
-                <option value="h3">Heading 3</option>
-                <option value="h4">Heading 4</option>
-                <option value="blockquote">Quote</option>
-              </select>
-              <select class="rich-font" title="Font">
-                <option value="">Font</option>
-                <option value="Noto Sans Devanagari">Noto Sans Devanagari</option>
-                <option value="Arial">Arial</option>
-                <option value="Georgia">Georgia</option>
-                <option value="Times New Roman">Times New Roman</option>
-              </select>
-              <select class="rich-size" title="Font Size">
-                <option value="">Size</option>
-                <option value="1">Small</option>
-                <option value="3">Normal</option>
-                <option value="4">Medium</option>
-                <option value="5">Large</option>
-                <option value="6">X-Large</option>
-              </select>
+              <select class="rich-format" title="Text Style"><option value="">Style</option><option value="p">Paragraph</option><option value="h2">Heading 2</option><option value="h3">Heading 3</option><option value="h4">Heading 4</option><option value="blockquote">Quote</option></select>
+              <select class="rich-font" title="Font"><option value="">Font</option><option value="Noto Sans Devanagari">Noto Sans Devanagari</option><option value="Arial">Arial</option><option value="Georgia">Georgia</option><option value="Times New Roman">Times New Roman</option></select>
+              <select class="rich-size" title="Font Size"><option value="">Size</option><option value="1">Small</option><option value="3">Normal</option><option value="4">Medium</option><option value="5">Large</option><option value="6">X-Large</option></select>
               <span class="trip-rich-separator"></span>
-              <button type="button" data-cmd="bold" title="Bold"><b>B</b></button>
-              <button type="button" data-cmd="italic" title="Italic"><i>I</i></button>
-              <button type="button" data-cmd="underline" title="Underline"><u>U</u></button>
-              <button type="button" data-cmd="strikeThrough" title="Strike"><s>S</s></button>
-              <input class="rich-color" type="color" value="#2c1b15" title="Text Color">
-              <input class="rich-highlight" type="color" value="#fff2a8" title="Highlight">
+              <button type="button" data-cmd="bold"><b>B</b></button><button type="button" data-cmd="italic"><i>I</i></button><button type="button" data-cmd="underline"><u>U</u></button><button type="button" data-cmd="strikeThrough"><s>S</s></button>
+              <span class="tool-label">Text</span><input class="rich-color" type="color" value="#2c1b15"><span class="tool-label">BG</span><input class="rich-highlight" type="color" value="#fff2a8">
               <span class="trip-rich-separator"></span>
-              <button type="button" data-cmd="justifyLeft" title="Align Left">⇤</button>
-              <button type="button" data-cmd="justifyCenter" title="Center">↔</button>
-              <button type="button" data-cmd="justifyRight" title="Align Right">⇥</button>
-              <button type="button" data-cmd="justifyFull" title="Justify">☰</button>
-              <button type="button" data-cmd="insertUnorderedList" title="Bullets">• List</button>
-              <button type="button" data-cmd="insertOrderedList" title="Numbering">1. List</button>
-              <button type="button" data-cmd="outdent" title="Outdent">←</button>
-              <button type="button" data-cmd="indent" title="Indent">→</button>
+              <button type="button" data-cmd="justifyLeft">≡</button><button type="button" data-cmd="justifyCenter">≣</button><button type="button" data-cmd="justifyRight">≡→</button><button type="button" data-cmd="justifyFull">☰</button>
+              <button type="button" data-cmd="insertUnorderedList">• List</button><button type="button" data-cmd="insertOrderedList">1. List</button><button type="button" data-cmd="outdent">←</button><button type="button" data-cmd="indent">→</button>
               <span class="trip-rich-separator"></span>
-              <button type="button" data-cmd="createLink" title="Link">🔗</button>
-              <button type="button" data-cmd="unlink" title="Unlink">⛓</button>
-              <button type="button" data-cmd="removeFormat" title="Clear Format">Tx</button>
-              <button type="button" data-cmd="undo" title="Undo">↶</button>
-              <button type="button" data-cmd="redo" title="Redo">↷</button>
-            </div>
-            <div id="tripCancellation" class="rich-editor small" contenteditable="true"
-                 data-placeholder="Cancellation / Refund सम्बन्धी सूचना..."></div>
-            <input type="hidden" name="CancellationNote" id="tripCancellationValue">
-          </div>
-
-          <div class="field trip-rich-field">
-            <label>Registration Message (Rich Text)</label>
+              <button type="button" data-cmd="createLink">🔗</button><button type="button" data-cmd="unlink">⛓</button><button type="button" data-cmd="removeFormat">Tx</button><button type="button" data-cmd="undo">↶</button><button type="button" data-cmd="redo">↷</button>
+            </div><div id="tripCancellation" class="rich-editor" data-small="true" contenteditable="true"></div><input type="hidden" name="CancellationNote" id="tripCancellationValue"></div>
+          <div class="field trip-rich-field"><label>Registration Message (Rich Text)</label>
             <div class="rich-toolbar" data-editor="tripRegistration">
-              <select class="rich-format" title="Text Style">
-                <option value="">Style</option>
-                <option value="p">Paragraph</option>
-                <option value="h2">Heading 2</option>
-                <option value="h3">Heading 3</option>
-                <option value="h4">Heading 4</option>
-                <option value="blockquote">Quote</option>
-              </select>
-              <select class="rich-font" title="Font">
-                <option value="">Font</option>
-                <option value="Noto Sans Devanagari">Noto Sans Devanagari</option>
-                <option value="Arial">Arial</option>
-                <option value="Georgia">Georgia</option>
-                <option value="Times New Roman">Times New Roman</option>
-              </select>
-              <select class="rich-size" title="Font Size">
-                <option value="">Size</option>
-                <option value="1">Small</option>
-                <option value="3">Normal</option>
-                <option value="4">Medium</option>
-                <option value="5">Large</option>
-                <option value="6">X-Large</option>
-              </select>
+              <select class="rich-format" title="Text Style"><option value="">Style</option><option value="p">Paragraph</option><option value="h2">Heading 2</option><option value="h3">Heading 3</option><option value="h4">Heading 4</option><option value="blockquote">Quote</option></select>
+              <select class="rich-font" title="Font"><option value="">Font</option><option value="Noto Sans Devanagari">Noto Sans Devanagari</option><option value="Arial">Arial</option><option value="Georgia">Georgia</option><option value="Times New Roman">Times New Roman</option></select>
+              <select class="rich-size" title="Font Size"><option value="">Size</option><option value="1">Small</option><option value="3">Normal</option><option value="4">Medium</option><option value="5">Large</option><option value="6">X-Large</option></select>
               <span class="trip-rich-separator"></span>
-              <button type="button" data-cmd="bold" title="Bold"><b>B</b></button>
-              <button type="button" data-cmd="italic" title="Italic"><i>I</i></button>
-              <button type="button" data-cmd="underline" title="Underline"><u>U</u></button>
-              <button type="button" data-cmd="strikeThrough" title="Strike"><s>S</s></button>
-              <input class="rich-color" type="color" value="#2c1b15" title="Text Color">
-              <input class="rich-highlight" type="color" value="#fff2a8" title="Highlight">
+              <button type="button" data-cmd="bold"><b>B</b></button><button type="button" data-cmd="italic"><i>I</i></button><button type="button" data-cmd="underline"><u>U</u></button><button type="button" data-cmd="strikeThrough"><s>S</s></button>
+              <span class="tool-label">Text</span><input class="rich-color" type="color" value="#2c1b15"><span class="tool-label">BG</span><input class="rich-highlight" type="color" value="#fff2a8">
               <span class="trip-rich-separator"></span>
-              <button type="button" data-cmd="justifyLeft" title="Align Left">⇤</button>
-              <button type="button" data-cmd="justifyCenter" title="Center">↔</button>
-              <button type="button" data-cmd="justifyRight" title="Align Right">⇥</button>
-              <button type="button" data-cmd="justifyFull" title="Justify">☰</button>
-              <button type="button" data-cmd="insertUnorderedList" title="Bullets">• List</button>
-              <button type="button" data-cmd="insertOrderedList" title="Numbering">1. List</button>
-              <button type="button" data-cmd="outdent" title="Outdent">←</button>
-              <button type="button" data-cmd="indent" title="Indent">→</button>
+              <button type="button" data-cmd="justifyLeft">≡</button><button type="button" data-cmd="justifyCenter">≣</button><button type="button" data-cmd="justifyRight">≡→</button><button type="button" data-cmd="justifyFull">☰</button>
+              <button type="button" data-cmd="insertUnorderedList">• List</button><button type="button" data-cmd="insertOrderedList">1. List</button><button type="button" data-cmd="outdent">←</button><button type="button" data-cmd="indent">→</button>
               <span class="trip-rich-separator"></span>
-              <button type="button" data-cmd="createLink" title="Link">🔗</button>
-              <button type="button" data-cmd="unlink" title="Unlink">⛓</button>
-              <button type="button" data-cmd="removeFormat" title="Clear Format">Tx</button>
-              <button type="button" data-cmd="undo" title="Undo">↶</button>
-              <button type="button" data-cmd="redo" title="Redo">↷</button>
-            </div>
-            <div id="tripRegistration" class="rich-editor small" contenteditable="true"
-                 data-placeholder="Registration सम्बन्धी विशेष सूचना..."></div>
-            <input type="hidden" name="RegistrationMessage" id="tripRegistrationValue">
-          </div>
+              <button type="button" data-cmd="createLink">🔗</button><button type="button" data-cmd="unlink">⛓</button><button type="button" data-cmd="removeFormat">Tx</button><button type="button" data-cmd="undo">↶</button><button type="button" data-cmd="redo">↷</button>
+            </div><div id="tripRegistration" class="rich-editor" data-small="true" contenteditable="true"></div><input type="hidden" name="RegistrationMessage" id="tripRegistrationValue"></div>
 
           <div class="trip-form-section"><h4>८. Media</h4></div>
           <div class="field full-span">
@@ -8802,6 +8519,27 @@ toast("Login सफल भयो ।");
       }
     }
 
+
+    function tripCanonicalBsDate_(value){
+      const raw=tripAsciiDigits(value||"").trim().replace(/[/.|,]+/g,"-").replace(/\s+/g,"");
+      const m=raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+      return m?`${m[1]}-${String(Number(m[2])).padStart(2,"0")}-${String(Number(m[3])).padStart(2,"0")}`:"";
+    }
+    function restoreTripDateEditor_(record){
+      [
+        ["tripStartDateBs","tripStartDateAd","tripStartDateBsValue","StartDateBS","StartDate"],
+        ["tripEndDateBs","tripEndDateAd","tripEndDateBsValue","EndDateBS","EndDate"],
+        ["tripRegistrationOpenBs","tripRegistrationOpenAd","tripRegistrationOpenBsValue","RegistrationOpenDateBS","RegistrationOpenDate"],
+        ["tripRegistrationCloseBs","tripRegistrationCloseAd","tripRegistrationCloseBsValue","RegistrationCloseDateBS","RegistrationCloseDate"]
+      ].forEach(([bsId,adId,bh,bsf,adf])=>{
+        const bi=$(bsId),ai=$(adId),hi=$(bh); if(!bi||!ai)return;
+        const ad=tripNormalizeAdDate(record?.[adf]||"");
+        let bs=tripCanonicalBsDate_(record?.[bsf]||"");
+        if(!bs&&ad)bs=tripAdToBsRaw(ad)||"";
+        ai.value=ad||""; if(hi)hi.value=bs||""; bi.value=bs?tripNepaliDigits(bs):"";
+      });
+    }
+
     function syncTripBsFieldsFromAd(){
       GTYMS_TRIP_DATE_FIELDS.forEach(([bsId,adId,bsValueId])=>{
         setTripBsFromAd(bsId,adId,bsValueId);
@@ -8890,173 +8628,6 @@ toast("Login सफल भयो ।");
       }
     }
 
-
-    /* =========================================================
-       GTYMS v4.2.10 - SAFE EDIT DATE RESTORE
-       Purpose:
-       - Existing Trip edit गर्दा BS dates फेरि छान्नु नपर्ने
-       - Google Sheet / API बाट 2083-05-06T00:00:00+05:45 जस्तो
-         serialized BS value आए पनि केवल 2083-05-06 restore गर्ने
-       - Existing AD + BS dual-date save logic नबिगार्ने
-       ========================================================= */
-
-    function tripExtractDateToken_(value){
-      const raw=
-        tripAsciiDigits(
-          value===null || value===undefined ? "" : String(value)
-        ).trim();
-
-      if(!raw)return "";
-
-      // Handles:
-      // 2083-05-06
-      // 2083-05-06T00:00:00+05:45
-      // 2026-08-22T00:00:00+05:45
-      let m=raw.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
-
-      if(!m){
-        m=raw.match(/(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
-      }
-
-      if(!m)return "";
-
-      return [
-        m[1],
-        String(Number(m[2])).padStart(2,"0"),
-        String(Number(m[3])).padStart(2,"0")
-      ].join("-");
-    }
-
-
-    function tripLooksLikeBsDate_(value){
-      const token=tripExtractDateToken_(value);
-      if(!token)return false;
-
-      const year=Number(token.slice(0,4));
-
-      // Current/modern BS dates are well above normal AD years.
-      return year>=2070 && year<=2199;
-    }
-
-
-    function restoreOneTripDateForEdit_(
-      record,
-      bsInputId,
-      adInputId,
-      bsHiddenId,
-      adField,
-      bsField
-    ){
-      const bsInput=$(bsInputId);
-      const adInput=$(adInputId);
-      const bsHidden=$(bsHiddenId);
-
-      if(!bsInput || !adInput)return;
-
-      let storedAd=
-        tripExtractDateToken_(
-          record && record[adField]!==undefined
-            ? record[adField]
-            : ""
-        );
-
-      let storedBs=
-        tripExtractDateToken_(
-          record && record[bsField]!==undefined
-            ? record[bsField]
-            : ""
-        );
-
-      /*
-       * Safety repair:
-       * केही पुरानो/गलत save भएको record मा StartDate field मै
-       * BS year (2083...) बसेको भए त्यसलाई BS मानेर AD regenerate गर्छ ।
-       */
-      if(storedAd && tripLooksLikeBsDate_(storedAd)){
-        if(!storedBs){
-          storedBs=storedAd;
-        }
-
-        const repairedAd=
-          tripBsToAdRaw(storedBs);
-
-        storedAd=repairedAd || "";
-      }
-
-      /*
-       * Preferred source = saved BS field.
-       * Google Sheets ले BS value लाई Date object बनाएर ISO string पठाए पनि
-       * tripExtractDateToken_() ले YYYY-MM-DD मात्र निकाल्छ ।
-       */
-      if(storedBs && tripLooksLikeBsDate_(storedBs)){
-        const convertedAd=
-          tripBsToAdRaw(storedBs);
-
-        if(convertedAd){
-          storedAd=convertedAd;
-        }
-      }else{
-        /*
-         * Old records मा BS column खाली भए existing AD बाट BS बनाउने ।
-         */
-        storedBs=
-          storedAd
-            ? tripAdToBsRaw(storedAd)
-            : "";
-      }
-
-      bsInput.value=
-        storedBs
-          ? tripNepaliDigits(storedBs)
-          : "";
-
-      if(bsHidden){
-        bsHidden.value=storedBs || "";
-      }
-
-      adInput.value=storedAd || "";
-    }
-
-
-    function restoreTripDateFieldsForEdit_(record={}){
-      restoreOneTripDateForEdit_(
-        record,
-        "tripStartDateBs",
-        "tripStartDateAd",
-        "tripStartDateBsValue",
-        "StartDate",
-        "StartDateBS"
-      );
-
-      restoreOneTripDateForEdit_(
-        record,
-        "tripEndDateBs",
-        "tripEndDateAd",
-        "tripEndDateBsValue",
-        "EndDate",
-        "EndDateBS"
-      );
-
-      restoreOneTripDateForEdit_(
-        record,
-        "tripRegistrationOpenBs",
-        "tripRegistrationOpenAd",
-        "tripRegistrationOpenBsValue",
-        "RegistrationOpenDate",
-        "RegistrationOpenDateBS"
-      );
-
-      restoreOneTripDateForEdit_(
-        record,
-        "tripRegistrationCloseBs",
-        "tripRegistrationCloseAd",
-        "tripRegistrationCloseBsValue",
-        "RegistrationCloseDate",
-        "RegistrationCloseDateBS"
-      );
-    }
-
-
     function openTripModal(record={}){
       const form=$("tripProductionForm");
       form.reset();
@@ -9105,7 +8676,7 @@ toast("Login सफल भयो ।");
       });
 
       ensureTripNepaliDatePickers();
-      restoreTripDateFieldsForEdit_(record);
+      restoreTripDateEditor_(record);
 
       if(!record.TripID){
         [
@@ -9123,12 +8694,12 @@ toast("Login सफल भयो ।");
         });
       }
 
-      setTripRichValue_("tripShortDescription",record.ShortDescription||"");
-      setTripRichValue_("tripFullDescription",record.FullDescriptionHTML||"");
-      setTripRichValue_("tripIncludedServices",record.IncludedServicesHTML||"");
-      setTripRichValue_("tripTerms",record.TermsAndConditionsHTML||"");
-      setTripRichValue_("tripCancellation",record.CancellationNote||"");
-      setTripRichValue_("tripRegistration",record.RegistrationMessage||"");
+      setTripRichEditorValue_("tripShortDescription",record.ShortDescription||"");
+      setTripRichEditorValue_("tripFullDescription",record.FullDescriptionHTML||"");
+      setTripRichEditorValue_("tripIncludedServices",record.IncludedServicesHTML||"");
+      setTripRichEditorValue_("tripTerms",record.TermsAndConditionsHTML||"");
+      setTripRichEditorValue_("tripCancellation",record.CancellationNote||"");
+      setTripRichEditorValue_("tripRegistration",record.RegistrationMessage||"");
 
       $("tripModalTitle").textContent=
         record.TripID
@@ -9145,99 +8716,29 @@ toast("Login सफल भयो ।");
     $("closeTripModal").onclick=closeTripModal;
     $("cancelTripModal").onclick=closeTripModal;
 
-    function setTripRichValue_(editorId,value){
-      const editor=$(editorId);
-      if(!editor)return;
-      const raw=String(value||"");
-      if(/<[^>]+>/.test(raw)){
-        editor.innerHTML=raw;
-      }else{
-        editor.textContent=raw;
-      }
+    function setTripRichEditorValue_(id,value){
+      const e=$(id); if(!e)return; const raw=String(value||"");
+      if(/<[^>]+>/.test(raw))e.innerHTML=raw; else e.textContent=raw;
     }
-
-    function syncTripRichValues_(){
-      [
-        ["tripShortDescription","tripShortDescriptionValue"],
-        ["tripFullDescription","tripFullDescriptionValue"],
-        ["tripIncludedServices","tripIncludedServicesValue"],
-        ["tripTerms","tripTermsValue"],
-        ["tripCancellation","tripCancellationValue"],
-        ["tripRegistration","tripRegistrationValue"]
-      ].forEach(([editorId,inputId])=>{
-        const editor=$(editorId);
-        const input=$(inputId);
-        if(editor&&input){
-          input.value=editor.innerHTML.trim();
-        }
-      });
+    function syncTripRichEditors_(){
+      [["tripShortDescription","tripShortDescriptionValue"],["tripFullDescription","tripFullDescriptionValue"],["tripIncludedServices","tripIncludedServicesValue"],["tripTerms","tripTermsValue"],["tripCancellation","tripCancellationValue"],["tripRegistration","tripRegistrationValue"]].forEach(([e,i])=>{if($(e)&&$(i))$(i).value=$(e).innerHTML.trim()});
     }
-
-    function runTripRichCommand_(editor,cmd,value=null){
-      if(!editor)return;
-      editor.focus();
-      document.execCommand(cmd,false,value);
-    }
-
+    function execTripRich_(editor,cmd,value=null){editor.focus();document.execCommand(cmd,false,value)}
     document.querySelectorAll(".rich-toolbar").forEach(toolbar=>{
-      const editor=$(toolbar.dataset.editor);
-      if(!editor)return;
-
-      toolbar.querySelectorAll("button[data-cmd]").forEach(button=>{
-        button.addEventListener("mousedown",e=>e.preventDefault());
-        button.addEventListener("click",()=>{
-          const cmd=button.dataset.cmd;
-
-          if(cmd==="createLink"){
-            const url=prompt("Link URL लेख्नुहोस्:","https://");
-            if(url&&url!=="https://"){
-              runTripRichCommand_(editor,"createLink",url);
-            }
-            return;
-          }
-
-          runTripRichCommand_(editor,cmd,null);
-        });
-      });
-
-      toolbar.querySelector(".rich-format")?.addEventListener("change",e=>{
-        if(e.target.value){
-          runTripRichCommand_(editor,"formatBlock",e.target.value);
-          e.target.value="";
-        }
-      });
-
-      toolbar.querySelector(".rich-font")?.addEventListener("change",e=>{
-        if(e.target.value){
-          runTripRichCommand_(editor,"fontName",e.target.value);
-          e.target.value="";
-        }
-      });
-
-      toolbar.querySelector(".rich-size")?.addEventListener("change",e=>{
-        if(e.target.value){
-          runTripRichCommand_(editor,"fontSize",e.target.value);
-          e.target.value="";
-        }
-      });
-
-      toolbar.querySelector(".rich-color")?.addEventListener("input",e=>{
-        runTripRichCommand_(editor,"foreColor",e.target.value);
-      });
-
-      toolbar.querySelector(".rich-highlight")?.addEventListener("input",e=>{
-        editor.focus();
-        if(!document.execCommand("hiliteColor",false,e.target.value)){
-          document.execCommand("backColor",false,e.target.value);
-        }
-      });
+      const editor=$(toolbar.dataset.editor); if(!editor)return;
+      toolbar.querySelectorAll("button[data-cmd]").forEach(b=>{b.addEventListener("mousedown",e=>e.preventDefault());b.addEventListener("click",()=>{const c=b.dataset.cmd;if(c==="createLink"){const u=prompt("Link URL लेख्नुहोस्:","https://");if(u&&u!=="https://")execTripRich_(editor,"createLink",u)}else execTripRich_(editor,c,null)})});
+      toolbar.querySelector(".rich-format")?.addEventListener("change",e=>{if(e.target.value)execTripRich_(editor,"formatBlock",e.target.value);e.target.value=""});
+      toolbar.querySelector(".rich-font")?.addEventListener("change",e=>{if(e.target.value)execTripRich_(editor,"fontName",e.target.value);e.target.value=""});
+      toolbar.querySelector(".rich-size")?.addEventListener("change",e=>{if(e.target.value)execTripRich_(editor,"fontSize",e.target.value);e.target.value=""});
+      toolbar.querySelector(".rich-color")?.addEventListener("input",e=>execTripRich_(editor,"foreColor",e.target.value));
+      toolbar.querySelector(".rich-highlight")?.addEventListener("input",e=>{editor.focus();try{document.execCommand("hiliteColor",false,e.target.value)}catch(_){document.execCommand("backColor",false,e.target.value)}});
     });
 
     $("tripProductionForm")
       .addEventListener("submit",async e=>{
         e.preventDefault();
 
-        syncTripRichValues_();
+        syncTripRichEditors_();
 
         try{
           syncTripAdFieldsFromBs();
