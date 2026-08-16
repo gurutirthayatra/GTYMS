@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- GTYMS Public Website v3.10.19 | Trip Rich Text Support -->
+<!-- GTYMS Public Website v3.10.20 | Trip Display Text Cleanup Fix -->
 <html lang="ne">
 <head>
   <meta charset="UTF-8" />
@@ -6791,10 +6791,37 @@ window.GTYMS_UI = (() => {
 
 
   function plainTripRichText(value) {
+    let raw = String(value || "").trim();
+
+    if (!raw) return "";
+
+    /*
+     * GTYMS v3.10.20
+     * Some older Trip records were saved after HTML brackets had already
+     * been stripped by sanitizeText_(). Example:
+     *   b data-path-to-node="1" data-index-in-node="0"Text/b
+     *
+     * First remove those legacy/mangled editor-tag fragments, then parse
+     * any real HTML that may still be present. This is display-only and
+     * does not change Sheet data.
+     */
+    raw = raw
+      .replace(
+        /(?:^|\s)\/?(?:b|strong|i|em|u|s|strike|span|div|p|h[1-6]|blockquote|ul|ol|li|font|a)\b(?:\s+data-[\w:-]+=(?:"[^"]*"|'[^']*'|[^\s]+))*\s*/gi,
+        " "
+      )
+      .replace(
+        /\s+data-(?:path-to-node|index-in-node|lexical-text|editor|offset-key|block|leaf|text|node-key)\s*=\s*(?:"[^"]*"|'[^']*'|[^\s]+)/gi,
+        " "
+      )
+      .replace(/\/(?:b|strong|i|em|u|s|strike|span|div|p|h[1-6]|blockquote|ul|ol|li|font|a)\b/gi, " ");
+
     const box = document.createElement("div");
-    box.innerHTML = String(value || "");
+    box.innerHTML = raw;
+
     return (box.textContent || box.innerText || "")
       .replace(/\s+/g, " ")
+      .replace(/\s+([।,.!?;:])/g, "$1")
       .trim();
   }
 
