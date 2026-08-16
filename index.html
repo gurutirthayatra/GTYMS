@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- GTYMS Public Website v3.10.18 | Mobile Trip Button Size Fix -->
+<!-- GTYMS Public Website v3.10.19 | Trip Rich Text Support -->
 <html lang="ne">
 <head>
   <meta charset="UTF-8" />
@@ -2184,27 +2184,6 @@ body.gtyms-trip-preview-open{overflow:hidden}
   background:#fff!important;
 }
 
-
-
-/* =========================================================
-   GTYMS v3.10.18 - Mobile Trip Action Button Size Fix
-   Additive only: existing desktop/system logic remains intact.
-   ========================================================= */
-@media (max-width: 620px) {
-  .card-actions .trip-register-btn,
-  .card-actions .trip-pdf-btn {
-    flex: 0 0 auto !important;
-    width: 100% !important;
-    min-height: 46px !important;
-    height: auto !important;
-    padding: 11px 16px !important;
-  }
-
-  .card-actions {
-    gap: 10px !important;
-  }
-}
-
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
@@ -3630,7 +3609,9 @@ window.GTYMS_UI = (() => {
 
             <p>
               ${UI.escapeHtml(
-                trip.ShortDescription || ""
+                plainTripRichText(
+                  trip.ShortDescription || ""
+                )
               )}
             </p>
 
@@ -4254,7 +4235,7 @@ window.GTYMS_UI = (() => {
     ${full?`<div class="gtyms-pdf-section"><h3>यात्राको विस्तृत परिचय</h3><div class="gtyms-pdf-rich">${full}</div></div>`:""}
     ${inc?`<div class="gtyms-pdf-section"><h3>समावेश सेवा</h3><div class="gtyms-pdf-rich">${inc}</div></div>`:""}
     ${(trip.BusType||trip.VehicleNumber||trip.HotelName||trip.RoomType)?`<div class="gtyms-pdf-section"><h3>यातायात तथा आवास</h3>${trip.BusType?`<p><strong>Bus Type:</strong> ${pdfText(trip.BusType)}</p>`:""}${trip.VehicleNumber?`<p><strong>Vehicle:</strong> ${pdfText(trip.VehicleNumber)}</p>`:""}${trip.HotelName?`<p><strong>Hotel:</strong> ${pdfText(trip.HotelName)}</p>`:""}${trip.RoomType?`<p><strong>Room Type:</strong> ${pdfText(trip.RoomType)}</p>`:""}</div>`:""}
-    ${(terms||trip.CancellationNote||trip.RegistrationMessage)?`<div class="gtyms-pdf-section"><h3>महत्वपूर्ण नियम तथा सूचना</h3>${terms?`<div class="gtyms-pdf-rich">${terms}</div>`:""}${trip.CancellationNote?`<p><strong>Cancellation:</strong> ${pdfText(trip.CancellationNote)}</p>`:""}${trip.RegistrationMessage?`<p><strong>Registration:</strong> ${pdfText(trip.RegistrationMessage)}</p>`:""}</div>`:""}
+    ${(terms||trip.CancellationNote||trip.RegistrationMessage)?`<div class="gtyms-pdf-section"><h3>महत्वपूर्ण नियम तथा सूचना</h3>${terms?`<div class="gtyms-pdf-rich">${terms}</div>`:""}${trip.CancellationNote?`<div class="gtyms-pdf-rich"><strong>Cancellation:</strong> ${sanitizeRichHtmlForPdf(trip.CancellationNote)}</div>`:""}${trip.RegistrationMessage?`<div class="gtyms-pdf-rich"><strong>Registration:</strong> ${sanitizeRichHtmlForPdf(trip.RegistrationMessage)}</div>`:""}</div>`:""}
     <div class="gtyms-pdf-footer"><strong>${pdfText(company)}</strong><div>Phone: ${pdfText(phone)} &nbsp; | &nbsp; WhatsApp: ${pdfText(whatsapp)} &nbsp; | &nbsp; ${pdfText(email)}</div><div>Generated from GTYMS • ${pdfText(new Date().toLocaleString("en-GB",{timeZone:"Asia/Kathmandu"}))}</div></div>`;
   }
 
@@ -6741,7 +6722,7 @@ window.GTYMS_UI = (() => {
     const category = document.getElementById("searchType").value.trim().toLowerCase();
 
     const filtered = state.trips.filter((trip) => {
-      const text = `${trip.TripTitle || ""} ${trip.ShortDescription || ""}`.toLowerCase();
+      const text = `${trip.TripTitle || ""} ${plainTripRichText(trip.ShortDescription || "")}`.toLowerCase();
       const matchesKeyword = !keyword || text.includes(keyword);
       const matchesCategory = !category ||
         String(trip.TripCategory || "").toLowerCase() === category;
@@ -6806,6 +6787,15 @@ window.GTYMS_UI = (() => {
       `<div class="empty-card">Apps Script URL राखेपछि गन्तव्य विवरण देखिन्छ ।</div>`;
     document.getElementById("libraryGrid").innerHTML =
       `<div class="empty-card">Apps Script URL राखेपछि डिजिटल सामग्री देखिन्छ ।</div>`;
+  }
+
+
+  function plainTripRichText(value) {
+    const box = document.createElement("div");
+    box.innerHTML = String(value || "");
+    return (box.textContent || box.innerText || "")
+      .replace(/\s+/g, " ")
+      .trim();
   }
 
   function formatMoney(value) {
