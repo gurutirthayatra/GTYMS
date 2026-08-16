@@ -2185,12 +2185,18 @@ body.gtyms-trip-preview-open{overflow:hidden}
 }
 
 
+/* GTYMS v4.3.1 — Trip Card Alignment + Rich Text Display + PDF Safe Fix
+   - Single trip follows normal left-aligned grid (no forced center)
+   - Real Admin Rich Text HTML is preserved
+   - Legacy accidental "bu" marker is removed without bolding whole text
+   - Existing Preview -> Download PDF flow remains unchanged
+*/
 /* GTYMS v3.10.20 Final */
-#tripGrid.gtyms-single-trip{grid-template-columns:minmax(0,380px);justify-content:center}
+#tripGrid.gtyms-single-trip{grid-template-columns:repeat(auto-fit,minmax(280px,380px));justify-content:start}
 .trip-short-rich{line-height:1.7;margin:12px 0;overflow-wrap:anywhere}.trip-short-rich p{margin:.35em 0}.trip-short-rich ul,.trip-short-rich ol{padding-left:24px}
 .gtyms-pdf-detail-row,.gtyms-pdf-rule-row{display:grid;grid-template-columns:150px 1fr;gap:12px;align-items:start;padding:9px 11px;margin-top:8px;border:1px solid #eadbc7;border-radius:9px;background:#fffdfa;font-size:12.5px}
 .gtyms-pdf-detail-row>strong,.gtyms-pdf-rule-row>strong{color:#8b1e1e}.gtyms-pdf-detail-row .gtyms-pdf-rich,.gtyms-pdf-rule-row .gtyms-pdf-rich{font-size:12.5px}
-@media(max-width:620px){#tripGrid.gtyms-single-trip{grid-template-columns:1fr}.card-actions .trip-register-btn,.card-actions .trip-pdf-btn{flex:0 0 auto!important;width:100%!important;min-height:46px!important;height:auto!important;padding:11px 16px!important}.gtyms-pdf-detail-row,.gtyms-pdf-rule-row{grid-template-columns:1fr}}
+@media(max-width:620px){#tripGrid.gtyms-single-trip{grid-template-columns:1fr;justify-content:stretch}.card-actions .trip-register-btn,.card-actions .trip-pdf-btn{flex:0 0 auto!important;width:100%!important;min-height:46px!important;height:auto!important;padding:11px 16px!important}.gtyms-pdf-detail-row,.gtyms-pdf-rule-row{grid-template-columns:1fr}}
 
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -6794,7 +6800,21 @@ window.GTYMS_UI = (() => {
 
   function normalizeLegacyTripRichText(value){
     let raw=String(value||"").trim();
-    if(!/<[^>]+>/.test(raw)&&/^bu(?=[\u0900-\u097F])/i.test(raw))raw="<b><u>"+raw.substring(2)+"</u></b>";
+
+    /*
+      Legacy safety fix:
+      Some older Trip records accidentally stored the editor state marker
+      "bu" in front of plain Nepali text. That marker is NOT real HTML and
+      must never make the whole paragraph Bold + Underline.
+
+      New/current Rich Text values already contain real HTML (<b>, <u>,
+      <span style=...>, etc.), so they pass through unchanged and render
+      exactly as designed in Admin.
+    */
+    if(!/<[^>]+>/.test(raw) && /^bu(?=[\u0900-\u097F])/i.test(raw)){
+      raw=raw.substring(2);
+    }
+
     return raw;
   }
   function sanitizeRichHtmlForDisplay(value){
