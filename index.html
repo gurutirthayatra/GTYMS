@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- GTYMS Public Website v3.10.17 | Stable Direct Server PDF Download -->
+<!-- GTYMS Public Website v3.10.18 | Mobile Trip Button Size Fix -->
 <html lang="ne">
 <head>
   <meta charset="UTF-8" />
@@ -2182,6 +2182,27 @@ body.gtyms-trip-preview-open{overflow:hidden}
   padding:0!important;
   overflow:visible!important;
   background:#fff!important;
+}
+
+
+
+/* =========================================================
+   GTYMS v3.10.18 - Mobile Trip Action Button Size Fix
+   Additive only: existing desktop/system logic remains intact.
+   ========================================================= */
+@media (max-width: 620px) {
+  .card-actions .trip-register-btn,
+  .card-actions .trip-pdf-btn {
+    flex: 0 0 auto !important;
+    width: 100% !important;
+    min-height: 46px !important;
+    height: auto !important;
+    padding: 11px 16px !important;
+  }
+
+  .card-actions {
+    gap: 10px !important;
+  }
 }
 
 </style>
