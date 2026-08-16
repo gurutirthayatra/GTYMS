@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- GTYMS Public Website v3.10.20 | Trip Display Text Cleanup Fix -->
+<!-- GTYMS Public Website v3.10.20 | Rich Text Display + PDF Final -->
 <html lang="ne">
 <head>
   <meta charset="UTF-8" />
@@ -2184,6 +2184,14 @@ body.gtyms-trip-preview-open{overflow:hidden}
   background:#fff!important;
 }
 
+
+/* GTYMS v3.10.20 Final */
+#tripGrid.gtyms-single-trip{grid-template-columns:minmax(0,380px);justify-content:center}
+.trip-short-rich{line-height:1.7;margin:12px 0;overflow-wrap:anywhere}.trip-short-rich p{margin:.35em 0}.trip-short-rich ul,.trip-short-rich ol{padding-left:24px}
+.gtyms-pdf-detail-row,.gtyms-pdf-rule-row{display:grid;grid-template-columns:150px 1fr;gap:12px;align-items:start;padding:9px 11px;margin-top:8px;border:1px solid #eadbc7;border-radius:9px;background:#fffdfa;font-size:12.5px}
+.gtyms-pdf-detail-row>strong,.gtyms-pdf-rule-row>strong{color:#8b1e1e}.gtyms-pdf-detail-row .gtyms-pdf-rich,.gtyms-pdf-rule-row .gtyms-pdf-rich{font-size:12.5px}
+@media(max-width:620px){#tripGrid.gtyms-single-trip{grid-template-columns:1fr}.card-actions .trip-register-btn,.card-actions .trip-pdf-btn{flex:0 0 auto!important;width:100%!important;min-height:46px!important;height:auto!important;padding:11px 16px!important}.gtyms-pdf-detail-row,.gtyms-pdf-rule-row{grid-template-columns:1fr}}
+
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
@@ -3503,6 +3511,8 @@ window.GTYMS_UI = (() => {
     const grid =
       document.getElementById("tripGrid");
 
+    grid.classList.toggle("gtyms-single-trip",trips.length===1);
+
     if (!trips.length) {
       grid.innerHTML =
         `<div class="empty-card">हाल कुनै खुला यात्रा उपलब्ध छैन ।</div>`;
@@ -3607,13 +3617,9 @@ window.GTYMS_UI = (() => {
               )}
             </h3>
 
-            <p>
-              ${UI.escapeHtml(
-                plainTripRichText(
-                  trip.ShortDescription || ""
-                )
-              )}
-            </p>
+            <div class="trip-short-rich">
+              ${sanitizeRichHtmlForDisplay(normalizeLegacyTripRichText(trip.ShortDescription||""))}
+            </div>
 
             <div style="margin-top:12px">
               ${
@@ -4231,23 +4237,18 @@ window.GTYMS_UI = (() => {
     <div class="gtyms-pdf-title-block"><div class="label">यात्रा प्याकेजको विस्तृत विवरण</div><h2>${pdfText(trip.TripTitle||"")}</h2>${trip.TripCode?`<div class="gtyms-pdf-trip-code">Trip Code: ${pdfText(trip.TripCode)}</div>`:""}</div>${coverHtml}
     <div class="gtyms-pdf-summary">${summary.map(([l,v])=>`<div class="gtyms-pdf-summary-item"><span>${pdfText(l)}</span><strong>${pdfText(v)}</strong></div>`).join("")}</div>
     <div class="gtyms-pdf-section"><h3>शुल्क तथा भुक्तानी</h3><div class="gtyms-pdf-price-box">${base>0?`<div class="gtyms-pdf-price-row"><span>Base Price</span><strong>रु. ${formatMoney(base)}</strong></div>`:""}${discount>0?`<div class="gtyms-pdf-price-row"><span>Discount</span><strong>रु. ${formatMoney(discount)}</strong></div>`:""}${offer>0?`<div class="gtyms-pdf-price-row"><span>Offer Price</span><strong>रु. ${formatMoney(offer)}</strong></div>`:""}${advance>0?`<div class="gtyms-pdf-price-row"><span>Advance / Booking Amount</span><strong>रु. ${formatMoney(advance)}</strong></div>`:""}<div class="gtyms-pdf-price-row total"><span>प्रति व्यक्ति प्रभावकारी शुल्क</span><strong>रु. ${formatMoney(effective)}</strong></div></div></div>
-    <div class="gtyms-pdf-section"><h3>बिमा तथा यात्रा सुविधा</h3><div class="gtyms-pdf-service-grid">${services.map(([l,on])=>`<div class="gtyms-pdf-service">${on?"✓":"—"} ${pdfText(l)} : <strong>${on?"समावेश":"उल्लेख छैन"}</strong></div>`).join("")}</div>${trip.MealsIncludedText?`<p><strong>Meals:</strong> ${pdfText(trip.MealsIncludedText)}</p>`:""}</div>
+    <div class="gtyms-pdf-section"><h3>बिमा तथा यात्रा सुविधा</h3><div class="gtyms-pdf-service-grid">${services.map(([l,on])=>`<div class="gtyms-pdf-service">${on?"✓":"—"} ${pdfText(l)} : <strong>${on?"समावेश":"उल्लेख छैन"}</strong></div>`).join("")}</div>${trip.MealsIncludedText?`<div class="gtyms-pdf-detail-row"><strong>भोजन / Meals</strong><div>${pdfText(trip.MealsIncludedText)}</div></div>`:""}</div>
     ${full?`<div class="gtyms-pdf-section"><h3>यात्राको विस्तृत परिचय</h3><div class="gtyms-pdf-rich">${full}</div></div>`:""}
     ${inc?`<div class="gtyms-pdf-section"><h3>समावेश सेवा</h3><div class="gtyms-pdf-rich">${inc}</div></div>`:""}
     ${(trip.BusType||trip.VehicleNumber||trip.HotelName||trip.RoomType)?`<div class="gtyms-pdf-section"><h3>यातायात तथा आवास</h3>${trip.BusType?`<p><strong>Bus Type:</strong> ${pdfText(trip.BusType)}</p>`:""}${trip.VehicleNumber?`<p><strong>Vehicle:</strong> ${pdfText(trip.VehicleNumber)}</p>`:""}${trip.HotelName?`<p><strong>Hotel:</strong> ${pdfText(trip.HotelName)}</p>`:""}${trip.RoomType?`<p><strong>Room Type:</strong> ${pdfText(trip.RoomType)}</p>`:""}</div>`:""}
-    ${(terms||trip.CancellationNote||trip.RegistrationMessage)?`<div class="gtyms-pdf-section"><h3>महत्वपूर्ण नियम तथा सूचना</h3>${terms?`<div class="gtyms-pdf-rich">${terms}</div>`:""}${trip.CancellationNote?`<div class="gtyms-pdf-rich"><strong>Cancellation:</strong> ${sanitizeRichHtmlForPdf(trip.CancellationNote)}</div>`:""}${trip.RegistrationMessage?`<div class="gtyms-pdf-rich"><strong>Registration:</strong> ${sanitizeRichHtmlForPdf(trip.RegistrationMessage)}</div>`:""}</div>`:""}
+    ${(terms||trip.CancellationNote||trip.RegistrationMessage)?`<div class="gtyms-pdf-section"><h3>महत्वपूर्ण नियम तथा सूचना</h3>${terms?`<div class="gtyms-pdf-rich">${terms}</div>`:""}${trip.CancellationNote?`<div class="gtyms-pdf-rule-row"><strong>रद्द / Cancellation</strong><div class="gtyms-pdf-rich">${sanitizeRichHtmlForPdf(trip.CancellationNote)}</div></div>`:""}${trip.RegistrationMessage?`<div class="gtyms-pdf-rule-row"><strong>दर्ता / Registration</strong><div class="gtyms-pdf-rich">${sanitizeRichHtmlForPdf(trip.RegistrationMessage)}</div></div>`:""}</div>`:""}
     <div class="gtyms-pdf-footer"><strong>${pdfText(company)}</strong><div>Phone: ${pdfText(phone)} &nbsp; | &nbsp; WhatsApp: ${pdfText(whatsapp)} &nbsp; | &nbsp; ${pdfText(email)}</div><div>Generated from GTYMS • ${pdfText(new Date().toLocaleString("en-GB",{timeZone:"Asia/Kathmandu"}))}</div></div>`;
   }
 
   function pdfBool(v){return v===true||["true","1","yes","active","included"].includes(String(v||"").trim().toLowerCase())}
   function pdfText(v){return UI.escapeHtml(v==null?"":String(v))}
   function pdfAttr(v){return pdfText(v)}
-  function sanitizeRichHtmlForPdf(value){
-    const html=String(value||"").trim(); if(!html)return "";
-    const allowed=new Set(["P","DIV","BR","B","STRONG","I","EM","U","UL","OL","LI","H1","H2","H3","H4","H5","H6","SPAN"]);
-    const doc=new DOMParser().parseFromString(`<div>${html}</div>`,"text/html"),root=doc.body.firstElementChild;if(!root)return pdfText(html);
-    (function clean(node){Array.from(node.children).forEach(child=>{if(!allowed.has(child.tagName)){child.replaceWith(doc.createTextNode(child.textContent||""));return}Array.from(child.attributes).forEach(a=>child.removeAttribute(a.name));clean(child)})})(root);return root.innerHTML;
-  }
+  function sanitizeRichHtmlForPdf(value){return sanitizeRichHtmlForDisplay(normalizeLegacyTripRichText(value));}
   async function imageToDataUrlForPdf(url){
     const src=String(url||"").trim();if(!src)return "";if(src.startsWith("data:image/"))return src;
     try{const r=await fetch(src,{mode:"cors",cache:"force-cache"});if(!r.ok)return "";const b=await r.blob();return await new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(String(fr.result||""));fr.onerror=rej;fr.readAsDataURL(b)})}catch(e){console.warn("PDF image skipped",src,e);return ""}
@@ -6790,38 +6791,26 @@ window.GTYMS_UI = (() => {
   }
 
 
+
+  function normalizeLegacyTripRichText(value){
+    let raw=String(value||"").trim();
+    if(!/<[^>]+>/.test(raw)&&/^bu(?=[\u0900-\u097F])/i.test(raw))raw="<b><u>"+raw.substring(2)+"</u></b>";
+    return raw;
+  }
+  function sanitizeRichHtmlForDisplay(value){
+    const html=String(value||"").trim();if(!html)return "";
+    const doc=new DOMParser().parseFromString(`<div>${html}</div>`,"text/html"),root=doc.body.firstElementChild;if(!root)return UI.escapeHtml(html);
+    const allowed=new Set(["P","DIV","BR","B","STRONG","I","EM","U","S","STRIKE","UL","OL","LI","H1","H2","H3","H4","H5","H6","SPAN","BLOCKQUOTE","A","FONT"]);
+    const props=new Set(["font-weight","font-style","text-decoration","text-align","color","background-color","font-size","font-family"]);
+    (function clean(node){Array.from(node.children).forEach(child=>{if(!allowed.has(child.tagName)){child.replaceWith(doc.createTextNode(child.textContent||""));return}Array.from(child.attributes).forEach(a=>{const n=a.name.toLowerCase();if(n==="style"){const ok=[];String(a.value||"").split(";").forEach(p=>{const i=p.indexOf(":");if(i<1)return;const k=p.slice(0,i).trim().toLowerCase(),v=p.slice(i+1).trim();if(props.has(k)&&!/url\s*\(|expression\s*\(/i.test(v))ok.push(`${k}:${v}`)});ok.length?child.setAttribute("style",ok.join(";")):child.removeAttribute("style");return}if(child.tagName==="A"&&n==="href"){const h=String(a.value||"").trim();if(!/^(https?:|mailto:|tel:|#)/i.test(h))child.removeAttribute("href");else{child.setAttribute("target","_blank");child.setAttribute("rel","noopener")}return}if(child.tagName==="FONT"&&["face","size","color"].includes(n))return;if(child.tagName==="A"&&["target","rel"].includes(n))return;child.removeAttribute(a.name)});clean(child)})})(root);
+    return root.innerHTML;
+  }
+
   function plainTripRichText(value) {
-    let raw = String(value || "").trim();
-
-    if (!raw) return "";
-
-    /*
-     * GTYMS v3.10.20
-     * Some older Trip records were saved after HTML brackets had already
-     * been stripped by sanitizeText_(). Example:
-     *   b data-path-to-node="1" data-index-in-node="0"Text/b
-     *
-     * First remove those legacy/mangled editor-tag fragments, then parse
-     * any real HTML that may still be present. This is display-only and
-     * does not change Sheet data.
-     */
-    raw = raw
-      .replace(
-        /(?:^|\s)\/?(?:b|strong|i|em|u|s|strike|span|div|p|h[1-6]|blockquote|ul|ol|li|font|a)\b(?:\s+data-[\w:-]+=(?:"[^"]*"|'[^']*'|[^\s]+))*\s*/gi,
-        " "
-      )
-      .replace(
-        /\s+data-(?:path-to-node|index-in-node|lexical-text|editor|offset-key|block|leaf|text|node-key)\s*=\s*(?:"[^"]*"|'[^']*'|[^\s]+)/gi,
-        " "
-      )
-      .replace(/\/(?:b|strong|i|em|u|s|strike|span|div|p|h[1-6]|blockquote|ul|ol|li|font|a)\b/gi, " ");
-
     const box = document.createElement("div");
-    box.innerHTML = raw;
-
+    box.innerHTML = String(value || "");
     return (box.textContent || box.innerText || "")
       .replace(/\s+/g, " ")
-      .replace(/\s+([।,.!?;:])/g, "$1")
       .trim();
   }
 
