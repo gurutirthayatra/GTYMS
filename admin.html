@@ -1052,7 +1052,7 @@
 
   <div id="adminApp" class="admin-layout hidden">
     <aside id="sidebar" class="sidebar">
-      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v4.2.9 • Edit Date Restore Fix</small></div>
+      <div class="brand"><strong>GTYMS Admin Portal</strong><small>v4.2.10 • Stable Edit Date Restore</small></div>
       <nav class="nav">
         <button data-view="dashboard" class="active">▦ Dashboard</button>
         <button data-view="launcher">🔗 System Launcher</button>
@@ -8446,115 +8446,6 @@ toast("Login सफल भयो ।");
       }
     }
 
-    function setTripDateFieldFromRecord(
-      record,
-      bsId,
-      adId,
-      bsValueId,
-      adFieldName,
-      bsFieldName
-    ){
-      const bsInput=$(bsId);
-      const adInput=$(adId);
-      const bsHidden=$(bsValueId);
-
-      if(!bsInput||!adInput)return;
-
-      const savedAd=
-        tripNormalizeAdDate(
-          record?.[adFieldName]||""
-        );
-
-      const savedBs=
-        tripAsciiDigits(
-          record?.[bsFieldName]||""
-        )
-          .trim()
-          .replace(/[/.|,]+/g,"-")
-          .replace(/\s+/g,"");
-
-      /*
-       * EDIT MODE FIX:
-       * If the backend already has the saved BS date, use that exact
-       * date first. This prevents Edit from clearing the Nepali date
-       * and forcing the admin to select the date again.
-       */
-      if(savedBs){
-        bsInput.value=tripNepaliDigits(savedBs);
-        if(bsHidden)bsHidden.value=savedBs;
-
-        if(savedAd){
-          adInput.value=savedAd;
-        }else{
-          const converted=tripBsToAdRaw(savedBs);
-          adInput.value=converted||"";
-        }
-        return;
-      }
-
-      /*
-       * Backward compatibility for old trip rows that only have AD.
-       */
-      if(savedAd){
-        adInput.value=savedAd;
-
-        const convertedBs=tripAdToBsRaw(savedAd);
-        bsInput.value=
-          convertedBs
-            ? tripNepaliDigits(convertedBs)
-            : "";
-
-        if(bsHidden){
-          bsHidden.value=convertedBs||"";
-        }
-        return;
-      }
-
-      bsInput.value="";
-      adInput.value="";
-      if(bsHidden)bsHidden.value="";
-    }
-
-
-    function syncTripBsFieldsFromRecord(record={}){
-      setTripDateFieldFromRecord(
-        record,
-        "tripStartDateBs",
-        "tripStartDateAd",
-        "tripStartDateBsValue",
-        "StartDate",
-        "StartDateBS"
-      );
-
-      setTripDateFieldFromRecord(
-        record,
-        "tripEndDateBs",
-        "tripEndDateAd",
-        "tripEndDateBsValue",
-        "EndDate",
-        "EndDateBS"
-      );
-
-      setTripDateFieldFromRecord(
-        record,
-        "tripRegistrationOpenBs",
-        "tripRegistrationOpenAd",
-        "tripRegistrationOpenBsValue",
-        "RegistrationOpenDate",
-        "RegistrationOpenDateBS"
-      );
-
-      setTripDateFieldFromRecord(
-        record,
-        "tripRegistrationCloseBs",
-        "tripRegistrationCloseAd",
-        "tripRegistrationCloseBsValue",
-        "RegistrationCloseDate",
-        "RegistrationCloseDateBS"
-      );
-    }
-
-
     function syncTripBsFieldsFromAd(){
       GTYMS_TRIP_DATE_FIELDS.forEach(([bsId,adId,bsValueId])=>{
         setTripBsFromAd(bsId,adId,bsValueId);
@@ -8643,6 +8534,173 @@ toast("Login सफल भयो ।");
       }
     }
 
+
+    /* =========================================================
+       GTYMS v4.2.10 - SAFE EDIT DATE RESTORE
+       Purpose:
+       - Existing Trip edit गर्दा BS dates फेरि छान्नु नपर्ने
+       - Google Sheet / API बाट 2083-05-06T00:00:00+05:45 जस्तो
+         serialized BS value आए पनि केवल 2083-05-06 restore गर्ने
+       - Existing AD + BS dual-date save logic नबिगार्ने
+       ========================================================= */
+
+    function tripExtractDateToken_(value){
+      const raw=
+        tripAsciiDigits(
+          value===null || value===undefined ? "" : String(value)
+        ).trim();
+
+      if(!raw)return "";
+
+      // Handles:
+      // 2083-05-06
+      // 2083-05-06T00:00:00+05:45
+      // 2026-08-22T00:00:00+05:45
+      let m=raw.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+
+      if(!m){
+        m=raw.match(/(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+      }
+
+      if(!m)return "";
+
+      return [
+        m[1],
+        String(Number(m[2])).padStart(2,"0"),
+        String(Number(m[3])).padStart(2,"0")
+      ].join("-");
+    }
+
+
+    function tripLooksLikeBsDate_(value){
+      const token=tripExtractDateToken_(value);
+      if(!token)return false;
+
+      const year=Number(token.slice(0,4));
+
+      // Current/modern BS dates are well above normal AD years.
+      return year>=2070 && year<=2199;
+    }
+
+
+    function restoreOneTripDateForEdit_(
+      record,
+      bsInputId,
+      adInputId,
+      bsHiddenId,
+      adField,
+      bsField
+    ){
+      const bsInput=$(bsInputId);
+      const adInput=$(adInputId);
+      const bsHidden=$(bsHiddenId);
+
+      if(!bsInput || !adInput)return;
+
+      let storedAd=
+        tripExtractDateToken_(
+          record && record[adField]!==undefined
+            ? record[adField]
+            : ""
+        );
+
+      let storedBs=
+        tripExtractDateToken_(
+          record && record[bsField]!==undefined
+            ? record[bsField]
+            : ""
+        );
+
+      /*
+       * Safety repair:
+       * केही पुरानो/गलत save भएको record मा StartDate field मै
+       * BS year (2083...) बसेको भए त्यसलाई BS मानेर AD regenerate गर्छ ।
+       */
+      if(storedAd && tripLooksLikeBsDate_(storedAd)){
+        if(!storedBs){
+          storedBs=storedAd;
+        }
+
+        const repairedAd=
+          tripBsToAdRaw(storedBs);
+
+        storedAd=repairedAd || "";
+      }
+
+      /*
+       * Preferred source = saved BS field.
+       * Google Sheets ले BS value लाई Date object बनाएर ISO string पठाए पनि
+       * tripExtractDateToken_() ले YYYY-MM-DD मात्र निकाल्छ ।
+       */
+      if(storedBs && tripLooksLikeBsDate_(storedBs)){
+        const convertedAd=
+          tripBsToAdRaw(storedBs);
+
+        if(convertedAd){
+          storedAd=convertedAd;
+        }
+      }else{
+        /*
+         * Old records मा BS column खाली भए existing AD बाट BS बनाउने ।
+         */
+        storedBs=
+          storedAd
+            ? tripAdToBsRaw(storedAd)
+            : "";
+      }
+
+      bsInput.value=
+        storedBs
+          ? tripNepaliDigits(storedBs)
+          : "";
+
+      if(bsHidden){
+        bsHidden.value=storedBs || "";
+      }
+
+      adInput.value=storedAd || "";
+    }
+
+
+    function restoreTripDateFieldsForEdit_(record={}){
+      restoreOneTripDateForEdit_(
+        record,
+        "tripStartDateBs",
+        "tripStartDateAd",
+        "tripStartDateBsValue",
+        "StartDate",
+        "StartDateBS"
+      );
+
+      restoreOneTripDateForEdit_(
+        record,
+        "tripEndDateBs",
+        "tripEndDateAd",
+        "tripEndDateBsValue",
+        "EndDate",
+        "EndDateBS"
+      );
+
+      restoreOneTripDateForEdit_(
+        record,
+        "tripRegistrationOpenBs",
+        "tripRegistrationOpenAd",
+        "tripRegistrationOpenBsValue",
+        "RegistrationOpenDate",
+        "RegistrationOpenDateBS"
+      );
+
+      restoreOneTripDateForEdit_(
+        record,
+        "tripRegistrationCloseBs",
+        "tripRegistrationCloseAd",
+        "tripRegistrationCloseBsValue",
+        "RegistrationCloseDate",
+        "RegistrationCloseDateBS"
+      );
+    }
+
+
     function openTripModal(record={}){
       const form=$("tripProductionForm");
       form.reset();
@@ -8691,16 +8749,7 @@ toast("Login सफल भयो ।");
       });
 
       ensureTripNepaliDatePickers();
-
-      /*
-       * New trip = blank dates.
-       * Edit trip = restore the already saved BS/AD dates automatically.
-       */
-      if(record.TripID){
-        syncTripBsFieldsFromRecord(record);
-      }else{
-        syncTripBsFieldsFromAd();
-      }
+      restoreTripDateFieldsForEdit_(record);
 
       if(!record.TripID){
         [
